@@ -24,13 +24,22 @@ const linkVariants = cva(
 export interface LinkProps
   extends React.AnchorHTMLAttributes<HTMLAnchorElement>,
     VariantProps<typeof linkVariants> {
-  href: string;
+  href?: string;
   external?: boolean;
   prefetch?: boolean;
 }
 
 const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
   ({ className, variant, href, external = false, prefetch, children, ...props }, ref) => {
+    // If href is undefined, render as span
+    if (!href) {
+      return (
+        <span className={cn(linkVariants({ variant, className }))} ref={ref as any} {...props}>
+          {children}
+        </span>
+      );
+    }
+
     const isExternal = external || href.startsWith('http');
 
     if (isExternal) {

@@ -15,11 +15,21 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SidebarRail, NavItemButton, AccountButton, CTAButton } from '@/components/ui/sidebar-rail';
 import { DiscoverFeedSection } from '@/components/ui/discover-feed-section';
 import { DiscoverContentCardProps } from '@/components/ui/discover-content-card';
+import { AccountPageLayout } from '@/components/ui/account-page-layout';
+import { AccountSidebarNav, AccountSidebarNavItem } from '@/components/ui/account-sidebar-nav';
+import { AccountProfileHeader } from '@/components/ui/account-profile-header';
+import { AccountFieldRow } from '@/components/ui/account-field-row';
+import { SubscriptionPlanCard } from '@/components/ui/subscription-plan-card';
+import { SupportContactSection } from '@/components/ui/support-contact-section';
+import { LoginSessionPanel } from '@/components/ui/login-session-panel';
+import { DangerZoneCard } from '@/components/ui/danger-zone-card';
+import { User, CreditCard, Sliders, Bot, Briefcase, BellRing, Link as LinkIcon, Code2 } from 'lucide-react';
 
 export default function LayoutComponentsPage() {
   const [activePath, setActivePath] = React.useState('/home');
   const [loadMoreHasMore, setLoadMoreHasMore] = React.useState(true);
   const [loadMoreLoading, setLoadMoreLoading] = React.useState(false);
+  const [activeAccountTab, setActiveAccountTab] = React.useState('account');
 
   const sampleFeedItems: DiscoverContentCardProps[] = [
     {
@@ -36,7 +46,7 @@ export default function LayoutComponentsPage() {
       title: 'TypeScript 5.0 베타 출시',
       summary: 'TypeScript 5.0 베타 버전이 공개되었습니다.',
       thumbnailUrl: 'https://images.unsplash.com/photo-1516116216624-53e697fedbea',
-      sources: [{ name: 'TypeScript Team' }],
+      sources: [{ name: 'TypeScript Team', href: '#' }],
       postedAt: '5시간 전',
       stats: { likes: 189, views: 890 },
       href: '#',
@@ -53,11 +63,30 @@ export default function LayoutComponentsPage() {
     },
   ];
 
+  const accountNavItems: AccountSidebarNavItem[] = [
+    { id: 'account', label: '계정', icon: <User className="h-4 w-4" />, path: '/account' },
+    { id: 'preferences', label: '선호 설정', icon: <Sliders className="h-4 w-4" />, path: '/account/preferences' },
+    { id: 'personalization', label: '개인화', icon: <Briefcase className="h-4 w-4" />, path: '/account/personalization' },
+    { id: 'assistant', label: '어시스턴트', icon: <Bot className="h-4 w-4" />, path: '/account/assistant' },
+    { id: 'workspace', label: '작업', icon: <Briefcase className="h-4 w-4" />, path: '/account/workspace' },
+    { id: 'notifications', label: '알림', icon: <BellRing className="h-4 w-4" />, path: '/account/notifications' },
+    { id: 'connections', label: '연결자', icon: <LinkIcon className="h-4 w-4" />, path: '/account/connections' },
+    { id: 'api', label: 'API', icon: <Code2 className="h-4 w-4" />, path: '/account/api' },
+  ];
+
   const navItems = [
     { id: 'sidebar-rail', label: 'SidebarRail' },
     { id: 'card', label: 'Card' },
     { id: 'discover-feed-section', label: 'DiscoverFeedSection' },
     { id: 'visually-hidden', label: 'VisuallyHidden' },
+    { id: 'account-page-layout', label: 'AccountPageLayout' },
+    { id: 'account-sidebar-nav', label: 'AccountSidebarNav' },
+    { id: 'account-profile-header', label: 'AccountProfileHeader' },
+    { id: 'account-field-row', label: 'AccountFieldRow' },
+    { id: 'subscription-plan-card', label: 'SubscriptionPlanCard' },
+    { id: 'support-contact-section', label: 'SupportContactSection' },
+    { id: 'login-session-panel', label: 'LoginSessionPanel' },
+    { id: 'danger-zone-card', label: 'DangerZoneCard' },
   ];
 
   return (
@@ -123,6 +152,7 @@ export default function LayoutComponentsPage() {
                           name: 'John Doe',
                           email: 'john@careerly.com',
                           fallback: 'JD',
+                          path: '/profile',
                         },
                         ctas: [
                           { label: 'Upgrade', icon: Star, variant: 'coral' },
@@ -147,6 +177,7 @@ export default function LayoutComponentsPage() {
                         account: {
                           name: 'Jane Smith',
                           fallback: 'JS',
+                          path: '/profile',
                         },
                       }}
                     />
@@ -164,6 +195,11 @@ export default function LayoutComponentsPage() {
                           { label: 'Dashboard', path: '/dashboard', icon: Home },
                           { label: 'Team', path: '/team', icon: Users },
                         ],
+                        account: {
+                          name: 'Demo User',
+                          fallback: 'DU',
+                          path: '/profile',
+                        },
                       }}
                     />
                   </div>
@@ -203,6 +239,7 @@ export default function LayoutComponentsPage() {
                         name="Alex Johnson"
                         email="alex@careerly.com"
                         fallback="AJ"
+                        path="/profile"
                       />
                     </div>
 
@@ -406,6 +443,242 @@ export default function LayoutComponentsPage() {
   <Play />
 </IconButton>`}
                   </code>
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* AccountPageLayout */}
+            <ComponentShowcase
+              title="AccountPageLayout"
+              description="계정 페이지 공통 레이아웃"
+              usageContext="Account 페이지, Settings 페이지 등"
+            >
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Complete Layout Example</p>
+                  <div className="border border-slate-200 rounded-lg p-6 bg-white">
+                    <AccountPageLayout
+                      sidebar={
+                        <AccountSidebarNav
+                          items={accountNavItems}
+                          activeItem={activeAccountTab}
+                          onNavigate={setActiveAccountTab}
+                        />
+                      }
+                    >
+                      <div className="space-y-6">
+                        <h1 className="text-2xl font-bold text-slate-900">계정 설정</h1>
+                        <p className="text-slate-600">
+                          현재 선택된 탭: <strong>{activeAccountTab}</strong>
+                        </p>
+                        <div className="p-6 bg-slate-50 rounded-lg border border-slate-200">
+                          <p className="text-sm text-slate-600">
+                            메인 콘텐츠 영역입니다. 여기에 실제 페이지 내용이 표시됩니다.
+                          </p>
+                        </div>
+                      </div>
+                    </AccountPageLayout>
+                  </div>
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* AccountSidebarNav */}
+            <ComponentShowcase
+              title="AccountSidebarNav"
+              description="계정 메뉴 리스트 표시"
+              usageContext="Account 사이드바"
+            >
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Icons</p>
+                  <div className="max-w-xs">
+                    <AccountSidebarNav
+                      items={accountNavItems}
+                      activeItem={activeAccountTab}
+                      onNavigate={setActiveAccountTab}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Without Icons</p>
+                  <div className="max-w-xs">
+                    <AccountSidebarNav
+                      items={[
+                        { id: 'general', label: '일반' },
+                        { id: 'security', label: '보안' },
+                        { id: 'privacy', label: '개인정보' },
+                      ]}
+                      activeItem="general"
+                      onNavigate={(id) => console.log('Navigate to:', id)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* AccountProfileHeader */}
+            <ComponentShowcase
+              title="AccountProfileHeader"
+              description="사용자 프로필 헤더"
+              usageContext="Account 페이지 상단"
+            >
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Avatar</p>
+                  <AccountProfileHeader
+                    avatarUrl="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e"
+                    displayName="홍길동"
+                    username="@honggildong"
+                    onChangeAvatar={() => console.log('Change avatar')}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Without Avatar (Fallback)</p>
+                  <AccountProfileHeader
+                    displayName="김철수"
+                    username="@kimcs"
+                    onChangeAvatar={() => console.log('Change avatar')}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">No Edit Button</p>
+                  <AccountProfileHeader
+                    displayName="이영희"
+                    username="@leeyh"
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* AccountFieldRow */}
+            <ComponentShowcase
+              title="AccountFieldRow"
+              description="계정 필드 표시 + 변경 버튼"
+              usageContext="계정 정보 표시"
+            >
+              <div className="space-y-6">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Field List</p>
+                  <div className="max-w-2xl border border-slate-200 rounded-lg p-6 bg-white">
+                    <AccountFieldRow
+                      label="전체 이름"
+                      value="홍길동"
+                      description="프로필에 표시되는 이름입니다"
+                      actionLabel="변경"
+                      onAction={() => console.log('Change name')}
+                    />
+                    <AccountFieldRow
+                      label="사용자 이름"
+                      value="honggildong"
+                      description="고유한 사용자 식별자입니다"
+                      actionLabel="변경"
+                      onAction={() => console.log('Change username')}
+                    />
+                    <AccountFieldRow
+                      label="이메일"
+                      value="hong@example.com"
+                      description="계정 복구 및 알림에 사용됩니다"
+                      actionLabel="변경"
+                      onAction={() => console.log('Change email')}
+                    />
+                    <AccountFieldRow
+                      label="가입일"
+                      value="2024년 1월 15일"
+                    />
+                  </div>
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* SubscriptionPlanCard */}
+            <ComponentShowcase
+              title="SubscriptionPlanCard"
+              description="구독 플랜 카드"
+              usageContext="Account 페이지, 결제 페이지"
+            >
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <SubscriptionPlanCard
+                    planName="Free"
+                    description="기본 기능을 무료로 이용하세요"
+                    features={[
+                      '월 100회 검색',
+                      '기본 AI 분석',
+                      '커뮤니티 지원',
+                    ]}
+                    onUpgrade={() => console.log('Upgrade from Free')}
+                    upgradeLabel="Pro로 업그레이드"
+                  />
+
+                  <SubscriptionPlanCard
+                    planName="Pro"
+                    description="모든 프리미엄 기능 이용 가능"
+                    features={[
+                      '무제한 검색',
+                      '고급 AI 분석',
+                      '우선 지원',
+                      'API 접근',
+                    ]}
+                    isPremium
+                    onUpgrade={() => console.log('Manage subscription')}
+                    upgradeLabel="구독 관리"
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* SupportContactSection */}
+            <ComponentShowcase
+              title="SupportContactSection"
+              description="지원 문의 섹션"
+              usageContext="Account 페이지 하단, Settings"
+            >
+              <div className="space-y-6">
+                <div className="max-w-2xl">
+                  <SupportContactSection
+                    onContactSupport={() => console.log('Contact support')}
+                    helpCenterLink="https://help.careerly.com"
+                    supportEmail="support@careerly.com"
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* LoginSessionPanel */}
+            <ComponentShowcase
+              title="LoginSessionPanel"
+              description="로그인 세션 관리"
+              usageContext="Account 보안 페이지"
+            >
+              <div className="space-y-6">
+                <div className="max-w-md">
+                  <LoginSessionPanel
+                    username="user@example.com"
+                    lastLoginAt="2024년 1월 20일 14:30"
+                    onLogout={() => console.log('Logout')}
+                    onLogoutAllSessions={() => console.log('Logout all sessions')}
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* DangerZoneCard */}
+            <ComponentShowcase
+              title="DangerZoneCard"
+              description="위험 영역 카드"
+              usageContext="Account 삭제, 위험한 작업"
+            >
+              <div className="space-y-6">
+                <div className="max-w-2xl">
+                  <DangerZoneCard
+                    onRequestDeletion={() => console.log('Request account deletion')}
+                    learnMoreLink="https://help.careerly.com/delete-account"
+                    warningMessage="계정을 삭제하면 모든 데이터, 대화 내역, 북마크가 영구적으로 삭제됩니다."
+                  />
                 </div>
               </div>
             </ComponentShowcase>

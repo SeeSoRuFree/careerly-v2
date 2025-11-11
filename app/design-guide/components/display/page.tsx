@@ -19,12 +19,32 @@ import { WeatherInfoCard } from '@/components/ui/weather-info-card';
 import { MarketAssetMiniCard } from '@/components/ui/market-asset-mini-card';
 import { JobMarketTrendCard } from '@/components/ui/job-market-trend-card';
 import { TrendingCompaniesPanel } from '@/components/ui/trending-companies-panel';
+import { SearchQueryHeader } from '@/components/ui/search-query-header';
+import { AnswerResponsePanel } from '@/components/ui/answer-response-panel';
+import { CitationSourceList, CitationSource } from '@/components/ui/citation-source-list';
+import { QuoteSourceLink } from '@/components/ui/quote-source-link';
+import { RelatedQueriesSection, RelatedQuery } from '@/components/ui/related-queries-section';
+import { SearchResultItem } from '@/components/ui/search-result-item';
 
 export default function DisplayComponentsPage() {
   const [chipSelected, setChipSelected] = React.useState(false);
   const [chips, setChips] = React.useState(['React', 'TypeScript', 'Next.js']);
   const [liked, setLiked] = React.useState(false);
   const [bookmarked, setBookmarked] = React.useState(false);
+  const [answerLoading, setAnswerLoading] = React.useState(false);
+  const [answerError, setAnswerError] = React.useState('');
+
+  const citationSources: CitationSource[] = [
+    { id: '1', title: 'React Documentation', faviconUrl: 'https://react.dev/favicon.ico', href: 'https://react.dev' },
+    { id: '2', title: 'MDN Web Docs', href: 'https://developer.mozilla.org' },
+    { id: '3', title: 'Stack Overflow', href: 'https://stackoverflow.com' },
+  ];
+
+  const relatedQueries: RelatedQuery[] = [
+    { id: '1', queryText: 'React 19의 새로운 기능은 무엇인가요?', href: '#' },
+    { id: '2', queryText: 'Next.js와 React의 차이점은?', href: '#' },
+    { id: '3', queryText: 'TypeScript를 React 프로젝트에 어떻게 설정하나요?', href: '#' },
+  ];
 
   const navItems = [
     { id: 'link', label: 'Link' },
@@ -40,6 +60,12 @@ export default function DisplayComponentsPage() {
     { id: 'market-asset-mini-card', label: 'MarketAssetMiniCard' },
     { id: 'job-market-trend-card', label: 'JobMarketTrendCard' },
     { id: 'trending-companies-panel', label: 'TrendingCompaniesPanel' },
+    { id: 'search-query-header', label: 'SearchQueryHeader' },
+    { id: 'answer-response-panel', label: 'AnswerResponsePanel' },
+    { id: 'citation-source-list', label: 'CitationSourceList' },
+    { id: 'quote-source-link', label: 'QuoteSourceLink' },
+    { id: 'related-queries-section', label: 'RelatedQueriesSection' },
+    { id: 'search-result-item', label: 'SearchResultItem' },
   ];
 
   return (
@@ -380,7 +406,7 @@ export default function DisplayComponentsPage() {
                   <DiscoverContentCard
                     title="TypeScript 5.0 베타 출시"
                     summary="TypeScript 5.0 베타 버전이 공개되었습니다. 새로운 기능들을 확인해보세요."
-                    sources={[{ name: 'TypeScript Team' }]}
+                    sources={[{ name: 'TypeScript Team', href: '#' }]}
                     postedAt="5시간 전"
                     stats={{ likes: 189, views: 890 }}
                     href="#"
@@ -558,6 +584,194 @@ export default function DisplayComponentsPage() {
                     },
                   ]}
                 />
+              </div>
+            </ComponentShowcase>
+
+            {/* SearchQueryHeader */}
+            <ComponentShowcase
+              title="SearchQueryHeader"
+              description="검색 질문 표시 헤더"
+              usageContext="검색 결과 페이지 상단, 질문 표시 및 수정"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Edit Button</p>
+                  <SearchQueryHeader
+                    queryText="React 19의 새로운 기능은 무엇인가요?"
+                    onEdit={() => console.log('Edit clicked')}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Long Query</p>
+                  <SearchQueryHeader
+                    queryText="TypeScript와 JavaScript의 주요 차이점과 TypeScript를 사용하면 얻을 수 있는 이점은 무엇이며, 어떤 프로젝트에서 사용하는 것이 좋을까요?"
+                    onEdit={() => console.log('Edit clicked')}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Read Only</p>
+                  <SearchQueryHeader
+                    queryText="Next.js의 App Router와 Pages Router 차이점"
+                    editable={false}
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* AnswerResponsePanel */}
+            <ComponentShowcase
+              title="AnswerResponsePanel"
+              description="AI 답변 표시 패널"
+              usageContext="검색 결과 페이지, 모델 응답 본문"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Answer</p>
+                  <AnswerResponsePanel
+                    answerHtml="<h2>React란?</h2><p>React는 사용자 인터페이스를 구축하기 위한 JavaScript 라이브러리입니다.</p><ul><li>컴포넌트 기반 아키텍처</li><li>가상 DOM 사용</li><li>단방향 데이터 흐름</li></ul><p>React는 Facebook에서 개발하고 유지보수하는 <strong>오픈소스 프로젝트</strong>입니다.</p>"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Loading State</p>
+                  <AnswerResponsePanel loading={true} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Error State</p>
+                  <AnswerResponsePanel
+                    error="답변을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요."
+                    onRetry={() => console.log('Retry clicked')}
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* QuoteSourceLink */}
+            <ComponentShowcase
+              title="QuoteSourceLink"
+              description="개별 출처 링크 컴포넌트"
+              usageContext="인용 출처 표시, CitationSourceList 내부 요소"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Favicon</p>
+                  <div className="flex flex-wrap gap-2">
+                    <QuoteSourceLink
+                      title="React Documentation"
+                      faviconUrl="https://react.dev/favicon.ico"
+                      href="https://react.dev"
+                    />
+                    <QuoteSourceLink
+                      title="MDN Web Docs"
+                      href="https://developer.mozilla.org"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Without Icon</p>
+                  <QuoteSourceLink
+                    title="Stack Overflow"
+                    href="https://stackoverflow.com"
+                    showIcon={false}
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* CitationSourceList */}
+            <ComponentShowcase
+              title="CitationSourceList"
+              description="출처 목록 컴포넌트"
+              usageContext="답변 하단, 출처 신뢰성 표기"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <CitationSourceList sources={citationSources} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Custom Title</p>
+                  <CitationSourceList sources={citationSources} title="참고 자료" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Many Sources</p>
+                  <CitationSourceList
+                    sources={[
+                      ...citationSources,
+                      { id: '4', title: 'GitHub', href: 'https://github.com' },
+                      { id: '5', title: 'Dev.to', href: 'https://dev.to' },
+                      { id: '6', title: 'Medium', href: 'https://medium.com' },
+                    ]}
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* RelatedQueriesSection */}
+            <ComponentShowcase
+              title="RelatedQueriesSection"
+              description="연관 질문 섹션"
+              usageContext="답변 하단, 후속 질문 추천"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <RelatedQueriesSection
+                    relatedQueries={relatedQueries}
+                    onQueryClick={(query) => console.log('Query clicked:', query.queryText)}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Custom Title</p>
+                  <RelatedQueriesSection
+                    relatedQueries={relatedQueries.slice(0, 2)}
+                    title="추천 후속 질문"
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* SearchResultItem */}
+            <ComponentShowcase
+              title="SearchResultItem"
+              description="검색 결과 아이템 카드"
+              usageContext="검색 결과 리스트, 출처 문서 표시"
+            >
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">With Favicon</p>
+                  <SearchResultItem
+                    title="React - A JavaScript library for building user interfaces"
+                    snippet="React makes it painless to create interactive UIs. Design simple views for each state in your application, and React will efficiently update and render just the right components."
+                    href="https://react.dev"
+                    faviconUrl="https://react.dev/favicon.ico"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Without Favicon</p>
+                  <SearchResultItem
+                    title="TypeScript: JavaScript With Syntax For Types"
+                    snippet="TypeScript is a strongly typed programming language that builds on JavaScript, giving you better tooling at any scale."
+                    href="https://www.typescriptlang.org"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Long Content</p>
+                  <SearchResultItem
+                    title="Understanding React Server Components: A Deep Dive into the Future of React Applications"
+                    snippet="React Server Components represent a paradigm shift in how we build React applications. This comprehensive guide explores the architecture, benefits, and implementation details of Server Components, including how they integrate with existing client-side React patterns and what this means for the future of web development."
+                    href="https://example.com"
+                  />
+                </div>
               </div>
             </ComponentShowcase>
 

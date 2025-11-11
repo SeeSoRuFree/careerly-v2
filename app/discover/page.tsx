@@ -6,7 +6,7 @@ import { DiscoverContentCard } from '@/components/ui/discover-content-card';
 import { DiscoverFeedSection } from '@/components/ui/discover-feed-section';
 import { Chip } from '@/components/ui/chip';
 import { InterestSelectorPanel } from '@/components/ui/interest-selector-panel';
-import { WeatherInfoCard } from '@/components/ui/weather-info-card';
+import { PersonaViewCard } from '@/components/ui/persona-view-card';
 import { MarketAssetMiniCard } from '@/components/ui/market-asset-mini-card';
 import { TodayJobsPanel } from '@/components/ui/today-jobs-panel';
 import { JobMarketTrendCard } from '@/components/ui/job-market-trend-card';
@@ -21,7 +21,6 @@ import {
   transformBooksToContentCards,
   transformCoursesToContentCards,
   mockJobMarketTrends,
-  mockWeatherForecast,
   mockTodayJobs,
 } from '@/lib/data/discover-mock';
 
@@ -86,6 +85,29 @@ export default function DiscoverPage() {
     { id: 'career', label: 'Career' },
   ];
 
+  // Mock persona data
+  const mockPersona = {
+    id: 523,
+    name: '김현우',
+    role: '프론트엔드 개발팀 리더로서 팀을 이끌고 프로젝트의 전반적인 기술 방향성을 설정하며, 팀원들의 기술 성장을 지원합니다.',
+    salary: '연봉 6,000만 원에서 8,000만 원',
+    skills: [
+      { skillName: 'JavaScript', proficiency: '고급' },
+      { skillName: 'React', proficiency: '고급' },
+      { skillName: 'TypeScript', proficiency: '중급' },
+      { skillName: 'Next.js', proficiency: '중급' },
+      { skillName: '프로젝트 매니징', proficiency: '중급' },
+    ],
+    location: '서울, 판교',
+    position: '시니어 레벨',
+    jobTitle: '프론트엔드 개발팀 리더',
+    companyType: '중견 IT 기업 또는 스타트업',
+    matchReason: '고알레에서 프론트엔드 개발자로서의 경험을 바탕으로, 팀 리더로서의 역할을 맡아 프로젝트 매니징 능력을 발휘할 수 있습니다.',
+    currentProject1: '대규모 웹 애플리케이션의 프론트엔드 아키텍처 설계 및 구현',
+    currentProject2: '팀원들의 코드 리뷰 및 기술 교육 세션 주도',
+    yearsOfExperience: 5,
+  };
+
   // Filter sections
   const filterSections: FilterSection[] = [
     {
@@ -135,10 +157,7 @@ export default function DiscoverPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Main Content Area */}
-      <div className="container mx-auto px-4 py-6 max-w-[1280px]">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Content */}
           <main className="lg:col-span-9">
             <div className="space-y-6">
@@ -231,29 +250,15 @@ export default function DiscoverPage() {
           {/* Right Sidebar - Trends */}
           <aside className="lg:col-span-3">
             <div className="space-y-6 pt-16">
-              {/* Interest Selector */}
-              <InterestSelectorPanel
-                categories={interestCategories}
-                selectedCategories={selectedInterests}
-                onToggle={(id) => {
-                  setSelectedInterests((prev) =>
-                    prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-                  );
+              {/* Persona View */}
+              <PersonaViewCard
+                persona={mockPersona}
+                onViewDetail={() => {
+                  console.log('View persona detail');
                 }}
-                onSave={(ids) => {
-                  console.log('Saved interests:', ids);
+                onEdit={() => {
+                  console.log('Edit persona');
                 }}
-              />
-
-              {/* Weather Info */}
-              <WeatherInfoCard
-                location="서울"
-                currentTemp={20}
-                condition="sunny"
-                forecast={mockWeatherForecast}
-                humidity={65}
-                visibility="10km"
-                windSpeed="3.2m/s"
               />
 
               {/* Today's Jobs */}
@@ -266,8 +271,6 @@ export default function DiscoverPage() {
               <JobMarketTrendCard trends={mockJobMarketTrends} />
             </div>
           </aside>
-        </div>
-      </div>
     </div>
   );
 }

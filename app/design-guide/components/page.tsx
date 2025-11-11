@@ -25,6 +25,10 @@ import { ActionBar } from '@/components/ui/action-bar';
 import { LoadMore } from '@/components/ui/load-more';
 import { InterestSelectorPanel, InterestCategory } from '@/components/ui/interest-selector-panel';
 import { DiscoverCategoryTabs } from '@/components/ui/discover-category-tabs';
+import { ThreadActionBar } from '@/components/ui/thread-action-bar';
+import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-input';
+import { ModelSelectControl } from '@/components/ui/model-select-control';
+import { ViewModeToggle, ViewMode } from '@/components/ui/view-mode-toggle';
 import { Code, Palette, Briefcase, Rocket, Database, Globe } from 'lucide-react';
 
 export default function ComponentsPage() {
@@ -49,6 +53,10 @@ export default function ComponentsPage() {
   const [loadMoreLoading, setLoadMoreLoading] = React.useState(false);
   const [selectedInterests, setSelectedInterests] = React.useState<string[]>(['tech', 'design']);
   const [discoverTab, setDiscoverTab] = React.useState('recommended');
+  const [isBookmarked, setIsBookmarked] = React.useState(false);
+  const [followUpValue, setFollowUpValue] = React.useState('');
+  const [selectedModel, setSelectedModel] = React.useState('gpt-4');
+  const [viewMode, setViewMode] = React.useState<ViewMode>('answer');
 
   const interestCategories: InterestCategory[] = [
     { id: 'tech', label: '기술', icon: <Code className="h-4 w-4" /> },
@@ -78,6 +86,10 @@ export default function ComponentsPage() {
     { id: 'load-more', label: 'LoadMore' },
     { id: 'interest-selector-panel', label: 'InterestSelectorPanel' },
     { id: 'discover-category-tabs', label: 'DiscoverCategoryTabs' },
+    { id: 'thread-action-bar', label: 'ThreadActionBar' },
+    { id: 'suggested-follow-up-input', label: 'SuggestedFollowUpInput' },
+    { id: 'model-select-control', label: 'ModelSelectControl' },
+    { id: 'view-mode-toggle', label: 'ViewModeToggle' },
   ];
 
   return (
@@ -753,6 +765,146 @@ export default function ComponentsPage() {
                 </div>
 
                 <p className="text-sm text-slate-600">선택된 탭: {discoverTab}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* ThreadActionBar */}
+            <ComponentShowcase
+              title="ThreadActionBar"
+              description="검색 스레드 상단 액션 버튼 그룹"
+              usageContext="검색 결과 페이지 Q/A 상단 오른쪽"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">All Actions</p>
+                  <ThreadActionBar
+                    onShare={() => console.log('Share')}
+                    onBookmark={() => setIsBookmarked(!isBookmarked)}
+                    onExport={() => console.log('Export')}
+                    onRewrite={() => console.log('Rewrite')}
+                    isBookmarked={isBookmarked}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Limited Actions</p>
+                  <ThreadActionBar
+                    onShare={() => console.log('Share')}
+                    onBookmark={() => console.log('Bookmark')}
+                  />
+                </div>
+
+                <p className="text-sm text-slate-600">북마크 상태: {isBookmarked ? '저장됨' : '저장 안됨'}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* SuggestedFollowUpInput */}
+            <ComponentShowcase
+              title="SuggestedFollowUpInput"
+              description="후속 질문 입력 컴포넌트"
+              usageContext="검색 답변 하단, 빠른 후속 질문 입력"
+            >
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <SuggestedFollowUpInput
+                    value={followUpValue}
+                    onChange={setFollowUpValue}
+                    onSubmit={() => {
+                      console.log('Follow-up:', followUpValue);
+                      setFollowUpValue('');
+                    }}
+                    placeholder="Ask a follow-up question..."
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Custom Placeholder</p>
+                  <SuggestedFollowUpInput
+                    value=""
+                    onChange={() => {}}
+                    onSubmit={() => {}}
+                    placeholder="더 궁금한 점을 물어보세요..."
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Disabled</p>
+                  <SuggestedFollowUpInput
+                    value=""
+                    onChange={() => {}}
+                    onSubmit={() => {}}
+                    disabled
+                    placeholder="비활성화됨"
+                  />
+                </div>
+
+                <p className="text-sm text-slate-600">현재 입력값: {followUpValue || '(없음)'}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* ModelSelectControl */}
+            <ComponentShowcase
+              title="ModelSelectControl"
+              description="AI 모델 선택 컴포넌트"
+              usageContext="검색 입력창 옆 또는 상단, 모델 전환"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <ModelSelectControl
+                    model={selectedModel}
+                    models={[
+                      { id: 'gpt-4', name: 'GPT-4', description: 'Most capable model' },
+                      { id: 'gpt-3.5', name: 'GPT-3.5 Turbo', description: 'Fast and efficient' },
+                      { id: 'claude-3', name: 'Claude 3', description: 'Anthropic model' },
+                      { id: 'claude-2', name: 'Claude 2', description: 'Previous generation' },
+                    ]}
+                    onSelectModel={setSelectedModel}
+                    label="Model"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Custom Label</p>
+                  <ModelSelectControl
+                    model={selectedModel}
+                    models={[
+                      { id: 'gpt-4', name: 'GPT-4' },
+                      { id: 'claude-3', name: 'Claude 3' },
+                    ]}
+                    onSelectModel={setSelectedModel}
+                    label="AI 모델"
+                  />
+                </div>
+
+                <p className="text-sm text-slate-600">선택된 모델: {selectedModel}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* ViewModeToggle */}
+            <ComponentShowcase
+              title="ViewModeToggle"
+              description="답변/출처 보기 모드 전환 토글"
+              usageContext="검색 결과 페이지, Perplexity 스타일 모드 전환"
+            >
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <ViewModeToggle mode={viewMode} onChange={setViewMode} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Answer Mode</p>
+                  <ViewModeToggle mode="answer" onChange={() => {}} />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Sources Mode</p>
+                  <ViewModeToggle mode="sources" onChange={() => {}} />
+                </div>
+
+                <p className="text-sm text-slate-600">현재 모드: {viewMode === 'answer' ? '답변 보기' : '출처 보기'}</p>
               </div>
             </ComponentShowcase>
 

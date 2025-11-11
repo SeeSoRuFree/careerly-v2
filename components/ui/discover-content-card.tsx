@@ -62,11 +62,14 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
     const metaItems = [];
 
     if (sources && sources.length > 0) {
-      metaItems.push({
+      const sourceItem: any = {
         icon: sources[0].icon,
         label: sources[0].name,
-        href: sources[0].href,
-      });
+      };
+      if (sources[0].href) {
+        sourceItem.href = sources[0].href;
+      }
+      metaItems.push(sourceItem);
     }
 
     if (stats?.views) {
@@ -153,15 +156,17 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
             )}
 
             {/* Title */}
-            <h3 className="text-lg font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
-              {href ? (
+            {href ? (
+              <h3 className="text-lg font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
                 <Link href={href} variant="subtle" className="hover:text-coral-500">
                   {title}
                 </Link>
-              ) : (
-                title
-              )}
-            </h3>
+              </h3>
+            ) : (
+              <h3 className="text-lg font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
+                {title}
+              </h3>
+            )}
 
             {/* Summary */}
             {summary && (
@@ -236,15 +241,17 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
           )}
 
           {/* Title */}
-          <h3 className="text-base font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
-            {href ? (
+          {href ? (
+            <h3 className="text-base font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
               <Link href={href} variant="subtle" className="hover:text-coral-500">
                 {title}
               </Link>
-            ) : (
-              title
-            )}
-          </h3>
+            </h3>
+          ) : (
+            <h3 className="text-base font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
+              {title}
+            </h3>
+          )}
 
           {/* Summary */}
           {summary && (

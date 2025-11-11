@@ -6,6 +6,8 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 // ============================================================================
 // SidebarRail - Main Container
@@ -48,7 +50,7 @@ export interface SidebarSections {
 
 export interface NavItemConfig {
   label: string;
-  path: string;
+  path?: string;
   icon?: LucideIcon;
   badge?: string | number;
   disabled?: boolean;
@@ -57,7 +59,7 @@ export interface NavItemConfig {
 
 export interface SubNavItemConfig {
   label: string;
-  path: string;
+  path?: string;
   badge?: string | number;
   disabled?: boolean;
 }
@@ -205,7 +207,7 @@ const navItemButtonVariants = cva(
 
 export interface NavItemButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'>,
-    Omit<NavItemConfig, 'path'> {
+    NavItemConfig {
   active?: boolean;
   asChild?: boolean;
 }
@@ -215,6 +217,7 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
     {
       className,
       label,
+      path,
       icon: Icon,
       badge,
       subItems,
@@ -229,7 +232,6 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
     const [buttonRect, setButtonRect] = React.useState<DOMRect | null>(null);
     const menuRef = React.useRef<HTMLDivElement>(null);
     const buttonRef = React.useRef<HTMLButtonElement | null>(null);
-    const Comp = asChild ? Slot : 'button';
 
     const hasSubItems = subItems && subItems.length > 0;
 
@@ -260,40 +262,64 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
+    const buttonContent = (
+      <>
+        {Icon && <Icon className="h-6 w-6 shrink-0" />}
+        {badge && (
+          <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">
+            {badge}
+          </span>
+        )}
+      </>
+    );
+
     return (
       <div
         className="relative"
         ref={menuRef}
       >
-        <Comp
-          ref={(node) => {
-            // Handle both refs
-            if (typeof ref === 'function') {
-              ref(node);
-            } else if (ref && 'current' in ref) {
-              (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
-            }
-            buttonRef.current = node;
-          }}
-          className={cn(navItemButtonVariants({ active, className }))}
-          disabled={disabled}
-          title={label}
-          onClick={(e) => {
-            if (hasSubItems) {
+        {hasSubItems ? (
+          <button
+            ref={(node) => {
+              if (typeof ref === 'function') {
+                ref(node);
+              } else if (ref && 'current' in ref) {
+                (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+              }
+              buttonRef.current = node;
+            }}
+            className={cn(navItemButtonVariants({ active, className }))}
+            disabled={disabled}
+            title={label}
+            onClick={(e) => {
               e.preventDefault();
               setIsOpen(!isOpen);
-            }
-            props.onClick?.(e as any);
-          }}
-          {...props}
-        >
-          {Icon && <Icon className="h-6 w-6 shrink-0" />}
-          {badge && (
-            <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-700 text-[10px] font-bold text-white">
-              {badge}
-            </span>
-          )}
-        </Comp>
+              props.onClick?.(e as any);
+            }}
+            {...props}
+          >
+            {buttonContent}
+          </button>
+        ) : path ? (
+          <Link
+            href={path}
+            className={cn(navItemButtonVariants({ active, className }))}
+            title={label}
+            onClick={() => {
+              // Link will handle navigation
+            }}
+          >
+            {buttonContent}
+          </Link>
+        ) : (
+          <button
+            className={cn(navItemButtonVariants({ active, className }))}
+            title={label}
+            disabled={disabled}
+          >
+            {buttonContent}
+          </button>
+        )}
 
         {/* Sub-menu Popover - Rendered via Portal */}
         {hasSubItems && buttonRect && typeof document !== 'undefined' && createPortal(
@@ -317,19 +343,40 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
             </div>
             <div className="p-4 space-y-1">
               {subItems?.map((subItem, idx) => (
-                <button
-                  key={idx}
-                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors flex items-center justify-between"
-                  disabled={subItem.disabled}
-                  onClick={() => setIsOpen(false)}
-                >
-                  <span>{subItem.label}</span>
-                  {subItem.badge && (
-                    <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-slate-700 text-white">
-                      {subItem.badge}
-                    </span>
-                  )}
-                </button>
+                subItem.path ? (
+                  <Link
+                    key={idx}
+                    href={subItem.path}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors flex items-center justify-between",
+                      subItem.disabled && "pointer-events-none opacity-50"
+                    )}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <span>{subItem.label}</span>
+                    {subItem.badge && (
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-slate-700 text-white">
+                        {subItem.badge}
+                      </span>
+                    )}
+                  </Link>
+                ) : (
+                  <button
+                    key={idx}
+                    className={cn(
+                      "w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors flex items-center justify-between",
+                      subItem.disabled && "pointer-events-none opacity-50"
+                    )}
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <span>{subItem.label}</span>
+                    {subItem.badge && (
+                      <span className="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium rounded-full bg-slate-700 text-white">
+                        {subItem.badge}
+                      </span>
+                    )}
+                  </button>
+                )
               ))}
             </div>
           </div>,
@@ -370,31 +417,39 @@ const AccountButton = React.forwardRef<HTMLButtonElement, AccountButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : 'button';
+    const avatarContent = (
+      <div className="h-10 w-10 rounded-full bg-slate-700 text-white flex items-center justify-center font-semibold shrink-0">
+        {avatar ? (
+          <img src={avatar} alt={name} className="h-full w-full rounded-full object-cover" />
+        ) : (
+          <span className="text-sm">{fallback}</span>
+        )}
+      </div>
+    );
 
-    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (path && typeof window !== 'undefined') {
-        window.location.href = path;
-      }
-      onClick?.(e);
-    };
+    if (path) {
+      return (
+        <Link
+          href={path}
+          className={cn(accountButtonVariants({ className }))}
+          title={name}
+        >
+          {avatarContent}
+        </Link>
+      );
+    }
+
+    const Comp = asChild ? Slot : 'button';
 
     return (
       <Comp
         ref={ref}
         className={cn(accountButtonVariants({ className }))}
         title={name}
-        onClick={handleClick}
+        onClick={onClick}
         {...props}
       >
-        {/* Avatar */}
-        <div className="h-10 w-10 rounded-full bg-slate-700 text-white flex items-center justify-center font-semibold shrink-0">
-          {avatar ? (
-            <img src={avatar} alt={name} className="h-full w-full rounded-full object-cover" />
-          ) : (
-            <span className="text-sm">{fallback}</span>
-          )}
-        </div>
+        {avatarContent}
       </Comp>
     );
   }

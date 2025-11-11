@@ -1,0 +1,129 @@
+/**
+ * RESTful API 타입 정의
+ */
+
+/**
+ * 공통 API 응답 타입
+ */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+/**
+ * 페이지네이션 응답
+ */
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  hasNext: boolean;
+}
+
+/**
+ * 페이지네이션 파라미터
+ */
+export interface PaginationParams {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+/**
+ * 검색 파라미터
+ */
+export interface SearchParams extends PaginationParams {
+  query: string;
+  filters?: Record<string, unknown>;
+}
+
+/**
+ * 인증 관련 타입
+ */
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+/**
+ * 사용자 타입
+ */
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  role: 'user' | 'admin';
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 검색 결과 타입 (기존 타입 호환)
+ */
+export interface SearchResult {
+  query: string;
+  results: SearchResultItem[];
+  total: number;
+  suggestions?: string[];
+}
+
+export interface SearchResultItem {
+  id: string;
+  title: string;
+  content: string;
+  type: 'article' | 'post' | 'question';
+  author?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * 발견 피드 타입
+ */
+export interface DiscoverFeed {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  category: string;
+  tags: string[];
+  author: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  stats: {
+    views: number;
+    likes: number;
+    comments: number;
+  };
+  createdAt: string;
+}
+
+export interface DiscoverFeedResponse {
+  feeds: DiscoverFeed[];
+  hasNext: boolean;
+}

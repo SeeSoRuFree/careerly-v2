@@ -12,6 +12,7 @@ export function ComponentTabNav() {
     { name: 'Feedback & Loading', value: 'feedback' },
     { name: 'Overlays', value: 'overlays' },
     { name: 'Layout', value: 'layout' },
+    { name: 'Community', value: 'community' },
   ];
 
   const currentTab = pathname.includes('display')
@@ -22,6 +23,8 @@ export function ComponentTabNav() {
     ? 'overlays'
     : pathname.includes('layout')
     ? 'layout'
+    : pathname.includes('community')
+    ? 'community'
     : 'inputs';
 
   const handleTabChange = (value: string) => {

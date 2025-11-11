@@ -1,4 +1,12 @@
+/**
+ * SSE (Server-Sent Events) 훅
+ * 새로운 SSE 클라이언트를 사용하며 인증을 지원합니다.
+ */
+
+'use client';
+
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createSSEClient, type SSEOptions } from '@/lib/api/clients/sse-client';
 
 export interface SSEMessage {
   type: 'token' | 'citation' | 'complete' | 'error';
@@ -9,6 +17,7 @@ export interface SSEMessage {
 interface UseSSEOptions {
   url: string;
   enabled: boolean;
+  withAuth?: boolean; // 인증 여부 (기본값: true)
   onMessage?: (message: SSEMessage) => void;
   onComplete?: () => void;
   onError?: (error: Error) => void;
@@ -17,6 +26,7 @@ interface UseSSEOptions {
 export function useSSE({
   url,
   enabled,
+  withAuth = true,
   onMessage,
   onComplete,
   onError,
@@ -24,59 +34,63 @@ export function useSSE({
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [messages, setMessages] = useState<SSEMessage[]>([]);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const sseClientRef = useRef(createSSEClient());
 
   const connect = useCallback(() => {
-    if (!enabled || eventSourceRef.current) return;
+    if (!enabled || sseClientRef.current.isConnected()) return;
 
     try {
-      const eventSource = new EventSource(url);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        setIsConnected(true);
-        setError(null);
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const message: SSEMessage = JSON.parse(event.data);
+      const sseOptions: SSEOptions = {
+        withAuth,
+        onToken: (token) => {
+          const message: SSEMessage = {
+            type: 'token',
+            content: token,
+          };
           setMessages((prev) => [...prev, message]);
           onMessage?.(message);
-
-          if (message.type === 'complete') {
-            onComplete?.();
-            eventSource.close();
-            eventSourceRef.current = null;
-            setIsConnected(false);
-          }
-        } catch (err) {
-          console.error('Failed to parse SSE message:', err);
-        }
+        },
+        onCitation: (citation) => {
+          const message: SSEMessage = {
+            type: 'citation',
+            content: JSON.stringify(citation),
+            metadata: citation as Record<string, unknown>,
+          };
+          setMessages((prev) => [...prev, message]);
+          onMessage?.(message);
+        },
+        onComplete: () => {
+          const message: SSEMessage = {
+            type: 'complete',
+            content: 'Stream completed',
+          };
+          setMessages((prev) => [...prev, message]);
+          onMessage?.(message);
+          onComplete?.();
+          setIsConnected(false);
+        },
+        onError: (errorMessage) => {
+          const errorObj = new Error(errorMessage);
+          setError(errorObj);
+          setIsConnected(false);
+          onError?.(errorObj);
+        },
       };
 
-      eventSource.onerror = (err) => {
-        const error = new Error('SSE connection error');
-        setError(error);
-        setIsConnected(false);
-        onError?.(error);
-        eventSource.close();
-        eventSourceRef.current = null;
-      };
+      sseClientRef.current.connect(url, sseOptions);
+      setIsConnected(true);
+      setError(null);
     } catch (err) {
-      const error =
+      const errorObj =
         err instanceof Error ? err : new Error('Failed to connect to SSE');
-      setError(error);
-      onError?.(error);
+      setError(errorObj);
+      onError?.(errorObj);
     }
-  }, [url, enabled, onMessage, onComplete, onError]);
+  }, [url, enabled, withAuth, onMessage, onComplete, onError]);
 
   const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-      setIsConnected(false);
-    }
+    sseClientRef.current.disconnect();
+    setIsConnected(false);
   }, []);
 
   const reset = useCallback(() => {

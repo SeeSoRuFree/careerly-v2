@@ -1,19 +1,23 @@
 'use client';
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { SidebarRail } from '@/components/ui/sidebar-rail';
-import { MessageSquare, Compass, Users, Settings } from 'lucide-react';
+import { MessageSquare, Sparkles, Users, Settings } from 'lucide-react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname();
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50">
       {/* Sidebar - Fixed */}
       <SidebarRail
         fixed={true}
+        activePath={pathname}
         sections={{
           primary: [
             {
@@ -24,17 +28,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             {
               label: 'Discover',
               path: '/discover',
-              icon: Compass,
+              icon: Sparkles,
             },
             {
               label: 'Community',
               path: '/community',
               icon: Users,
-              subItems: [
-                { label: 'Feed', path: '/community/feed' },
-                { label: 'QnA', path: '/community/qna' },
-                { label: '홍보', path: '/community/promotion' },
-              ]
             },
           ],
           utilities: [
@@ -50,7 +49,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       {/* Main Content - With left padding for sidebar */}
       <main className="pl-20 min-h-screen">
-        {children}
+        <div className="container mx-auto px-4 py-6 max-w-[1280px]">
+          {children}
+        </div>
       </main>
     </div>
   );
