@@ -5,12 +5,15 @@ import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { QnaCard } from '@/components/ui/qna-card';
 import { PromotionCard } from '@/components/ui/promotion-card';
 import { Chip } from '@/components/ui/chip';
-import { InterestSelectorPanel } from '@/components/ui/interest-selector-panel';
-import { WeatherInfoCard } from '@/components/ui/weather-info-card';
-import { TodayJobsPanel } from '@/components/ui/today-jobs-panel';
-import { JobMarketTrendCard } from '@/components/ui/job-market-trend-card';
+import { RecommendedPostsPanel } from '@/components/ui/recommended-posts-panel';
+import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers-panel';
 import { LoadMore } from '@/components/ui/load-more';
-import { MessageSquare, Users } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { MessageSquare, Users, X, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Import detail pages (assuming they exist as components)
+// We'll need to create wrapper components or import the page content directly
 
 // Mock data from user
 const mockFeedData = [
@@ -458,13 +461,102 @@ const mockPromotionData = [
   },
 ];
 
-// Mock weather and trends data
-const mockWeatherForecast = [
-  { day: '월', high: 22, low: 15, condition: 'sunny' as const },
-  { day: '화', high: 20, low: 14, condition: 'cloudy' as const },
-  { day: '수', high: 18, low: 13, condition: 'rainy' as const },
-  { day: '목', high: 21, low: 14, condition: 'sunny' as const },
-  { day: '금', high: 23, low: 16, condition: 'sunny' as const },
+// Mock recommended posts data
+const mockRecommendedPosts = [
+  {
+    id: '1',
+    title: '주니어 개발자가 알아야 할 Git 협업 전략 5가지',
+    author: {
+      name: '김개발',
+      image_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&q=80'
+    },
+    likeCount: 245,
+    href: '#'
+  },
+  {
+    id: '2',
+    title: '프론트엔드 개발자 면접에서 자주 나오는 질문 TOP 10',
+    author: {
+      name: '이프론트',
+      image_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80'
+    },
+    likeCount: 189,
+    href: '#'
+  },
+  {
+    id: '3',
+    title: 'React 19 새로운 기능 완벽 정리',
+    author: {
+      name: '박리액트',
+      image_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=200&q=80'
+    },
+    likeCount: 312,
+    href: '#'
+  },
+  {
+    id: '4',
+    title: '스타트업 개발자로 1년 일하면서 배운 것들',
+    author: {
+      name: '최스타트',
+      image_url: 'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=200&q=80'
+    },
+    likeCount: 156,
+    href: '#'
+  },
+  {
+    id: '5',
+    title: 'TypeScript 타입 시스템 깊이 이해하기',
+    author: {
+      name: '정타입',
+      image_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80'
+    },
+    likeCount: 203,
+    href: '#'
+  }
+];
+
+// Mock recommended followers data
+const mockRecommendedFollowers = [
+  {
+    id: '1',
+    name: '김시니어',
+    image_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80',
+    headline: 'Senior Frontend Engineer @ Toss',
+    isFollowing: false,
+    href: '#'
+  },
+  {
+    id: '2',
+    name: '이테크리드',
+    image_url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80',
+    headline: 'Tech Lead @ Kakao',
+    isFollowing: false,
+    href: '#'
+  },
+  {
+    id: '3',
+    name: '박백엔드',
+    image_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80',
+    headline: 'Backend Engineer @ Naver',
+    isFollowing: true,
+    href: '#'
+  },
+  {
+    id: '4',
+    name: '최풀스택',
+    image_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&q=80',
+    headline: 'Full Stack Developer @ Coupang',
+    isFollowing: false,
+    href: '#'
+  },
+  {
+    id: '5',
+    name: '정디자이너',
+    image_url: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=200&q=80',
+    headline: 'Product Designer @ Line',
+    isFollowing: false,
+    href: '#'
+  }
 ];
 
 const mockTodayJobs = [
@@ -560,9 +652,41 @@ const mockJobMarketTrends = [
   },
 ];
 
+type UserProfile = {
+  id: number;
+  name: string;
+  image_url: string;
+  headline: string;
+  description: string;
+  small_image_url: string;
+};
+
+type SelectedContent = {
+  type: 'post' | 'qna';
+  id: string;
+  userProfile?: UserProfile;
+};
+
 export default function CommunityPage() {
   const [selectedInterests, setSelectedInterests] = React.useState<string[]>([]);
-  const [contentFilter, setContentFilter] = React.useState<'all' | 'feed' | 'qna' | 'promotion' | 'following'>('all');
+  const [contentFilter, setContentFilter] = React.useState<'feed' | 'qna' | 'promotion' | 'following'>('feed');
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
+
+  const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
+    setSelectedContent({ type: 'post', id: postId, userProfile });
+    setDrawerOpen(true);
+  };
+
+  const handleOpenQna = (qnaId: string) => {
+    setSelectedContent({ type: 'qna', id: qnaId });
+    setDrawerOpen(true);
+  };
+
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setTimeout(() => setSelectedContent(null), 300); // Clear after animation
+  };
 
   // Interest categories
   const interestCategories = [
@@ -610,9 +734,6 @@ export default function CommunityPage() {
 
   // Filter content based on selected filter
   const filteredContent = React.useMemo(() => {
-    if (contentFilter === 'all') {
-      return allContent;
-    }
     if (contentFilter === 'following') {
       // TODO: Implement following filter logic
       return allContent;
@@ -621,12 +742,12 @@ export default function CommunityPage() {
   }, [allContent, contentFilter]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
       {/* Main Content */}
       <main className="lg:col-span-9">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Header Section */}
-          <div className="pt-16 pb-8">
+          <div className="pt-16 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
@@ -637,12 +758,6 @@ export default function CommunityPage() {
 
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <Chip
-                    variant={contentFilter === 'all' ? 'selected' : 'default'}
-                    onClick={() => setContentFilter('all')}
-                  >
-                    ALL
-                  </Chip>
                   <Chip
                     variant={contentFilter === 'feed' ? 'selected' : 'default'}
                     onClick={() => setContentFilter('feed')}
@@ -675,13 +790,13 @@ export default function CommunityPage() {
           </div>
 
           {/* Unified 2-Column Grid */}
-          <div className="columns-1 md:columns-2 gap-4 space-y-4">
+          <div className="columns-1 md:columns-2 gap-6 space-y-6">
             {filteredContent.map((item, idx) => {
               if (item.type === 'feed') {
                 const feedItem = item.data;
                 const comment = feedItem.comments[0];
                 return (
-                  <div key={`feed-${comment.postId}`} className="break-inside-avoid mb-4">
+                  <div key={`feed-${comment.postId}`} className="break-inside-avoid mb-6">
                     <CommunityFeedCard
                       userProfile={comment.userProfile}
                       content={comment.description}
@@ -694,8 +809,8 @@ export default function CommunityPage() {
                         viewCount: comment.postViewCount,
                       }}
                       imageUrls={feedItem.imageUrl}
-                      feedType={feedItem.feedType}
-                      href={`#post-${comment.postId}`}
+                      feedType={feedItem.feedType === 'RECOMMENDED.INTERESTS' ? undefined : feedItem.feedType}
+                      onClick={() => handleOpenPost(comment.postId.toString(), comment.userProfile)}
                       onLike={() => console.log('Like')}
                       onReply={() => console.log('Reply')}
                       onRepost={() => console.log('Repost')}
@@ -706,12 +821,13 @@ export default function CommunityPage() {
                   </div>
                 );
               } else if (item.type === 'qna') {
-                const qna = item.data;
+                const { id, ...qnaData } = item.data;
                 return (
-                  <div key={`qna-${qna.id}`} className="break-inside-avoid mb-4">
+                  <div key={`qna-${id}`} className="break-inside-avoid mb-6">
                     <QnaCard
-                      {...qna}
-                      href={`#qna-${qna.id}`}
+                      {...qnaData}
+                      qnaId={id}
+                      onClick={() => handleOpenQna(id.toString())}
                       onLike={() => console.log('Like')}
                       onDislike={() => console.log('Dislike')}
                     />
@@ -720,7 +836,7 @@ export default function CommunityPage() {
               } else if (item.type === 'promotion') {
                 const promo = item.data;
                 return (
-                  <div key={`promotion-${idx}`} className="break-inside-avoid mb-4">
+                  <div key={`promotion-${idx}`} className="break-inside-avoid mb-6">
                     <PromotionCard
                       variant="default"
                       {...promo}
@@ -742,42 +858,105 @@ export default function CommunityPage() {
 
       {/* Right Sidebar */}
       <aside className="lg:col-span-3">
-        <div className="space-y-6 pt-16">
-          {/* Interest Selector */}
-          <InterestSelectorPanel
-            categories={interestCategories}
-            selectedCategories={selectedInterests}
-            onToggle={(id) => {
-              setSelectedInterests((prev) =>
-                prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-              );
-            }}
-            onSave={(ids) => {
-              console.log('Saved interests:', ids);
-            }}
-          />
-
-          {/* Weather Info */}
-          <WeatherInfoCard
-            location="서울"
-            currentTemp={20}
-            condition="sunny"
-            forecast={mockWeatherForecast}
-            humidity={65}
-            visibility="10km"
-            windSpeed="3.2m/s"
-          />
-
-          {/* Today's Jobs */}
-          <TodayJobsPanel
-            companies={mockTodayJobs}
+        <div className="space-y-4 pt-16">
+          {/* Recommended Posts */}
+          <RecommendedPostsPanel
+            posts={mockRecommendedPosts}
             maxItems={5}
           />
 
-          {/* Job Market Trends */}
-          <JobMarketTrendCard trends={mockJobMarketTrends} />
+          {/* Recommended Followers */}
+          <RecommendedFollowersPanel
+            followers={mockRecommendedFollowers}
+            maxItems={5}
+            onFollow={(userId) => console.log('Follow:', userId)}
+            onUnfollow={(userId) => console.log('Unfollow:', userId)}
+          />
         </div>
       </aside>
+
+      {/* Right Drawer */}
+      <div
+        className={cn(
+          "fixed inset-y-0 right-0 z-50 w-full md:w-[600px] lg:w-[700px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto",
+          drawerOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        {selectedContent && (
+          <div className="h-full flex flex-col">
+            {/* Drawer Header */}
+            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+              {selectedContent.type === 'post' && selectedContent.userProfile ? (
+                <div className="flex items-center gap-3 flex-1">
+                  <button
+                    onClick={() => window.open(`/profile/${selectedContent.userProfile?.id}`, '_blank')}
+                    className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
+                    aria-label="프로필 보기"
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage
+                        src={selectedContent.userProfile.small_image_url || selectedContent.userProfile.image_url}
+                        alt={selectedContent.userProfile.name}
+                      />
+                      <AvatarFallback>
+                        {selectedContent.userProfile.name.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-sm font-semibold text-slate-900">
+                          {selectedContent.userProfile.name}
+                        </span>
+                        <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600" />
+                      </div>
+                      <span className="text-xs text-slate-600">
+                        {selectedContent.userProfile.headline}
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              ) : (
+                <h2 className="text-lg font-semibold text-slate-900">
+                  {selectedContent.type === 'post' ? '게시글' : '질문'}
+                </h2>
+              )}
+              <button
+                onClick={handleCloseDrawer}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                aria-label="닫기"
+              >
+                <X className="h-5 w-5 text-slate-600" />
+              </button>
+            </div>
+
+            {/* Drawer Content */}
+            <div className="flex-1 overflow-y-auto">
+              {selectedContent.type === 'post' && (
+                <iframe
+                  src={`/community/post/${selectedContent.id}?drawer=true`}
+                  className="w-full h-full border-0"
+                  title="Post Detail"
+                />
+              )}
+              {selectedContent.type === 'qna' && (
+                <iframe
+                  src={`/community/qna/${selectedContent.id}?drawer=true`}
+                  className="w-full h-full border-0"
+                  title="QnA Detail"
+                />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Backdrop */}
+      {drawerOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-300"
+          onClick={handleCloseDrawer}
+        />
+      )}
     </div>
   );
 }

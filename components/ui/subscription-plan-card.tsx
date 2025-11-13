@@ -71,7 +71,7 @@ export function SubscriptionPlanCard({
             {isPremium && <Sparkles className="h-5 w-5 text-coral-500" />}
             {planName}
           </CardTitle>
-          <Badge variant={isPremium ? 'default' : 'secondary'}>
+          <Badge tone={isPremium ? 'coral' : 'default'}>
             {isPremium ? '프리미엄' : '무료'}
           </Badge>
         </div>

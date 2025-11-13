@@ -54,7 +54,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
         <Card
           ref={ref}
           className={cn(
-            'p-6 bg-gradient-to-r from-coral-50 to-white border-coral-200',
+            'p-6 bg-gradient-to-r from-coral-50 to-white',
             className
           )}
           {...props}
@@ -65,7 +65,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
             </Badge>
           )}
 
-          <div className="flex gap-6 items-center">
+          <div className="flex gap-4 items-center">
             {/* Image/Logo */}
             {(imageUrl || logoUrl) && (
               <div className="shrink-0">
@@ -112,7 +112,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
                 {tags.length > 0 && (
                   <div className="flex items-center gap-2 flex-wrap">
                     {tags.slice(0, 3).map((tag, idx) => (
-                      <Badge key={idx} tone="slate" variant="outline" className="text-xs">
+                      <Badge key={idx} tone="slate" className="text-xs">
                         {tag}
                       </Badge>
                     ))}
@@ -155,7 +155,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
         <Card
           ref={ref}
           className={cn(
-            'p-4 hover:border-coral-300 transition-all duration-200',
+            'p-6 transition-all duration-200',
             className
           )}
           {...props}
@@ -209,7 +209,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
       <Card
         ref={ref}
         className={cn(
-          'overflow-hidden hover:border-coral-300 transition-all duration-200',
+          'overflow-hidden transition-all duration-200',
           className
         )}
         {...props}
@@ -223,7 +223,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
               ratio="16:9"
             />
             {sponsored && (
-              <div className="absolute top-3 right-3">
+              <div className="absolute top-4 right-4">
                 <Badge tone="coral" className="text-xs">
                   Sponsored
                 </Badge>
@@ -232,7 +232,7 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
           </div>
         )}
 
-        <div className="p-4">
+        <div className="p-6">
           {/* Category and Company */}
           <div className="flex items-center justify-between gap-2 mb-2">
             {category && (
@@ -275,10 +275,10 @@ export const PromotionCard = React.forwardRef<HTMLDivElement, PromotionCardProps
 
           {/* Tags */}
           {tags.length > 0 && (
-            <div className="flex items-center gap-1.5 flex-wrap mb-4">
+            <div className="flex items-center gap-1 flex-wrap mb-3">
               <Tag className="h-3.5 w-3.5 text-slate-400" />
               {tags.slice(0, 4).map((tag, idx) => (
-                <Badge key={idx} tone="slate" variant="outline" className="text-xs">
+                <Badge key={idx} tone="slate" className="text-xs">
                   {tag}
                 </Badge>
               ))}

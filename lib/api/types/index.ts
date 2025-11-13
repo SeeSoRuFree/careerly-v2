@@ -5,3 +5,4 @@
 export * from './error.types';
 export * from './rest.types';
 export * from './graphql.types';
+export * from './chat.types';

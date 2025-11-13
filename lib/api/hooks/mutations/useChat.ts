@@ -1,0 +1,57 @@
+/**
+ * Chat API Mutation 훅
+ * Careerly Agent API를 사용한 AI 채팅 기능
+ */
+
+'use client';
+
+import { useMutation, UseMutationOptions } from '@tanstack/react-query';
+import {
+  chatSearch,
+  sendChatMessage,
+} from '../../services/chat.service';
+import type {
+  ChatRequest,
+  ChatResponse,
+  ChatSearchResult,
+} from '../../types/chat.types';
+
+/**
+ * Chat 요청을 위한 파라미터 타입
+ */
+export interface UseChatMutationParams {
+  query: string;
+  userId?: string;
+  sessionId?: string;
+}
+
+/**
+ * Chat API 호출 훅 (SearchResult 형식)
+ * 기존 UI와 호환되는 형식으로 반환
+ */
+export function useChatSearch(
+  options?: Omit<
+    UseMutationOptions<ChatSearchResult, Error, UseChatMutationParams>,
+    'mutationFn'
+  >
+) {
+  return useMutation<ChatSearchResult, Error, UseChatMutationParams>({
+    mutationFn: async ({ query, userId, sessionId }) => {
+      return chatSearch(query, userId, sessionId);
+    },
+    ...options,
+  });
+}
+
+/**
+ * Chat API 원본 응답 훅
+ * 전체 응답 데이터가 필요한 경우 사용
+ */
+export function useChatMessage(
+  options?: Omit<UseMutationOptions<ChatResponse, Error, ChatRequest>, 'mutationFn'>
+) {
+  return useMutation<ChatResponse, Error, ChatRequest>({
+    mutationFn: sendChatMessage,
+    ...options,
+  });
+}

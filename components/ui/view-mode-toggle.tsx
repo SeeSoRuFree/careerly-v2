@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 export type ViewMode = 'answer' | 'sources';
 
-export interface ViewModeToggleProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ViewModeToggleProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> {
   mode: ViewMode;
   onChange: (mode: ViewMode) => void;
 }

@@ -204,6 +204,24 @@
   }
 }
 
+@keyframes slideInFromRightFull {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
 @keyframes shimmer {
   0% {
     transform: translateX(-100%);
@@ -263,6 +281,14 @@
 
 .slide-in-from-right-2 {
   animation-name: slideInFromRight;
+}
+
+.slide-in-from-right {
+  animation-name: slideInFromRightFull;
+}
+
+.slide-out-to-right {
+  animation-name: slideOutToRight;
 }
 
 /* Popover animations with data attributes */

@@ -38,6 +38,13 @@ export {
 } from './services/search.service';
 export type { Citation, SearchResult } from './services/search.service';
 
+// Chat Service (AI Agent)
+export {
+  sendChatMessage,
+  chatSearch,
+  checkAgentHealth,
+} from './services/chat.service';
+
 // User Service
 export {
   getUserProfile,
@@ -128,6 +135,13 @@ export {
   useUnbookmarkFeed,
 } from './hooks/mutations/useDiscoverMutations';
 
+// Chat Mutations
+export {
+  useChatSearch,
+  useChatMessage,
+} from './hooks/mutations/useChat';
+export type { UseChatMutationParams } from './hooks/mutations/useChat';
+
 // GraphQL Hooks
 export { useGraphQL, useGraphQLMutation } from './hooks/useGraphQL';
 
@@ -163,6 +177,13 @@ export type {
   SearchQueryResult,
   UserQueryVariables,
   UserQueryResult,
+
+  // Chat Types
+  ChatRequest,
+  ChatResponse,
+  ChatSearchResult,
+  ChatCitation,
+  HealthResponse,
 } from './types';
 
 // ============================================================

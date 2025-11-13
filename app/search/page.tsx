@@ -1,8 +1,9 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useChatSearch } from '@/lib/api';
 
 // 10개 지정 컴포넌트 import
 import { SearchQueryHeader } from '@/components/ui/search-query-header';
@@ -374,25 +375,43 @@ const MOCK_RELATED_QUERIES: RelatedQuery[] = [
 
 function SearchContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const query = searchParams.get('q') || '';
 
   // State
-  const [isLoading, setIsLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('answer');
   const [selectedModel, setSelectedModel] = useState('gpt-4');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followUpValue, setFollowUpValue] = useState('');
+  const [answerData, setAnswerData] = useState<{
+    answer: string;
+    citations: { id: string; title: string; url: string }[];
+    session_id?: string;
+  } | null>(null);
 
+  // Chat API Mutation
+  const chatMutation = useChatSearch({
+    onSuccess: (data) => {
+      setAnswerData({
+        answer: data.answer,
+        citations: data.citations,
+        session_id: data.session_id,
+      });
+    },
+    onError: (error) => {
+      console.error('Chat API Error:', error);
+    },
+  });
+
+  // 쿼리가 변경되면 API 호출
   useEffect(() => {
-    if (!query) return;
+    if (!query || query.trim().length === 0) return;
 
-    // 실제 API 호출 시뮬레이션
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
+    chatMutation.mutate({
+      query: query.trim(),
+      userId: 'anonymous', // 실제로는 로그인 사용자 ID 사용
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   const handleEdit = () => {
@@ -413,10 +432,23 @@ function SearchContent() {
 
   const handleRewrite = () => {
     console.log('Rewrite answer');
+    // 재작성 요청
+    if (query) {
+      chatMutation.mutate({
+        query: query.trim(),
+        userId: 'anonymous',
+      });
+    }
   };
 
   const handleRetry = () => {
-    console.log('Retry');
+    // 재시도
+    if (query) {
+      chatMutation.mutate({
+        query: query.trim(),
+        userId: 'anonymous',
+      });
+    }
   };
 
   const handleModelSelect = (modelId: string) => {
@@ -424,11 +456,24 @@ function SearchContent() {
   };
 
   const handleFollowUpSubmit = () => {
-    console.log('Follow-up question:', followUpValue);
+    if (!followUpValue.trim()) return;
+
+    // 후속 질문으로 새로운 검색 수행 (session_id 전달)
+    chatMutation.mutate({
+      query: followUpValue.trim(),
+      userId: 'anonymous',
+      sessionId: answerData?.session_id,
+    });
+
+    setFollowUpValue('');
   };
 
-  const handleRelatedQueryClick = (query: RelatedQuery) => {
-    console.log('Navigate to:', query.href);
+  const handleRelatedQueryClick = (relatedQuery: RelatedQuery) => {
+    // queryText에서 실제 검색어 추출하거나 href에서 쿼리 파라미터 추출
+    const queryText = relatedQuery.queryText;
+
+    // 새로운 검색 페이지로 라우팅
+    router.push(`/search?q=${encodeURIComponent(queryText)}`);
   };
 
   if (!query) {
@@ -439,12 +484,23 @@ function SearchContent() {
     );
   }
 
+  const isLoading = chatMutation.isPending;
+  const hasError = chatMutation.isError;
+
+  // Citations 변환
+  const citationSources: CitationSource[] = answerData?.citations.map((citation) => ({
+    id: citation.id,
+    title: citation.title,
+    href: citation.url,
+    faviconUrl: undefined,
+  })) || [];
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* 1. SearchQueryHeader */}
         <SearchQueryHeader
-          queryText="프론트엔드 개발자 커리어 성장 완벽 가이드"
+          queryText={query}
           onEdit={handleEdit}
           className="mb-4 border-b-0"
         />
@@ -474,42 +530,42 @@ function SearchContent() {
             <>
               {/* 3. AnswerResponsePanel */}
               <AnswerResponsePanel
-                answerHtml={MOCK_ANSWER}
+                answerHtml={answerData?.answer || ''}
                 loading={isLoading}
+                error={hasError ? '답변을 가져오는 중 오류가 발생했습니다.' : undefined}
                 onRetry={handleRetry}
                 className="border-0 shadow-none bg-transparent p-0"
               />
 
               {/* 4. CitationSourceList */}
-              {!isLoading && (
+              {!isLoading && answerData && citationSources.length > 0 && (
                 <div className="py-4 border-t border-slate-200">
-                  <CitationSourceList sources={MOCK_SOURCES} />
+                  <CitationSourceList sources={citationSources} />
                 </div>
               )}
             </>
           )}
 
           {/* Sources 모드 */}
-          {viewMode === 'sources' && !isLoading && (
+          {viewMode === 'sources' && !isLoading && answerData && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900">
                 Search Results
               </h2>
-              {/* 10. SearchResultItem */}
-              {MOCK_SEARCH_RESULTS.map((result) => (
+              {citationSources.map((source) => (
                 <SearchResultItem
-                  key={result.id}
-                  title={result.title}
-                  snippet={result.snippet}
-                  href={result.href}
-                  faviconUrl={result.faviconUrl}
+                  key={source.id}
+                  title={source.title}
+                  snippet=""
+                  href={source.href}
+                  faviconUrl={source.faviconUrl}
                 />
               ))}
             </div>
           )}
 
           {/* 6. RelatedQueriesSection */}
-          {!isLoading && (
+          {!isLoading && answerData && (
             <div className="py-6 border-t border-slate-200">
               <RelatedQueriesSection
                 relatedQueries={MOCK_RELATED_QUERIES}
@@ -519,7 +575,7 @@ function SearchContent() {
           )}
 
           {/* 7. SuggestedFollowUpInput */}
-          {!isLoading && (
+          {!isLoading && answerData && (
             <div className="py-6 border-t border-slate-200">
               <div className="flex items-start justify-between gap-4 mb-3">
                 <h3 className="text-sm font-semibold text-slate-700">
@@ -543,7 +599,7 @@ function SearchContent() {
               </div>
               <SuggestedFollowUpInput
                 value={followUpValue}
-                onChange={(e) => setFollowUpValue(e.target.value)}
+                onChange={(value) => setFollowUpValue(value)}
                 onSubmit={handleFollowUpSubmit}
                 placeholder="더 궁금한 점이 있으신가요?"
               />

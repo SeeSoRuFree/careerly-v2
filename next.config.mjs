@@ -47,6 +47,20 @@ const nextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/bookmarks',
+        destination: '/profile?tab=bookmarks',
+        permanent: false,
+      },
+      {
+        source: '/history',
+        destination: '/profile?tab=activity',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

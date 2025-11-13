@@ -21,7 +21,7 @@ const SearchResultItem = React.forwardRef<HTMLAnchorElement, SearchResultItemPro
         target="_blank"
         rel="noopener noreferrer"
         className={cn(
-          'block p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 hover:shadow-sm transition-all duration-200 group',
+          'block p-3 rounded-lg transition-all duration-200 group',
           className
         )}
         {...props}

@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock } from 'lucide-react';
 
 export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  id: number;
+  qnaId: number;
   title: string;
   description: string;
   createdAt: string;
@@ -22,6 +22,7 @@ export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   status?: number;
   isPublic?: number;
   href?: string;
+  onClick?: () => void;
   onLike?: () => void;
   onDislike?: () => void;
   liked?: boolean;
@@ -31,7 +32,7 @@ export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
   (
     {
-      id,
+      qnaId,
       title,
       description,
       createdAt,
@@ -45,6 +46,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
       status = 0,
       isPublic = 1,
       href,
+      onClick,
       onLike,
       onDislike,
       liked = false,
@@ -60,14 +62,16 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
     return (
       <Card
         ref={ref}
+        onClick={onClick}
         className={cn(
-          'p-4 hover:border-slate-300 transition-all duration-200',
+          'p-6 transition-all duration-200',
+          onClick && 'cursor-pointer hover:shadow-md hover:border-coral-200',
           className
         )}
         {...props}
       >
         {/* Header - Tags and Status */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 flex-wrap">
             {tags.map((tag, idx) => (
               <Badge key={idx} tone="slate" className="text-xs">
@@ -94,26 +98,18 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         </div>
 
         {/* Title */}
-        {href ? (
-          <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">
-            <Link href={href} variant="subtle" className="hover:text-coral-500">
-              {title}
-            </Link>
-          </h3>
-        ) : (
-          <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">
-            {title}
-          </h3>
-        )}
+        <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">
+          {title}
+        </h3>
 
         {/* Description */}
-        <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed mb-3 whitespace-pre-wrap">
+        <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed mb-2 whitespace-pre-wrap">
           {description}
         </p>
 
         {/* Meta Info */}
-        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-          <div className="flex items-center gap-4 text-xs text-slate-500">
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-3 text-xs text-slate-500">
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
               <span>{createdAt}</span>
@@ -132,7 +128,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
 
           {/* Like/Dislike Actions */}
           {(onLike || onDislike) && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
               {onLike && (
                 <button
                   onClick={onLike}

@@ -29,6 +29,8 @@ import { ThreadActionBar } from '@/components/ui/thread-action-bar';
 import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-input';
 import { ModelSelectControl } from '@/components/ui/model-select-control';
 import { ViewModeToggle, ViewMode } from '@/components/ui/view-mode-toggle';
+import { SearchLimitBanner } from '@/components/ui/search-limit-banner';
+import { SatisfactionSurvey } from '@/components/ui/satisfaction-survey';
 import { Code, Palette, Briefcase, Rocket, Database, Globe } from 'lucide-react';
 
 export default function ComponentsPage() {
@@ -57,6 +59,7 @@ export default function ComponentsPage() {
   const [followUpValue, setFollowUpValue] = React.useState('');
   const [selectedModel, setSelectedModel] = React.useState('gpt-4');
   const [viewMode, setViewMode] = React.useState<ViewMode>('answer');
+  const [surveySearchId] = React.useState('search-123');
 
   const interestCategories: InterestCategory[] = [
     { id: 'tech', label: '기술', icon: <Code className="h-4 w-4" /> },
@@ -90,6 +93,8 @@ export default function ComponentsPage() {
     { id: 'suggested-follow-up-input', label: 'SuggestedFollowUpInput' },
     { id: 'model-select-control', label: 'ModelSelectControl' },
     { id: 'view-mode-toggle', label: 'ViewModeToggle' },
+    { id: 'search-limit-banner', label: 'SearchLimitBanner' },
+    { id: 'satisfaction-survey', label: 'SatisfactionSurvey' },
   ];
 
   return (
@@ -905,6 +910,69 @@ export default function ComponentsPage() {
                 </div>
 
                 <p className="text-sm text-slate-600">현재 모드: {viewMode === 'answer' ? '답변 보기' : '출처 보기'}</p>
+              </div>
+            </ComponentShowcase>
+
+            {/* SearchLimitBanner */}
+            <ComponentShowcase
+              title="SearchLimitBanner"
+              description="검색 횟수 제한 안내 배너"
+              usageContext="베타 기간 검색 제한, 사용량 표시"
+            >
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Warning State (남은 횟수 있음)</p>
+                  <SearchLimitBanner
+                    searchCount={7}
+                    maxSearches={10}
+                    resetTime={new Date(new Date().setHours(24, 0, 0, 0))}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Limited State (횟수 소진)</p>
+                  <SearchLimitBanner
+                    searchCount={10}
+                    maxSearches={10}
+                    resetTime={new Date(new Date().setHours(24, 0, 0, 0))}
+                  />
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Early Stage (여유 있음)</p>
+                  <SearchLimitBanner
+                    searchCount={2}
+                    maxSearches={10}
+                    resetTime={new Date(new Date().setHours(24, 0, 0, 0))}
+                  />
+                </div>
+              </div>
+            </ComponentShowcase>
+
+            {/* SatisfactionSurvey */}
+            <ComponentShowcase
+              title="SatisfactionSurvey"
+              description="검색 결과 만족도 조사"
+              usageContext="검색 결과 페이지 하단, 품질 피드백 수집"
+            >
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Default</p>
+                  <SatisfactionSurvey
+                    searchId={surveySearchId}
+                    onSubmit={(data) => console.log('Survey submitted:', data)}
+                  />
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-lg space-y-2 text-sm text-slate-600">
+                  <p><strong>기능:</strong></p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>5점 별점 시스템 (호버 효과 포함)</li>
+                    <li>선택적 피드백 텍스트 입력 (최대 500자)</li>
+                    <li>제출 완료 후 감사 메시지 표시</li>
+                    <li>다시 작성하기 기능</li>
+                  </ul>
+                </div>
               </div>
             </ComponentShowcase>
 

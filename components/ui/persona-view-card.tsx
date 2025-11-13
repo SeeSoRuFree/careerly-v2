@@ -94,7 +94,6 @@ export const PersonaViewCard = React.forwardRef<HTMLDivElement, PersonaViewCardP
               <Chip
                 key={index}
                 variant="default"
-                size="sm"
               >
                 {skill.skillName}
                 <span className="ml-1 text-xs text-slate-500">

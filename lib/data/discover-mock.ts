@@ -3,6 +3,80 @@ import { MarketAssetMiniCardProps } from '@/components/ui/market-asset-mini-card
 import { JobMarketTrend } from '@/components/ui/job-market-trend-card';
 import { WeatherForecast } from '@/components/ui/weather-info-card';
 
+// Metadata types for different content types
+export interface JobMetadata {
+  averageSalary?: string;
+  openPositions?: number;
+  employeeSatisfaction?: number; // 0-100
+  hiringTrend?: number; // -10 ~ +10 (%)
+  companySize?: string;
+  industry?: string;
+  foundedYear?: number;
+  companyName?: string;
+  companyLogo?: string;
+}
+
+export interface BlogMetadata {
+  totalPosts?: number;
+  averageViews?: number;
+  postFrequency?: string;
+  popularityRank?: number;
+  techStack?: string[];
+}
+
+export interface BookMetadata {
+  publisher?: string;
+  rating?: number;
+  reviewCount?: number;
+  pages?: number;
+  publishDate?: string;
+  isbn?: string;
+}
+
+export interface CourseMetadata {
+  students?: number;
+  rating?: number;
+  completionRate?: number;
+  duration?: string;
+  level?: string;
+}
+
+export interface JobRoleMetadata {
+  roleName: string;                    // 직무명 (예: "프론트엔드 개발자")
+  marketDemand: number;                // 시장 수요 점수 (0-100)
+  salaryRange: {                       // 연봉 범위
+    min: number;
+    max: number;
+    average: number;
+  };
+  experienceDistribution: {            // 경력 요구사항 분포
+    junior: number;                    // 신입/주니어 비율 (%)
+    mid: number;                       // 중급 비율 (%)
+    senior: number;                    // 시니어 비율 (%)
+  };
+  requiredSkills: Array<{              // 필요 스킬
+    name: string;
+    importance: number;                // 중요도 (0-100)
+  }>;
+  demandTrend: number[];               // 최근 6개월 채용 수요 추이
+  growthRate: number;                  // 직무 성장률 (%)
+  competitionLevel: 'low' | 'medium' | 'high';  // 경쟁 강도
+}
+
+export type ContentMetadata = JobMetadata | BlogMetadata | BookMetadata | CourseMetadata;
+
+// Extended type for detailed view
+export interface DiscoverContentDetail extends Omit<DiscoverContentCardProps, 'relatedContent' | 'contentId'> {
+  contentId: string | number;
+  tags?: string[];
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  readTime?: string;
+  fullContent?: string;
+  relatedContent?: DiscoverContentCardProps[];
+  metadata?: ContentMetadata;
+  jobRoleMetadata?: JobRoleMetadata;
+}
+
 // Mock API Response Type
 export interface DiscoverMockResponse {
   id: number;
@@ -101,6 +175,7 @@ export interface DiscoverMockResponse {
 // Transform functions
 export function transformJobsToContentCards(jobs: DiscoverMockResponse['jobs']): DiscoverContentCardProps[] {
   return jobs.map((job, index) => ({
+    contentId: `job-${job.id}`,
     title: job.title,
     summary: job.summary,
     thumbnailUrl: job.company.image,
@@ -115,16 +190,18 @@ export function transformJobsToContentCards(jobs: DiscoverMockResponse['jobs']):
       likes: 0,
       views: 100 + (index * 123), // 고정된 값 사용
     },
-    href: job.url,
+    href: `/discover/job-${job.id}`,
     badge: `매칭 ${Math.floor(job.score * 100)}%`,
     badgeTone: 'coral' as const,
     liked: job.hasMyLike,
     bookmarked: job.hasMyBookmark,
+    tags: ['채용', '커리어', 'IT', '개발자'],
   }));
 }
 
 export function transformBlogsToContentCards(blogs: DiscoverMockResponse['blogs']): DiscoverContentCardProps[] {
   return blogs.map((blog, index) => ({
+    contentId: `blog-${blog.id}`,
     title: blog.title,
     summary: blog.summary,
     thumbnailUrl: blog.imageUrl || blog.company.image,
@@ -139,16 +216,18 @@ export function transformBlogsToContentCards(blogs: DiscoverMockResponse['blogs'
       likes: 50 + (index * 15),
       views: 500 + (index * 250),
     },
-    href: blog.url,
+    href: `/discover/blog-${blog.id}`,
     badge: '추천',
     badgeTone: 'success' as const,
     liked: blog.hasMyLike,
     bookmarked: blog.hasMyBookmark,
+    tags: ['기술블로그', '개발', '인사이트', 'AI', '성장'],
   }));
 }
 
 export function transformBooksToContentCards(books: DiscoverMockResponse['books']): DiscoverContentCardProps[] {
   return books.map((book, index) => ({
+    contentId: `book-${book.id}`,
     title: book.title,
     summary: book.summary,
     thumbnailUrl: book.imageUrl,
@@ -162,16 +241,18 @@ export function transformBooksToContentCards(books: DiscoverMockResponse['books'
       likes: 80 + (index * 25),
       views: 800 + (index * 350),
     },
-    href: book.url,
+    href: `/discover/book-${book.id}`,
     badge: '도서',
     badgeTone: 'default' as const,
     liked: book.hasMyLike,
     bookmarked: book.hasMyBookmark,
+    tags: ['도서', '학습', '리더십', '프로그래밍', 'React'],
   }));
 }
 
 export function transformCoursesToContentCards(courses: DiscoverMockResponse['courses']): DiscoverContentCardProps[] {
   return courses.map((course, index) => ({
+    contentId: `course-${course.id}`,
     title: course.title,
     summary: course.summary,
     thumbnailUrl: course.imageUrl,
@@ -185,11 +266,12 @@ export function transformCoursesToContentCards(courses: DiscoverMockResponse['co
       likes: 60 + (index * 20),
       views: 600 + (index * 300),
     },
-    href: course.url,
+    href: `/discover/course-${course.id}`,
     badge: course.level || '강의',
     badgeTone: 'warning' as const,
     liked: course.hasMyLike,
     bookmarked: course.hasMyBookmark,
+    tags: ['온라인강의', '리더십', '매니지먼트', '커리어', '성장'],
   }));
 }
 
@@ -392,7 +474,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       publishedAt: null,
       summary:
         'SK플래닛은 2025년, 개발자 경쟁력 강화와 프로덕트 적시 런칭을 목표로 AI 및 테크 교육 프로그램을 적극적으로 운영했습니다. CTO, 개발그룹 등 개발 조직 주도로 Tech Academy, Bootcamp, MOOC, Agile Coaching, AI/Cloud/Web3 교육 등을 통해 개발자 성장을 지원해왔으며, 특히 최태원 회장의 AI 활용 강조에 발맞춰 단순 툴 소개를 넘어 업무 프로세스에 AI를 녹여 생산성을 향상시키는 교육에 집중했습니다.\n\n2025년 추진 방향은 시장 대비 개발자 경쟁력 강화와 프로덕트 적시 런칭을 위한 Skill 보유를 목표로, AI와 Tech 육성 방향을 Upskilling 및 Reskilling으로 설정했습니다. AI는 프로덕트 개발, AI Coding, Workflow로 정의하고 프로덕트 개발과 AI Coding에 포커스를 맞췄으며, Tech는 구성원 및 조직 니즈가 높은 분야(k8s, Redis, Kafka 등)를 중심으로 Upskilling 및 Reskilling 프로그램을 제공했습니다.\n\n주요 프로그램으로는 외부 전문가를 초청한 AI & 테크 인사이트 세미나(GitHub Copilot UNIVERSE 리캡, NVIDIA GTC 2025 리캡 및 MCP 소개, Cursor 도입 및 활용 사례 공유, RAG/Agent 및 바이브코딩 도입 사례 공유, 사내 Agent 특강 등)와 실습 중심의 Tech Upskilling 핸즈온 교육(RAG & AI Agent 개발, Docker & Kubernetes 배포 및 모니터링, Redis 장애실습, GitHub Copilot 활용 Figma MCP 핸즈온 등)이 진행되었습니다.\n\n또한, 직무 변경 대상자의 빠른 현업 적응을 위한 Tech Reskilling 교육(웹 프론트엔드, 백엔드, 데이터 엔지니어링)을 오프라인 및 온라인 연계 과정으로 제공하여 높은 만족도를 얻었습니다. 회사 기술 블로그를 개발자 Tech Writing Playground로 활용하여 글쓰기 역량 개발 및 정보 공유를 활성화했으며, SK 데보션 프로 활동 및 SK AI SUMMIT 발표 참여를 통해 개발자 퍼스널 브랜딩 기회를 제공했습니다.\n\n결론적으로 SK플래닛은 AI 시대에도 개발자의 성장과 이를 위한 기업의 노력이 필수적임을 강조하며, 이를 통해 기업과 개인이 함께 성장하는 지혜로운 길을 모색하고 있습니다.\n\n🌟 한 줄 요약: SK플래닛은 AI 시대를 맞아 개발자 경쟁력 강화를 위해 AI 및 테크 교육, 직무 전환 지원, 기술 블로그 활용 등 다각적인 프로그램을 운영하며 조직과 개인의 동반 성장을 추구하고 있습니다.',
-      createdAt: null,
+      createdAt: '2025-10-28 15:00:00',
       score: 0.8,
       reason:
         '이 인재는 팀원들의 기술 성장을 지원하고, 프로젝트 매니징 능력을 발휘하는 프론트엔드 개발팀 리더입니다. 이 블로그 글은 개발 조직의 교육 및 성장 회고를 다루고 있어, 팀원들의 기술 향상과 관련된 다양한 프로그램과 방향성을 제시하고 있어 실무에 도움이 될 것입니다.',
@@ -414,7 +496,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       publishedAt: null,
       summary:
         'Arvind Jain은 과거 Rubrik에서 겪었던 직원들의 정보 검색 비효율성 문제를 해결하기 위해 AI 기반 기업 검색 엔진 Glean을 창업했습니다. Google에서 검색 엔진 개발 경험을 쌓은 Jain은 기업 내부에 파편화된 정보를 효과적으로 검색하고 활용하는 것이 인터넷 검색보다 어렵다는 점에 주목했습니다. Glean은 다양한 SaaS 도구에 흩어진 기업 데이터를 지식 그래프로 구축하고, 최신 자연어 처리 및 딥러닝 기술을 활용하여 개인화된 검색 결과를 제공합니다. 특히 최근에는 생성형 AI를 통합하여 단순 정보 검색을 넘어 업무 수행까지 지원하는 \'업무 도우미\'로 발전하고 있습니다. Glean은 기업의 생산성을 획기적으로 향상시키고, 직원들이 정보 탐색에 소요하는 시간을 줄여 핵심 업무에 집중할 수 있도록 돕는 것을 목표로 합니다.\n\n🌟 한 줄 요약: AI 기반 기업 검색 엔진 Glean은 파편화된 기업 정보를 통합하고 생성형 AI를 활용하여 업무 생산성을 극대화한다.',
-      createdAt: null,
+      createdAt: '2025-10-27 15:00:00',
       score: 0.7,
       reason:
         '이 인재는 프론트엔드 개발자로서의 경험을 바탕으로 팀 리더 역할을 수행하고 있습니다. 이 블로그 글은 AI 기반의 생산성 향상에 대한 내용을 다루고 있어, 프론트엔드 개발과 관련된 최신 기술 트렌드와 AI의 활용 방안에 대한 통찰을 제공할 것입니다.',
@@ -436,7 +518,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       publishedAt: null,
       summary:
         '카카오페이 클라이언트 플랫폼 팀은 테스트 기기 부족 및 관리 비용, 다양한 버전에서의 테스트 불편함 등 모바일 서비스 개발 시 발생하는 현실적인 문제들을 해결하기 위해 사내 테스트 플랫폼 \'멀티버스\'를 개발했습니다. 멀티버스는 맥북 하나로 실제 기기 없이 다양한 OS 버전과 기기 환경에서 앱을 테스트할 수 있는 가상 기기(시뮬레이터, 에뮬레이터)를 제공하며, 클릭 한 번으로 환경 구축, 가상 기기 생성 및 관리, 앱 설치 및 실행, 딥 링크 실행, 화면 캡처 및 녹화, 사용자 행동 로그 실시간 확인 등 다양한 테스트 편의 기능을 지원합니다. 이를 통해 프론트엔드, 백엔드 개발자뿐만 아니라 기획자, 디자이너 등 다양한 직군의 사용자들이 테스트에 집중할 수 있도록 돕고 개발 생산성을 향상시켰습니다. 향후에는 확장된 로그 콘솔, 사내 테스트 도구 및 어드민 연계, 직군별 테스트 편의 기능 제공 등을 통해 더욱 발전된 플랫폼으로 진화할 계획입니다.\n\n🌟 한 줄 요약: 멀티버스는 실제 기기 없이도 다양한 환경에서 앱 테스트를 가능하게 하여 개발 생산성을 극대화하는 혁신적인 사내 테스트 플랫폼입니다.',
-      createdAt: null,
+      createdAt: '2025-10-29 15:00:00',
       score: 0.6,
       reason:
         '이 인재는 대규모 웹 애플리케이션의 프론트엔드 아키텍처 설계 및 구현을 담당하고 있습니다. 이 블로그 글은 가상 기기를 활용한 앱 테스트 방법을 소개하고 있어, 프론트엔드 개발 시 유용한 테스트 환경 구축에 대한 정보를 제공하여 실무에 도움이 될 것입니다.',
@@ -461,7 +543,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       publishedAt: null,
       summary:
         '이 책은 개발자에서 팀을 이끄는 리드 개발자로 성장하고자 하는 이들을 위한 실전 가이드입니다. 단순히 코드를 잘 작성하는 것을 넘어, 팀의 방향을 제시하고 위기를 기회로 바꾸는 리더의 역량이 중요해지는 IT 현장의 흐름을 반영합니다. 책은 개발 프로세스 개선, 기술 문서 작성, 고객과의 소통, 팀 멘토링, 건설적인 피드백 전달 등 리드 개발자에게 필요한 핵심 역량을 다룹니다. 또한, 커리어 경로 설계, 기술 학습 방법, 리더십 스타일 탐색, 프레젠테이션 기술 향상 등 개발자로서 다음 단계를 준비하는 데 필요한 구체적인 조언을 제공합니다. 특히, 한국어판 부록에는 한국 리드 개발자 10인의 인터뷰가 수록되어 있어, 국내 개발 환경에서의 생생한 경험과 실질적인 조언을 얻을 수 있습니다. 이 책은 기술 역량과 소프트 스킬의 균형을 통해 성공적인 리드 개발자가 되고자 하는 모든 개발자에게 필독서입니다.\n\n🌟 한 줄 요약: 개발자에서 리드 개발자로 성장하기 위한 기술과 리더십, 소프트 스킬을 아우르는 종합 가이드.',
-      createdAt: null,
+      createdAt: '2025-10-28 15:00:00',
       score: 0.9,
       reason:
         '이 인재는 프론트엔드 개발팀 리더로서 팀원들의 기술 성장을 지원하고 프로젝트 매니징 능력을 발휘하고 있습니다. 이 책은 리드 개발자로 성장하기 위한 실전 가이드를 제공하여, 팀을 이끄는 리더의 역량을 키우는 데 실질적인 도움이 될 것입니다.',
@@ -483,7 +565,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       publishedAt: null,
       summary:
         '이 책은 Spring Boot와 React를 활용하여 강력하고 확장 가능한 풀스택 애플리케이션을 구축하는 방법을 다룹니다. Java 개발자가 풀스택 개발을 시작하는 데 필요한 모든 것을 제공하며, Spring Boot를 사용한 백엔드 개발의 기초(환경 설정, 의존성 주입, 보안, 테스트)부터 React를 활용한 프론트엔드 개발(Custom Hooks, 서드파티 컴포넌트, MUI 활용)까지 상세하게 안내합니다. 또한, RESTful 웹 서비스 구축, 데이터베이스 관리(ORM, JPA, Hibernate), 단위 테스트 및 JWT를 활용한 Spring Security 적용, 고성능 애플리케이션 개발, 프론트엔드 커스터마이징, 그리고 애플리케이션의 테스트, 보안, 배포까지 포괄적으로 다룹니다. 이 책을 통해 독자는 현대적인 풀스택 애플리케이션 개발 이론을 배우고 실질적인 기술 역량을 함양할 수 있습니다.\n\n🌟 한 줄 요약: Spring Boot와 React를 활용한 풀스택 개발의 전 과정을 실습 중심으로 학습할 수 있는 종합 가이드',
-      createdAt: null,
+      createdAt: '2025-10-27 15:00:00',
       score: 0.7,
       reason:
         '이 인재는 React와 JavaScript에 대한 깊은 이해를 바탕으로 팀의 기술적 방향성을 설정하고 있습니다. 이 책은 Spring Boot와 React를 활용한 풀스택 개발을 다루고 있어, 이 인재의 기술 스택을 확장하는 데 유용할 것입니다.',
@@ -506,7 +588,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       publishedAt: null,
       summary:
         '본 콘텐츠는 \'실무에 바로 쓰는 일잘러의 챗GPT 프롬프트 74가지\'라는 도서를 소개하며, 챗GPT를 활용하여 업무 효율을 높이고 일상에 집중할 수 있는 노하우를 제공합니다. 이 책은 단순한 챗GPT 기능 설명이 아닌, 74가지의 실용적인 프롬프트를 통해 이메일 작성, 기획안 검토, 데이터 분석, 프레젠테이션 준비 등 직장 업무 전반을 혁신하는 방법을 제시합니다. 또한, 번아웃 극복, 동기 부여, 소비 습관 분석 등 개인적인 고민 해결에도 챗GPT를 활용할 수 있음을 보여줍니다. 특히, 챗GPT 초보자도 쉽게 따라 할 수 있도록 노션에 정리된 프롬프트를 복사-붙여넣기만으로 활용 가능하며, Gamma AI, Napkin AI, 클로바노트, Draw.io 등 다양한 AI 도구와의 연계를 통해 챗GPT의 잠재력을 극대화하는 방법도 다룹니다. 이 책은 AI와 함께 일하는 시대에 필요한 챗GPT 활용 기준을 제시하며, 일과 삶의 균형을 추구하는 모든 사람에게 유용한 가이드가 될 것입니다.\n\n🌟 한 줄 요약: 챗GPT 프롬프트 74가지로 업무와 일상을 혁신하는 실용 가이드.',
-      createdAt: null,
+      createdAt: '2025-10-29 15:00:00',
       score: 0.6,
       reason:
         'AI와 협업하여 문제를 해결하는 \'바이브 코더\'로서의 성장에 관심이 있는 이 인재에게, 이 책은 AI와 함께 프로젝트를 체계적으로 수행하는 방법을 제시합니다. 이는 이 인재의 기술적 역량을 더욱 강화하는 데 도움이 될 것입니다.',
@@ -536,7 +618,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       summary:
         '본 콘텐츠는 개인 기여자에서 관리자로 전환을 준비하는 예비 관리자들을 위한 인간 중심 리더십 기술을 다룹니다. 감성 지능, 적극적 경청, 공감적 소통, 주인의식 및 책임감, 변화에 대한 적응력 등 팀의 신뢰, 협업, 성공을 증진하는 데 필수적인 사고방식과 행동을 개발하는 데 초점을 맞춥니다. 특히, 감성 지능을 활용하여 관계를 강화하고, 적극적 경청과 공감적 소통을 통해 팀원들이 존중받고 이해받는다고 느끼게 하며, 주인의식과 책임감을 모델링하여 팀의 성과를 이끌어내는 방법을 안내합니다. 또한, 변화와 불확실성에 유연하게 대처하는 적응력 있는 리더십을 함양하는 방법을 제시합니다. 이 과정은 관리자로서의 성공적인 전환을 위한 실질적인 지침을 제공합니다.\n\n🌟 한 줄 요약: 예비 관리자가 팀의 성공을 이끄는 인간 중심 리더십 역량을 키우는 방법을 안내합니다.',
       publishedAt: null,
-      createdAt: null,
+      createdAt: '2025-10-28 15:00:00',
       score: 0.8,
       reason:
         '이 강의는 팀 리더로서 필요한 인간 중심의 리더십 기술을 개발하는 데 중점을 두고 있습니다. 특히, 팀원들과의 신뢰 구축 및 효과적인 커뮤니케이션을 통해 팀의 성과를 높이는 데 도움이 될 것입니다.',
@@ -564,7 +646,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       summary:
         '본 콘텐츠는 복잡하고 글로벌하며 AI가 지원되는 비즈니스 환경에서 기업 변화를 주도하고자 하는 임원 및 C-레벨 리더를 대상으로 인간 중심 리더십 스킬을 제공합니다. 고성과 리더십 팀 구축, 모호함 탐색, 감성 지능 활용, 비전 제시를 통한 조직 성장 및 회복력 강화에 초점을 맞춘 전문가 주도 강좌들로 구성되어 있습니다. 특히, 현대적인 직장을 위한 임원 리더십 팀 구축, 양자적 사고를 통한 리더십 모호함 탐색, 글로벌 팀 및 조직 리딩의 구체적인 도전 과제 극복, 생성형 AI를 활용한 리더의 감성 지능 향상, 그리고 임원을 위한 고급 갈등 해결 기법에 대한 내용을 다룹니다. 또한, 혁신, 참여, 성장의 문화를 조성하는 변혁적 리더십에 대한 강좌도 포함되어 있습니다.\n\n🌟 한 줄 요약: AI 시대, 임원은 인간 중심 리더십으로 조직 변화와 성장을 이끌어야 한다.',
       publishedAt: null,
-      createdAt: null,
+      createdAt: '2025-10-27 15:00:00',
       score: 0.7,
       reason:
         '이 강의는 고위 경영진을 위한 인간 중심의 리더십 기술을 다루며, 팀의 성과를 극대화하고 조직의 변화를 이끌어내는 데 필요한 전략적 통찰력을 제공합니다. 팀 리더로서의 역량을 더욱 강화할 수 있습니다.',
@@ -592,7 +674,7 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
       summary:
         '본 콘텐츠는 경험 많은 관리자가 리더십 역할로 전환하는 데 필요한 핵심 역량을 강화하는 데 초점을 맞춥니다. 조직 내 역학 관계를 탐색하고, 갈등 상황을 효과적으로 관리하며, 팀이 전략적으로 사고하도록 코칭하는 기술을 개발합니다. 또한 권력 관계를 활용하고, 포용적인 문화를 조성하며, 공감과 솔직함을 바탕으로 변혁적 변화를 주도하는 방법을 배웁니다. 리더십 전환, 공감적 솔직함, 용감한 리더십, 전략적 사고 코칭, 리더십 효과성, 조직 내 권력 역학 활용, 임원 리더십으로의 전환, 디자인 씽킹을 통한 변화 주도, 조직 정치 탐색, 갈등에서 용기로 나아가기, 문화적 역량 및 포용성 함양, 공감으로 리드하기 등 다양한 주제를 다루는 12개의 강좌로 구성되어 있습니다. 각 강좌는 해당 분야의 전문가들이 진행하며, 실질적인 기술과 통찰력을 제공하여 리더들이 조직 내에서 더 큰 영향력을 발휘하고 성공적으로 이끌 수 있도록 돕습니다.\n\n🌟 한 줄 요약: 경험 많은 관리자가 리더십으로 성공적으로 전환하고 조직에 긍정적인 변화를 이끌기 위한 실질적인 가이드라인을 제공합니다.',
       publishedAt: null,
-      createdAt: null,
+      createdAt: '2025-10-29 15:00:00',
       score: 0.6,
       reason:
         '이 강의는 경험이 풍부한 관리자들이 리더십 역할로 나아가는 데 필요한 기술을 개발하는 데 초점을 맞추고 있습니다. 팀원들을 코칭하고 전략적 사고를 촉진하는 방법을 배우는 것은 이 인재의 커리어 성장에 큰 도움이 될 것입니다.',
@@ -602,6 +684,118 @@ export const mockDiscoverResponse: DiscoverMockResponse = {
   ],
   createdAt: '2025-10-30 01:38:00',
 };
+
+// Get detailed content by ID
+export function getDiscoverContentDetail(id: string): DiscoverContentDetail | null {
+  const allContent = [
+    ...transformJobsToContentCards(mockDiscoverResponse.jobs),
+    ...transformBlogsToContentCards(mockDiscoverResponse.blogs),
+    ...transformBooksToContentCards(mockDiscoverResponse.books),
+    ...transformCoursesToContentCards(mockDiscoverResponse.courses),
+  ];
+
+  const content = allContent.find((item) => item.contentId === id);
+  if (!content) return null;
+
+  // Add additional detail fields
+  const tags: string[] = [];
+  let difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate';
+  let readTime = '5분';
+  let metadata: ContentMetadata | undefined;
+  let jobRoleMetadata: JobRoleMetadata | undefined;
+
+  if (id.startsWith('job-')) {
+    tags.push('채용', '커리어', 'IT');
+    readTime = '3분';
+    metadata = {
+      averageSalary: '8,500만원',
+      openPositions: 24,
+      employeeSatisfaction: 85,
+      hiringTrend: 7.5,
+      companySize: '1,000-5,000명',
+      industry: 'IT/소프트웨어',
+      foundedYear: 1975,
+      companyName: '토스',
+      companyLogo: 'https://static.toss.im/icons/png/4x/icon-toss-logo.png',
+    } as JobMetadata;
+    jobRoleMetadata = {
+      roleName: '프론트엔드 개발자',
+      marketDemand: 87,
+      salaryRange: {
+        min: 45000000,
+        max: 95000000,
+        average: 68000000
+      },
+      experienceDistribution: {
+        junior: 25,
+        mid: 45,
+        senior: 30
+      },
+      requiredSkills: [
+        { name: 'React', importance: 95 },
+        { name: 'TypeScript', importance: 90 },
+        { name: 'JavaScript', importance: 85 },
+        { name: 'HTML/CSS', importance: 80 },
+        { name: 'Next.js', importance: 75 },
+        { name: 'Git', importance: 70 }
+      ],
+      demandTrend: [520, 580, 640, 710, 780, 850],
+      growthRate: 18.5,
+      competitionLevel: 'high'
+    } as JobRoleMetadata;
+  } else if (id.startsWith('blog-')) {
+    tags.push('기술', '블로그', '인사이트');
+    difficulty = 'intermediate';
+    readTime = '7분';
+    metadata = {
+      totalPosts: 458,
+      averageViews: 12500,
+      postFrequency: '주 2-3회',
+      popularityRank: 15,
+      techStack: ['React', 'TypeScript', 'Node.js', 'AWS', 'Docker'],
+    } as BlogMetadata;
+  } else if (id.startsWith('book-')) {
+    tags.push('도서', '학습', '성장');
+    difficulty = 'beginner';
+    readTime = '10분';
+    metadata = {
+      publisher: '제이펍',
+      rating: 4.7,
+      reviewCount: 342,
+      pages: 428,
+      publishDate: '2024-02-15',
+      isbn: '979-11-92987-45-6',
+    } as BookMetadata;
+  } else if (id.startsWith('course-')) {
+    tags.push('강의', '온라인', '학습');
+    difficulty = 'intermediate';
+    readTime = '15분';
+    metadata = {
+      students: 12847,
+      rating: 4.8,
+      completionRate: 78,
+      duration: '12시간 30분',
+      level: '중급',
+    } as CourseMetadata;
+  }
+
+  // Get related content (exclude current item)
+  const relatedContent = allContent
+    .filter((item) => item.contentId !== id && item.badgeTone === content.badgeTone)
+    .slice(0, 3);
+
+  return {
+    ...content,
+    contentId: content.contentId!, // contentId는 transform 함수에서 항상 설정됨
+    tags,
+    difficulty,
+    readTime,
+    fullContent: content.summary,
+    relatedContent,
+    metadata,
+    jobRoleMetadata,
+  };
+}
 
 // Today's Jobs Mock Data
 export const mockTodayJobs = [

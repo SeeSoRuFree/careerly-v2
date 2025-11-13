@@ -4,6 +4,27 @@ import * as React from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Briefcase } from 'lucide-react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Filler,
+  ChartOptions,
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Filler
+);
 
 export interface JobMarketTrend {
   id: string;
@@ -38,58 +59,88 @@ export const JobMarketTrendCard = React.forwardRef<HTMLDivElement, JobMarketTren
           <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
         </div>
 
-        {/* Trends Grid - 2 columns, each item is a card */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Trends List - One item per row */}
+        <div className="space-y-3">
           {trends.map((trend) => {
             const isPositive = trend.change >= 0;
             const changeColor = isPositive ? 'text-emerald-600' : 'text-red-600';
             const bgColor = isPositive ? 'bg-emerald-50' : 'bg-red-50';
+            const lineColor = isPositive ? 'rgb(16, 185, 129)' : 'rgb(239, 68, 68)';
+            const gradientColor = isPositive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+
+            // Chart data configuration
+            const chartData = {
+              labels: trend.chart?.map((_, idx) => `Day ${idx + 1}`) || [],
+              datasets: [
+                {
+                  data: trend.chart || [],
+                  borderColor: lineColor,
+                  backgroundColor: gradientColor,
+                  borderWidth: 2,
+                  tension: 0.4,
+                  pointRadius: 0,
+                  pointHoverRadius: 4,
+                  fill: true,
+                },
+              ],
+            };
+
+            // Chart options
+            const chartOptions: ChartOptions<'line'> = {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                tooltip: {
+                  enabled: true,
+                  mode: 'index',
+                  intersect: false,
+                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                  padding: 8,
+                  displayColors: false,
+                  callbacks: {
+                    title: () => '',
+                    label: (context) => `${context.parsed.y} 건`,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  display: false,
+                },
+                y: {
+                  display: false,
+                },
+              },
+              interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false,
+              },
+            };
 
             return (
               <Card
                 key={trend.id}
-                className="p-3 hover:border-slate-400 transition-colors"
+                className="p-4 hover:border-slate-400 transition-colors"
               >
-                {/* Category Badge */}
-                <div className="mb-1">
-                  <span className="text-xs text-slate-500">{trend.category}</span>
-                </div>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    {/* Category Badge */}
+                    <span className="text-xs text-slate-500 font-medium">
+                      {trend.category}
+                    </span>
 
-                {/* Position */}
-                <h4 className="text-xs font-bold text-slate-900 mb-2 line-clamp-1">
-                  {trend.position}
-                </h4>
-
-                {/* Posting Count */}
-                <p className="text-lg font-bold text-slate-900 mb-2">
-                  {trend.postingCount.toLocaleString()}개
-                </p>
-
-                {/* Chart Mini Visualization */}
-                {trend.chart && trend.chart.length > 0 && (
-                  <div className="w-full h-8 mb-2">
-                    <svg width="100%" height="100%" className="overflow-visible">
-                      <polyline
-                        fill="none"
-                        stroke={isPositive ? '#10b981' : '#ef4444'}
-                        strokeWidth="2"
-                        points={trend.chart
-                          .map((value, index) => {
-                            const x = (index / (trend.chart!.length - 1)) * 100;
-                            const minVal = Math.min(...trend.chart!);
-                            const maxVal = Math.max(...trend.chart!);
-                            const y = 100 - ((value - minVal) / (maxVal - minVal)) * 100;
-                            return `${x}%,${y}%`;
-                          })
-                          .join(' ')}
-                      />
-                    </svg>
+                    {/* Position */}
+                    <h4 className="text-sm font-bold text-slate-900 mt-1 line-clamp-1">
+                      {trend.position}
+                    </h4>
                   </div>
-                )}
 
-                {/* Change Info */}
-                <div className="flex items-center gap-2">
-                  <div className={cn('flex items-center gap-1 text-xs font-bold', changeColor)}>
+                  {/* Change Badge */}
+                  <div className={cn('flex items-center gap-1 text-xs font-bold px-2 py-1 rounded', changeColor, bgColor)}>
                     {isPositive ? (
                       <TrendingUp className="h-3 w-3" />
                     ) : (
@@ -97,12 +148,32 @@ export const JobMarketTrendCard = React.forwardRef<HTMLDivElement, JobMarketTren
                     )}
                     <span>
                       {isPositive ? '+' : ''}
-                      {trend.change}
+                      {trend.changePercent.toFixed(1)}%
                     </span>
                   </div>
-                  <div className={cn('text-xs font-medium px-1.5 py-0.5 rounded', changeColor, bgColor)}>
-                    {isPositive ? '+' : ''}
-                    {trend.changePercent.toFixed(1)}%
+                </div>
+
+                {/* Chart */}
+                {trend.chart && trend.chart.length > 0 && (
+                  <div className="w-full h-16 mb-3">
+                    <Line data={chartData} options={chartOptions} />
+                  </div>
+                )}
+
+                {/* Posting Count and Change */}
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {trend.postingCount.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-500">채용공고</p>
+                  </div>
+                  <div className={cn('flex items-center gap-1 text-sm font-semibold', changeColor)}>
+                    <span>
+                      {isPositive ? '+' : ''}
+                      {trend.change}
+                    </span>
+                    <span className="text-xs text-slate-500 font-normal">건</span>
                   </div>
                 </div>
               </Card>

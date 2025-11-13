@@ -61,7 +61,6 @@ const TagBar = React.forwardRef<HTMLDivElement, TagBarProps>(
             return (
               <Chip
                 key={tag}
-                selected={isActive}
                 variant={isActive ? 'coral' : 'default'}
                 className={cn(
                   'shrink-0'

@@ -6,11 +6,13 @@ import { MediaThumb } from '@/components/ui/media-thumb';
 import { MetaRow } from '@/components/ui/meta-row';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
+import { Chip } from '@/components/ui/chip';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
 import { Heart, Bookmark, Share2, Clock, Eye } from 'lucide-react';
 
 export interface DiscoverContentCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  contentId?: string | number;
   title: string;
   summary?: string;
   thumbnailUrl?: string;
@@ -31,9 +33,11 @@ export interface DiscoverContentCardProps extends React.HTMLAttributes<HTMLDivEl
   onLike?: () => void;
   onBookmark?: () => void;
   onShare?: () => void;
+  onCardClick?: () => void;
   liked?: boolean;
   bookmarked?: boolean;
   layout?: 'vertical' | 'horizontal';
+  tags?: string[];
 }
 
 export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverContentCardProps>(
@@ -51,9 +55,11 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
       onLike,
       onBookmark,
       onShare,
+      onCardClick,
       liked = false,
       bookmarked = false,
       layout = 'vertical',
+      tags,
       className,
       ...props
     },
@@ -129,9 +135,11 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
           className={cn(
             'group relative overflow-hidden transition-all duration-300',
             'hover:translate-y-[-2px]',
-            'flex flex-row gap-4',
+            'flex flex-row gap-3',
+            onCardClick && 'cursor-pointer',
             className
           )}
+          onClick={onCardClick}
           {...props}
         >
           {/* Thumbnail */}
@@ -175,6 +183,17 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
               </p>
             )}
 
+            {/* Tags */}
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {tags.slice(0, 5).map((tag) => (
+                  <Chip key={tag} variant="default" className="text-xs px-2 py-0.5">
+                    {tag}
+                  </Chip>
+                ))}
+              </div>
+            )}
+
             {/* Posted Date */}
             {postedAt && (
               <p className="text-xs text-slate-500 flex items-center gap-1">
@@ -187,7 +206,7 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
             <div className="flex-1" />
 
             {/* Meta Info & Actions - Always at bottom */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-3">
               {metaItems.length > 0 && (
                 <MetaRow items={metaItems} />
               )}
@@ -215,8 +234,10 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
           'group relative overflow-hidden transition-all duration-300',
           'hover:translate-y-[-2px]',
           'flex flex-col',
+          onCardClick && 'cursor-pointer',
           className
         )}
+        onClick={onCardClick}
         {...props}
       >
         {/* Thumbnail */}
@@ -258,6 +279,17 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
             <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
               {summary}
             </p>
+          )}
+
+          {/* Tags */}
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 5).map((tag) => (
+                <Chip key={tag} variant="default" className="text-xs px-1.5 py-0.5">
+                  {tag}
+                </Chip>
+              ))}
+            </div>
           )}
 
           {/* Posted Date */}

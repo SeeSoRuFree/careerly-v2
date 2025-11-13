@@ -6,7 +6,7 @@
 import { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { API_CONFIG } from '../config';
 
-interface RetryConfig {
+interface RetryConfig extends InternalAxiosRequestConfig {
   retryCount?: number;
   lastRetryTime?: number;
 }
@@ -22,7 +22,7 @@ function isRetryableError(error: AxiosError): boolean {
 
   // 설정된 상태 코드는 재시도
   const status = error.response.status;
-  return API_CONFIG.RETRY.STATUS_CODES.includes(status);
+  return API_CONFIG.RETRY.STATUS_CODES.includes(status as any);
 }
 
 /**
@@ -94,7 +94,7 @@ export function setupRetryInterceptor(axiosInstance: AxiosInstance): void {
 /**
  * 특정 요청에 대해 재시도 비활성화
  */
-export function disableRetry(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+export function disableRetry(config: InternalAxiosRequestConfig): RetryConfig {
   return {
     ...config,
     retryCount: API_CONFIG.RETRY.MAX_ATTEMPTS, // 최대값으로 설정하여 재시도 방지

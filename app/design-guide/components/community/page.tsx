@@ -151,7 +151,7 @@ export default function CommunityComponentsPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-3">미답변 질문</p>
                   <QnaCard
-                    id={10645}
+                    qnaId={10645}
                     title="AI개발 포트폴리오"
                     description="안녕하세요
 6개월간의 AI 부트캠프를 수료하였고 미니 프로젝트 4개와 최종 프로젝트 1개를 만들었습니다.
@@ -175,7 +175,7 @@ export default function CommunityComponentsPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-3">답변 완료 질문</p>
                   <QnaCard
-                    id={10644}
+                    qnaId={10644}
                     title="React vs Vue, 어떤 프레임워크를 선택해야 할까요?"
                     description="신입 프론트엔드 개발자로 취업을 준비 중인데, React와 Vue 중 어떤 것을 먼저 공부해야 할지 고민입니다. 각각의 장단점과 취업 시장에서의 수요가 궁금합니다."
                     createdAt="2일 전"
@@ -193,7 +193,7 @@ export default function CommunityComponentsPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-3">비공개 질문</p>
                   <QnaCard
-                    id={10643}
+                    qnaId={10643}
                     title="현재 회사에서의 연봉 협상 방법"
                     description="입사 3년차인데 연봉 협상을 어떻게 해야 할지 모르겠습니다. 동종 업계 평균이나 협상 팁을 알려주실 수 있나요?"
                     createdAt="1주 전"

@@ -10,8 +10,16 @@ export const API_CONFIG = {
   // GraphQL API URL
   GRAPHQL_URL: process.env.NEXT_PUBLIC_GRAPH_API_HOST || '',
 
+  // Careerly Agent API URL (AI Chat)
+  AGENT_API_URL:
+    process.env.NEXT_PUBLIC_AGENT_API_URL ||
+    'https://seulchan--careerly-agent-poc-fastapi-app.modal.run',
+
   // API 타임아웃 (밀리초)
   TIMEOUT: Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 10000,
+
+  // Agent API 타임아웃 (더 길게 설정)
+  AGENT_TIMEOUT: 300000, // 5분
 
   // 재시도 설정
   RETRY: {

@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useMutation, useQueryClient, UseMutationOptions } from '@tantml:react-query';
+import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   likeFeed,

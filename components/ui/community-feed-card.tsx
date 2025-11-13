@@ -7,7 +7,7 @@ import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
-import { Heart, MessageCircle, Repeat2, Share2, Bookmark, Eye, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, Bookmark, Eye, Clock, MoreHorizontal } from 'lucide-react';
 
 export interface UserProfile {
   id: number;
@@ -33,6 +33,7 @@ export interface CommunityFeedCardProps extends React.HTMLAttributes<HTMLDivElem
   stats?: PostStats;
   imageUrls?: string[];
   href?: string;
+  onClick?: () => void;
   onLike?: () => void;
   onReply?: () => void;
   onRepost?: () => void;
@@ -56,6 +57,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       stats,
       imageUrls = [],
       href,
+      onClick,
       onLike,
       onReply,
       onRepost,
@@ -128,8 +130,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     return (
       <Card
         ref={ref}
+        onClick={onClick}
         className={cn(
-          'p-4 hover:border-slate-300 transition-all duration-200',
+          'p-6 transition-all duration-200',
+          onClick && 'cursor-pointer hover:shadow-md hover:border-coral-200',
           className
         )}
         {...props}
@@ -144,7 +148,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         )}
 
         {/* Header - User Profile */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-2">
           <div className="flex items-start gap-3">
             <Avatar className="h-10 w-10">
               <AvatarImage src={userProfile.image_url} alt={userProfile.name} />
@@ -157,14 +161,16 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
               {userProfile.headline && (
                 <p className="text-sm text-slate-600">{userProfile.headline}</p>
               )}
-              <p className="text-xs text-slate-500 mt-1">{createdAt}</p>
             </div>
           </div>
 
           {/* More Actions */}
           {onMore && (
             <button
-              onClick={onMore}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMore();
+              }}
               className="text-slate-400 hover:text-slate-600 transition-colors"
               aria-label="더보기"
             >
@@ -174,7 +180,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         </div>
 
         {/* Content */}
-        <div className="mb-3">
+        <div className="mb-2">
           {contentHtml ? (
             <div
               className="text-slate-900 text-sm leading-relaxed prose prose-sm max-w-none"
@@ -190,7 +196,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         {/* Images */}
         {imageUrls.length > 0 && (
           <div className={cn(
-            'mb-3 rounded-lg overflow-hidden',
+            'mb-2 rounded-lg overflow-hidden',
             imageUrls.length === 1 && 'grid grid-cols-1',
             imageUrls.length === 2 && 'grid grid-cols-2 gap-2',
             imageUrls.length >= 3 && 'grid grid-cols-2 gap-2'
@@ -222,8 +228,12 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         )}
 
         {/* Stats Row */}
-        {stats && (stats.viewCount || stats.likeCount) && (
-          <div className="flex items-center gap-4 text-xs text-slate-500 mb-3 pb-3 border-b border-slate-100">
+        {stats && (stats.viewCount || stats.likeCount || stats.replyCount) && (
+          <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              <span>{createdAt}</span>
+            </div>
             {stats.viewCount !== undefined && (
               <div className="flex items-center gap-1">
                 <Eye className="h-3.5 w-3.5" />
@@ -236,12 +246,21 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
                 <span>{stats.likeCount.toLocaleString()} 좋아요</span>
               </div>
             )}
+            {stats.replyCount !== undefined && stats.replyCount > 0 && (
+              <div className="flex items-center gap-1">
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span>{stats.replyCount.toLocaleString()} 댓글</span>
+              </div>
+            )}
           </div>
         )}
 
         {/* Actions */}
         {actions.length > 0 && (
-          <div className="flex items-center justify-between">
+          <div
+            className="flex items-center justify-between"
+            onClick={(e) => e.stopPropagation()}
+          >
             <ActionBar
               actions={actions}
               onAction={handleAction}
