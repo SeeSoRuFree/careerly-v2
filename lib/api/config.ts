@@ -7,9 +7,6 @@ export const API_CONFIG = {
   // RESTful API Base URL
   REST_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
 
-  // GraphQL API URL
-  GRAPHQL_URL: process.env.NEXT_PUBLIC_GRAPH_API_HOST || '',
-
   // Careerly Agent API URL (AI Chat)
   AGENT_API_URL:
     process.env.NEXT_PUBLIC_AGENT_API_URL ||
@@ -44,10 +41,6 @@ export function validateApiConfig() {
 
   if (!API_CONFIG.REST_BASE_URL) {
     missingVars.push('NEXT_PUBLIC_API_BASE_URL');
-  }
-
-  if (!API_CONFIG.GRAPHQL_URL) {
-    missingVars.push('NEXT_PUBLIC_GRAPH_API_HOST');
   }
 
   if (missingVars.length > 0) {

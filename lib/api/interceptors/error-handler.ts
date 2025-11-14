@@ -1,6 +1,6 @@
 /**
  * API 에러 핸들러
- * Axios 에러와 GraphQL 에러를 통합 처리합니다.
+ * Axios 에러를 통합 처리합니다.
  */
 
 import { AxiosError } from 'axios';
@@ -71,17 +71,6 @@ function normalizeAxiosError(error: AxiosError): ApiError {
 }
 
 /**
- * GraphQL 에러를 ApiError로 정규화
- */
-function normalizeGraphQLError(error: any): ApiError {
-  const firstError = error.response?.errors?.[0];
-  const code = firstError?.extensions?.code || ERROR_CODES.GRAPHQL_ERROR;
-  const message = firstError?.message || ERROR_MESSAGES.GRAPHQL_ERROR;
-
-  return new ApiError(400, code, message, error.response);
-}
-
-/**
  * 에러를 ApiError로 정규화
  */
 export function normalizeError(error: unknown): ApiError {
@@ -93,14 +82,6 @@ export function normalizeError(error: unknown): ApiError {
   // Axios 에러
   if (error instanceof AxiosError) {
     return normalizeAxiosError(error);
-  }
-
-  // GraphQL 에러 (graphql-request)
-  if (error && typeof error === 'object' && 'response' in error) {
-    const gqlError = error as any;
-    if (gqlError.response?.errors) {
-      return normalizeGraphQLError(gqlError);
-    }
   }
 
   // 일반 Error

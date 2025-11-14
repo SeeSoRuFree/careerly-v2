@@ -7,7 +7,6 @@
 // Clients
 // ============================================================
 export { publicClient, authClient } from './clients/rest-client';
-export { graphqlClient, graphqlRequest, graphqlMutation } from './clients/graphql-client';
 export { SSEClient, getSSEClient, createSSEClient } from './clients/sse-client';
 export type { SSEOptions, SSEEventHandlers } from './clients/sse-client';
 
@@ -29,7 +28,6 @@ export {
 // Search Service
 export {
   searchCareer,
-  searchCareerGraphQL,
   advancedSearch,
   getTrendingKeywords,
   getSearchHistory,
@@ -72,6 +70,44 @@ export {
   getBookmarkedFeeds,
 } from './services/discover.service';
 
+// Posts Service
+export {
+  getPosts,
+  getPost,
+  createPost,
+  updatePost,
+  patchPost,
+  deletePost,
+} from './services/posts.service';
+
+// Comments Service
+export {
+  getComments,
+  getComment,
+  createComment,
+  updateComment,
+  patchComment,
+  deleteComment,
+} from './services/comments.service';
+
+// Questions Service
+export {
+  getQuestions,
+  getQuestion,
+  createQuestion,
+  updateQuestion,
+  patchQuestion,
+  deleteQuestion,
+  getQuestionAnswers,
+  createQuestionAnswer,
+  getAnswers,
+  getAnswer,
+  createAnswer,
+  updateAnswer,
+  patchAnswer,
+  deleteAnswer,
+} from './services/questions.service';
+
 // ============================================================
 // React Query Hooks - Queries
 // ============================================================
@@ -79,7 +115,6 @@ export {
 // Search Queries
 export {
   useSearch,
-  useSearchGraphQL,
   useTrendingKeywords,
   useSearchHistory,
   useSearchAutocomplete,
@@ -107,6 +142,31 @@ export {
   useBookmarkedFeeds,
   discoverKeys,
 } from './hooks/queries/useDiscover';
+
+// Comments Queries
+export {
+  useComments,
+  useComment,
+  commentKeys,
+} from './hooks/queries/useComments';
+
+// Posts Queries
+export {
+  usePosts,
+  usePost,
+  postsKeys,
+} from './hooks/queries/usePosts';
+
+// Questions Queries
+export {
+  useQuestions,
+  useQuestion,
+  useQuestionAnswers,
+  useAnswers,
+  useAnswer,
+  questionKeys,
+  answerKeys,
+} from './hooks/queries/useQuestions';
 
 // ============================================================
 // React Query Hooks - Mutations
@@ -142,8 +202,34 @@ export {
 } from './hooks/mutations/useChat';
 export type { UseChatMutationParams } from './hooks/mutations/useChat';
 
-// GraphQL Hooks
-export { useGraphQL, useGraphQLMutation } from './hooks/useGraphQL';
+// Comments Mutations
+export {
+  useCreateComment,
+  useUpdateComment,
+  usePatchComment,
+  useDeleteComment,
+} from './hooks/mutations/useCommentsMutations';
+
+// Posts Mutations
+export {
+  useCreatePost,
+  useUpdatePost,
+  usePatchPost,
+  useDeletePost,
+} from './hooks/mutations/usePostsMutations';
+
+// Questions Mutations
+export {
+  useCreateQuestion,
+  useUpdateQuestion,
+  usePatchQuestion,
+  useDeleteQuestion,
+  useCreateQuestionAnswer,
+  useCreateAnswer,
+  useUpdateAnswer,
+  usePatchAnswer,
+  useDeleteAnswer,
+} from './hooks/mutations/useQuestionsMutations';
 
 // ============================================================
 // Types
@@ -162,6 +248,7 @@ export type {
   SearchParams,
   LoginRequest,
   LoginResponse,
+  RegisterRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
   User,
@@ -169,21 +256,37 @@ export type {
   DiscoverFeed,
   DiscoverFeedResponse,
 
-  // GraphQL Types
-  GraphQLQueryOptions,
-  GraphQLError,
-  GraphQLResponse,
-  SearchQueryVariables,
-  SearchQueryResult,
-  UserQueryVariables,
-  UserQueryResult,
-
   // Chat Types
   ChatRequest,
   ChatResponse,
   ChatSearchResult,
   ChatCitation,
   HealthResponse,
+
+  // Posts Types
+  Post,
+  PostListItem,
+  PostCreateRequest,
+  PostUpdateRequest,
+  PaginatedPostResponse,
+  PostType,
+
+  // Comments Types
+  Comment,
+  CommentCreateRequest,
+  CommentUpdateRequest,
+  PaginatedCommentResponse,
+
+  // Questions Types
+  Question,
+  QuestionListItem,
+  QuestionCreateRequest,
+  QuestionUpdateRequest,
+  Answer,
+  AnswerCreateRequest,
+  AnswerUpdateRequest,
+  PaginatedQuestionResponse,
+  PaginatedAnswerResponse,
 } from './types';
 
 // ============================================================

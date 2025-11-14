@@ -3,9 +3,7 @@
  */
 
 import { authClient, publicClient, handleApiError } from '../clients/rest-client';
-import { graphqlRequest } from '../clients/graphql-client';
 import type { SearchParams, SearchResult as ApiSearchResult } from '../types/rest.types';
-import { GRAPHQL_QUERIES } from '../types/graphql.types';
 import mockData from '@/lib/mock/search.mock.json';
 
 /**
@@ -36,33 +34,6 @@ export async function searchCareer(query: string): Promise<SearchResult> {
     // return response.data;
 
     // 현재는 mock 데이터 반환 (기존 동작 유지)
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return {
-      ...mockData.sampleSearchResults,
-      query,
-    };
-  } catch (error) {
-    throw handleApiError(error);
-  }
-}
-
-/**
- * GraphQL을 사용한 검색
- */
-export async function searchCareerGraphQL(query: string): Promise<SearchResult> {
-  try {
-    // TODO: 실제 GraphQL API 연동 시 주석 해제
-    // const result = await graphqlRequest<{
-    //   search: {
-    //     query: string;
-    //     answer: string;
-    //     citations: Citation[];
-    //   };
-    // }>(GRAPHQL_QUERIES.SEARCH, { query });
-    //
-    // return result.search;
-
-    // 현재는 mock 데이터 반환
     await new Promise((resolve) => setTimeout(resolve, 500));
     return {
       ...mockData.sampleSearchResults,

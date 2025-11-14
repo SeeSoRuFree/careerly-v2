@@ -13,7 +13,7 @@ import {
   signup as signupService,
 } from '../../services/auth.service';
 import { setMemoryToken, clearMemoryToken } from '../../auth/token.client';
-import type { LoginRequest, LoginResponse } from '../../types/rest.types';
+import type { LoginRequest, LoginResponse, RegisterRequest } from '../../types/rest.types';
 import { userKeys } from '../queries/useUser';
 
 /**
@@ -29,7 +29,7 @@ export function useLogin(
     mutationFn: loginService,
     onSuccess: (data) => {
       // 메모리 토큰 저장 (SSE 등에서 사용)
-      setMemoryToken(data.accessToken);
+      setMemoryToken(data.tokens.access);
 
       // 사용자 정보 캐시
       queryClient.setQueryData(userKeys.me(), data.user);
@@ -81,26 +81,18 @@ export function useLogout(
  */
 export function useSignup(
   options?: Omit<
-    UseMutationOptions<
-      LoginResponse,
-      Error,
-      { email: string; password: string; name: string }
-    >,
+    UseMutationOptions<LoginResponse, Error, RegisterRequest>,
     'mutationFn'
   >
 ) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  return useMutation<
-    LoginResponse,
-    Error,
-    { email: string; password: string; name: string }
-  >({
+  return useMutation<LoginResponse, Error, RegisterRequest>({
     mutationFn: signupService,
     onSuccess: (data) => {
       // 메모리 토큰 저장
-      setMemoryToken(data.accessToken);
+      setMemoryToken(data.tokens.access);
 
       // 사용자 정보 캐시
       queryClient.setQueryData(userKeys.me(), data.user);

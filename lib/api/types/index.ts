@@ -4,5 +4,7 @@
 
 export * from './error.types';
 export * from './rest.types';
-export * from './graphql.types';
 export * from './chat.types';
+export * from './posts.types';
+export * from './comments.types';
+export * from './questions.types';

@@ -12,11 +12,11 @@
 
 ## 개요
 
-Careerly v2의 API 클라이언트는 RESTful API와 GraphQL API를 모두 지원하며, React Query와 통합되어 강력한 데이터 페칭 및 캐싱 기능을 제공합니다.
+Careerly v2의 API 클라이언트는 RESTful API를 지원하며, React Query와 통합되어 강력한 데이터 페칭 및 캐싱 기능을 제공합니다.
 
 ### 주요 기능
 
-- ✅ RESTful & GraphQL 통합 지원
+- ✅ RESTful API 지원
 - ✅ HttpOnly Cookie 기반 인증
 - ✅ 자동 토큰 갱신 (401 에러 시)
 - ✅ React Query 통합 (캐싱, 재시도 등)
@@ -29,7 +29,7 @@ Careerly v2의 API 클라이언트는 RESTful API와 GraphQL API를 모두 지�
 
 ```
 lib/api/
-├── clients/              # HTTP, GraphQL, SSE 클라이언트
+├── clients/              # HTTP, SSE 클라이언트
 ├── services/             # API 서비스 레이어
 ├── hooks/                # React Query 훅
 │   ├── queries/          # 데이터 조회 훅
@@ -49,7 +49,6 @@ lib/api/
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://staging-gateway.careerly.co.kr
-NEXT_PUBLIC_GRAPH_API_HOST=https://graph-staging.careerly.co.kr/graphql
 NEXT_PUBLIC_API_TIMEOUT=10000
 AUTH_SECRET=your-secret-key
 ```
@@ -59,7 +58,6 @@ AUTH_SECRET=your-secret-key
 필요한 패키지는 이미 설치되어 있습니다:
 
 - `axios` - HTTP 클라이언트
-- `graphql` & `graphql-request` - GraphQL 클라이언트
 - `@tanstack/react-query` - 데이터 페칭 및 캐싱
 - `zod` - 런타임 타입 검증
 - `sonner` - 토스트 알림
@@ -98,30 +96,6 @@ async function handleSearch(query: string) {
   } catch (error) {
     console.error('검색 실패:', error);
   }
-}
-```
-
-### GraphQL API 사용
-
-```typescript
-import { useGraphQL } from '@/lib/api';
-
-function UserProfile({ userId }: { userId: string }) {
-  const { data, isLoading } = useGraphQL(
-    ['user', userId],
-    `
-      query GetUser($userId: String!) {
-        user(id: $userId) {
-          id
-          name
-          email
-        }
-      }
-    `,
-    { userId }
-  );
-
-  return <div>{data?.user.name}</div>;
 }
 ```
 
@@ -267,7 +241,6 @@ function ProfileSettings() {
 #### 검색
 
 - `useSearch(query)` - 검색 수행
-- `useSearchGraphQL(query)` - GraphQL 검색
 - `useTrendingKeywords()` - 트렌딩 키워드
 - `useSearchHistory()` - 검색 기록
 - `useSearchAutocomplete(query)` - 자동완성

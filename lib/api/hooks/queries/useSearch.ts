@@ -7,7 +7,6 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import {
   searchCareer,
-  searchCareerGraphQL,
   getTrendingKeywords,
   getSearchHistory,
   searchAutocomplete,
@@ -39,23 +38,6 @@ export function useSearch(
     enabled: query.length > 0,
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 10 * 60 * 1000, // 10분 (cacheTime 대체)
-    ...options,
-  });
-}
-
-/**
- * GraphQL을 사용한 검색 훅
- */
-export function useSearchGraphQL(
-  query: string,
-  options?: Omit<UseQueryOptions<SearchResult, Error>, 'queryKey' | 'queryFn'>
-) {
-  return useQuery<SearchResult, Error>({
-    queryKey: [...searchKeys.list(query), 'graphql'],
-    queryFn: () => searchCareerGraphQL(query),
-    enabled: query.length > 0,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
     ...options,
   });
 }

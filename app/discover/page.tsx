@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { DiscoverHeroCard } from '@/components/ui/discover-hero-card';
-import { DiscoverContentCard } from '@/components/ui/discover-content-card';
+import { DiscoverContentCard, DiscoverContentCardProps } from '@/components/ui/discover-content-card';
 import { DiscoverFeedSection } from '@/components/ui/discover-feed-section';
 import { Chip } from '@/components/ui/chip';
 import { cn } from '@/lib/utils';
@@ -13,14 +13,8 @@ import { FilterGroup, FilterSection } from '@/components/ui/filter-group';
 import { SortControl, SortValue } from '@/components/ui/sort-control';
 import { Button } from '@/components/ui/button';
 import { Settings2, Grid3x3, List, TrendingUp, Flame, Clock, Users, Sparkles, Heart, X, ExternalLink, Bookmark } from 'lucide-react';
-import {
-  mockDiscoverResponse,
-  transformJobsToContentCards,
-  transformBlogsToContentCards,
-  transformBooksToContentCards,
-  transformCoursesToContentCards,
-  mockJobMarketTrends,
-} from '@/lib/data/discover-mock';
+import { useDiscoverFeeds, useRecommendedFeeds, useLikeFeed, useUnlikeFeed, useBookmarkFeed, useUnbookmarkFeed, type DiscoverFeed } from '@/lib/api';
+import { mockJobMarketTrends } from '@/lib/data/discover-mock';
 
 type ContentType = 'all' | 'jobs' | 'blogs' | 'books' | 'courses';
 type LayoutType = 'grid' | 'list';
@@ -43,63 +37,82 @@ export default function DiscoverPage() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<any>(null);
 
-  // Transform mock data to content cards (base data without tag filtering)
+  // API 훅 사용
+  const discoverQuery = useDiscoverFeeds(
+    { page: 1, pageSize: 20 },
+    false,
+    { enabled: !isForYou }
+  );
+
+  const recommendedQuery = useRecommendedFeeds(
+    { page: 1, pageSize: 20 },
+    { enabled: isForYou }
+  );
+
+  // 현재 활성화된 쿼리 선택
+  const activeQuery = isForYou ? recommendedQuery : discoverQuery;
+  const { data: feedResponse, isLoading, error } = activeQuery;
+
+  // Mutation 훅 초기화
+  const likeMutation = useLikeFeed();
+  const unlikeMutation = useUnlikeFeed();
+  const bookmarkMutation = useBookmarkFeed();
+  const unbookmarkMutation = useUnbookmarkFeed();
+
+  // API 응답을 DiscoverContentCardProps 형식으로 변환
+  const transformFeedToCard = React.useCallback((feed: DiscoverFeed): DiscoverContentCardProps => {
+    return {
+      contentId: feed.id,
+      title: feed.title,
+      summary: feed.description,
+      thumbnailUrl: feed.imageUrl,
+      sources: feed.author ? [{
+        name: feed.author.name,
+        href: `#`,
+      }] : undefined,
+      postedAt: feed.createdAt,
+      stats: {
+        likes: feed.stats.likes,
+        views: feed.stats.views,
+        bookmarks: 0, // API 응답에 없으면 기본값
+      },
+      badge: feed.category,
+      badgeTone: 'coral',
+      tags: feed.tags,
+      liked: false,
+      bookmarked: false,
+    };
+  }, []);
+
+  // Transform API data to content cards (base data without tag filtering)
   const baseContentCards = React.useMemo(() => {
-    // ForYou가 꺼져있을 때: 최근 3일간의 크롤링 데이터만 표시
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    if (!feedResponse?.feeds) return [];
 
-    // 원본 데이터 필터링 (ForYou가 아닐 때만 3일 필터 적용)
-    const filteredJobs = isForYou
-      ? mockDiscoverResponse.jobs
-      : mockDiscoverResponse.jobs.filter(job => {
-          const jobDate = new Date(job.createdAt);
-          return jobDate >= threeDaysAgo;
-        });
+    // API 응답을 카드 형식으로 변환
+    const allCards = feedResponse.feeds.map(transformFeedToCard);
 
-    const filteredBlogs = isForYou
-      ? mockDiscoverResponse.blogs
-      : mockDiscoverResponse.blogs.filter(blog => {
-          if (!blog.createdAt) return false;
-          const blogDate = new Date(blog.createdAt);
-          return blogDate >= threeDaysAgo;
-        });
-
-    const filteredBooks = isForYou
-      ? mockDiscoverResponse.books
-      : mockDiscoverResponse.books.filter(book => {
-          if (!book.createdAt) return false;
-          const bookDate = new Date(book.createdAt);
-          return bookDate >= threeDaysAgo;
-        });
-
-    const filteredCourses = isForYou
-      ? mockDiscoverResponse.courses
-      : mockDiscoverResponse.courses.filter(course => {
-          if (!course.createdAt) return false;
-          const courseDate = new Date(course.createdAt);
-          return courseDate >= threeDaysAgo;
-        });
-
-    // Transform to content cards
-    const jobs = transformJobsToContentCards(filteredJobs);
-    const blogs = transformBlogsToContentCards(filteredBlogs);
-    const books = transformBooksToContentCards(filteredBooks);
-    const courses = transformCoursesToContentCards(filteredCourses);
-
-    switch (contentType) {
-      case 'jobs':
-        return jobs;
-      case 'blogs':
-        return blogs;
-      case 'books':
-        return books;
-      case 'courses':
-        return courses;
-      default:
-        return [...jobs, ...blogs, ...books, ...courses];
+    // contentType 필터링 적용
+    if (contentType === 'all') {
+      return allCards;
     }
-  }, [contentType, isForYou]);
+
+    // 카테고리별 필터링
+    return allCards.filter(card => {
+      const category = card.badge?.toLowerCase() || '';
+      switch (contentType) {
+        case 'jobs':
+          return category.includes('job') || category.includes('채용');
+        case 'blogs':
+          return category.includes('blog') || category.includes('블로그');
+        case 'books':
+          return category.includes('book') || category.includes('도서');
+        case 'courses':
+          return category.includes('course') || category.includes('강의');
+        default:
+          return true;
+      }
+    });
+  }, [feedResponse, contentType, transformFeedToCard]);
 
   // Extract all unique tags from base content
   const allTags = React.useMemo(() => {
@@ -127,19 +140,18 @@ export default function DiscoverPage() {
     );
   };
 
-  // Get hero content (first blog with high score)
+  // Get hero content (첫 번째 피드를 히어로로 사용)
   const heroContent = React.useMemo(() => {
-    const topBlog = mockDiscoverResponse.blogs[0];
-    if (topBlog) {
-      return {
-        title: topBlog.title,
-        summary: topBlog.summary.split('\n\n')[0],
-        imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80',
-        href: topBlog.url,
-      };
-    }
-    return null;
-  }, []);
+    if (!feedResponse?.feeds || feedResponse.feeds.length === 0) return null;
+
+    const topFeed = feedResponse.feeds[0];
+    return {
+      title: topFeed.title,
+      summary: topFeed.description.split('\n\n')[0] || topFeed.description.substring(0, 200),
+      imageUrl: topFeed.imageUrl || 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80',
+      href: '#', // 추후 실제 링크로 변경
+    };
+  }, [feedResponse]);
 
   // Interest categories
   const interestCategories = [
@@ -351,18 +363,44 @@ export default function DiscoverPage() {
               {/* Divider */}
               <div className="border-t border-slate-200" />
 
+              {/* 에러 상태 */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 text-sm">
+                    데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+                  </p>
+                </div>
+              )}
+
+              {/* 로딩 상태 */}
+              {isLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-slate-600">로딩 중...</div>
+                </div>
+              )}
+
+              {/* 데이터가 없을 때 */}
+              {!isLoading && !error && allContentCardsWithHandler.length === 0 && (
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
+                  <p className="text-slate-600">표시할 콘텐츠가 없습니다.</p>
+                </div>
+              )}
+
               {/* Content Feed */}
-              <DiscoverFeedSection
-                items={allContentCardsWithHandler}
-                layout={layout}
-                pagination={{
-                  hasMore: true,
-                  loading: false,
-                  onLoadMore: () => {
-                    console.log('Load more...');
-                  },
-                }}
-              />
+              {!isLoading && !error && allContentCardsWithHandler.length > 0 && (
+                <DiscoverFeedSection
+                  items={allContentCardsWithHandler}
+                  layout={layout}
+                  pagination={{
+                    hasMore: feedResponse?.hasNext || false,
+                    loading: isLoading,
+                    onLoadMore: () => {
+                      // TODO: 페이지네이션 구현 필요
+                      console.log('Load more...');
+                    },
+                  }}
+                />
+              )}
             </div>
           </main>
 
@@ -438,8 +476,19 @@ export default function DiscoverPage() {
                     <Button
                       variant={selectedContent.isLiked ? 'solid' : 'outline'}
                       onClick={() => {
-                        console.log('Like:', selectedContent.id);
+                        if (selectedContent.isLiked) {
+                          unlikeMutation.mutate(selectedContent.id);
+                        } else {
+                          likeMutation.mutate(selectedContent.id);
+                        }
+                        // Optimistic update: 로컬 상태 즉시 업데이트
+                        setSelectedContent((prev: any) => ({
+                          ...prev,
+                          isLiked: !prev.isLiked,
+                          likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1,
+                        }));
                       }}
+                      disabled={likeMutation.isPending || unlikeMutation.isPending}
                     >
                       <Heart
                         className={cn(
@@ -453,8 +502,18 @@ export default function DiscoverPage() {
                     <Button
                       variant={selectedContent.isBookmarked ? 'solid' : 'outline'}
                       onClick={() => {
-                        console.log('Bookmark:', selectedContent.id);
+                        if (selectedContent.isBookmarked) {
+                          unbookmarkMutation.mutate(selectedContent.id);
+                        } else {
+                          bookmarkMutation.mutate(selectedContent.id);
+                        }
+                        // Optimistic update: 로컬 상태 즉시 업데이트
+                        setSelectedContent((prev: any) => ({
+                          ...prev,
+                          isBookmarked: !prev.isBookmarked,
+                        }));
                       }}
+                      disabled={bookmarkMutation.isPending || unbookmarkMutation.isPending}
                     >
                       <Bookmark
                         className={cn(

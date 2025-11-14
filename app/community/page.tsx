@@ -9,14 +9,12 @@ import { RecommendedPostsPanel } from '@/components/ui/recommended-posts-panel';
 import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Users, X, ExternalLink } from 'lucide-react';
+import { MessageSquare, Users, X, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePosts, useQuestions } from '@/lib/api';
 
-// Import detail pages (assuming they exist as components)
-// We'll need to create wrapper components or import the page content directly
-
-// Mock data from user
-const mockFeedData = [
+// Mock data for sections that don't have APIs yet
+const mockFeedDataBackup = [
   {
     "comments": [
       {
@@ -355,7 +353,7 @@ const mockFeedData = [
   }
 ];
 
-const mockQnaData = [
+const mockQnaDataBackup = [
   {
     "id": 10645,
     "title": "AI개발 포트폴리오",
@@ -672,6 +670,20 @@ export default function CommunityPage() {
   const [contentFilter, setContentFilter] = React.useState<'feed' | 'qna' | 'promotion' | 'following'>('feed');
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  // API Hooks
+  const {
+    data: postsData,
+    isLoading: isLoadingPosts,
+    error: postsError
+  } = usePosts({ page: currentPage });
+
+  const {
+    data: questionsData,
+    isLoading: isLoadingQuestions,
+    error: questionsError
+  } = useQuestions({ page: currentPage });
 
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
@@ -688,6 +700,10 @@ export default function CommunityPage() {
     setTimeout(() => setSelectedContent(null), 300); // Clear after animation
   };
 
+  const handleLoadMore = () => {
+    setCurrentPage(prev => prev + 1);
+  };
+
   // Interest categories
   const interestCategories = [
     { id: 'frontend', label: 'Frontend' },
@@ -700,13 +716,14 @@ export default function CommunityPage() {
 
   // Mix all content naturally by interleaving different types
   const allContent = React.useMemo(() => {
-    const feedItems = mockFeedData.map((item, idx) => ({
+    // Use API data for feed and QnA, mock data for promotion
+    const feedItems = (postsData?.results || []).map((item, idx) => ({
       type: 'feed' as const,
       data: item,
       originalIndex: idx,
     }));
 
-    const qnaItems = mockQnaData.map((item, idx) => ({
+    const qnaItems = (questionsData?.results || []).map((item, idx) => ({
       type: 'qna' as const,
       data: item,
       originalIndex: idx,
@@ -730,7 +747,7 @@ export default function CommunityPage() {
     }
 
     return result;
-  }, []);
+  }, [postsData, questionsData]);
 
   // Filter content based on selected filter
   const filteredContent = React.useMemo(() => {
@@ -740,6 +757,15 @@ export default function CommunityPage() {
     }
     return allContent.filter(item => item.type === contentFilter);
   }, [allContent, contentFilter]);
+
+  // Loading state
+  const isLoading = isLoadingPosts || isLoadingQuestions;
+
+  // Error state
+  const hasError = postsError || questionsError;
+
+  // Check if there's more data to load
+  const hasMoreData = postsData?.next || questionsData?.next;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -789,70 +815,116 @@ export default function CommunityPage() {
             </div>
           </div>
 
-          {/* Unified 2-Column Grid */}
-          <div className="columns-1 md:columns-2 gap-6 space-y-6">
-            {filteredContent.map((item, idx) => {
-              if (item.type === 'feed') {
-                const feedItem = item.data;
-                const comment = feedItem.comments[0];
-                return (
-                  <div key={`feed-${comment.postId}`} className="break-inside-avoid mb-6">
-                    <CommunityFeedCard
-                      userProfile={comment.userProfile}
-                      content={comment.description}
-                      contentHtml={comment.descriptionHtml}
-                      createdAt={comment.createdAt}
-                      stats={{
-                        likeCount: comment.likeCount,
-                        replyCount: comment.repliesCount,
-                        repostCount: comment.repostCount,
-                        viewCount: comment.postViewCount,
-                      }}
-                      imageUrls={feedItem.imageUrl}
-                      feedType={feedItem.feedType === 'RECOMMENDED.INTERESTS' ? undefined : feedItem.feedType}
-                      onClick={() => handleOpenPost(comment.postId.toString(), comment.userProfile)}
-                      onLike={() => console.log('Like')}
-                      onReply={() => console.log('Reply')}
-                      onRepost={() => console.log('Repost')}
-                      onShare={() => console.log('Share')}
-                      onBookmark={() => console.log('Bookmark')}
-                      onMore={() => console.log('More')}
-                    />
-                  </div>
-                );
-              } else if (item.type === 'qna') {
-                const { id, ...qnaData } = item.data;
-                return (
-                  <div key={`qna-${id}`} className="break-inside-avoid mb-6">
-                    <QnaCard
-                      {...qnaData}
-                      qnaId={id}
-                      onClick={() => handleOpenQna(id.toString())}
-                      onLike={() => console.log('Like')}
-                      onDislike={() => console.log('Dislike')}
-                    />
-                  </div>
-                );
-              } else if (item.type === 'promotion') {
-                const promo = item.data;
-                return (
-                  <div key={`promotion-${idx}`} className="break-inside-avoid mb-6">
-                    <PromotionCard
-                      variant="default"
-                      {...promo}
-                    />
-                  </div>
-                );
-              }
-              return null;
-            })}
-          </div>
+          {/* Loading State */}
+          {isLoading && filteredContent.length === 0 && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              <span className="ml-3 text-slate-600">Loading content...</span>
+            </div>
+          )}
 
-          <LoadMore
-            hasMore={true}
-            loading={false}
-            onLoadMore={() => console.log('Load more content')}
-          />
+          {/* Error State */}
+          {hasError && !isLoading && (
+            <div className="text-center py-12">
+              <p className="text-slate-600">Failed to load content. Please try again later.</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!isLoading && !hasError && filteredContent.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-slate-600">No content available.</p>
+            </div>
+          )}
+
+          {/* Unified 2-Column Grid */}
+          {filteredContent.length > 0 && (
+            <div className="columns-1 md:columns-2 gap-6 space-y-6">
+              {filteredContent.map((item, idx) => {
+                if (item.type === 'feed') {
+                  const post = item.data;
+                  // Map API response to component props
+                  const userProfile: UserProfile = {
+                    id: post.userid,
+                    name: post.author_name,
+                    image_url: '', // API doesn't provide this in list view
+                    headline: '',
+                    description: '',
+                    small_image_url: '',
+                  };
+
+                  return (
+                    <div key={`feed-${post.id}`} className="break-inside-avoid mb-6">
+                      <CommunityFeedCard
+                        userProfile={userProfile}
+                        content={post.description}
+                        contentHtml={post.description} // API doesn't provide HTML separately in list
+                        createdAt={post.createdat}
+                        stats={{
+                          likeCount: 0, // Not available in list view
+                          replyCount: post.comment_count || 0,
+                          repostCount: 0,
+                          viewCount: 0,
+                        }}
+                        imageUrls={[]} // Not available in list view
+                        onClick={() => handleOpenPost(post.id.toString(), userProfile)}
+                        onLike={() => console.log('Like')}
+                        onReply={() => console.log('Reply')}
+                        onRepost={() => console.log('Repost')}
+                        onShare={() => console.log('Share')}
+                        onBookmark={() => console.log('Bookmark')}
+                        onMore={() => console.log('More')}
+                      />
+                    </div>
+                  );
+                } else if (item.type === 'qna') {
+                  const question = item.data;
+                  return (
+                    <div key={`qna-${question.id}`} className="break-inside-avoid mb-6">
+                      <QnaCard
+                        title={question.title}
+                        description={question.description}
+                        createdAt={question.createdat}
+                        updatedAt={question.updatedat}
+                        status={question.status}
+                        isPublic={question.ispublic}
+                        answerCount={0} // Not available in QuestionListItem
+                        commentCount={0}
+                        likeCount={0}
+                        dislikeCount={0}
+                        viewCount={0}
+                        hashTagNames=""
+                        qnaId={question.id}
+                        onClick={() => handleOpenQna(question.id.toString())}
+                        onLike={() => console.log('Like')}
+                        onDislike={() => console.log('Dislike')}
+                      />
+                    </div>
+                  );
+                } else if (item.type === 'promotion') {
+                  const promo = item.data;
+                  return (
+                    <div key={`promotion-${idx}`} className="break-inside-avoid mb-6">
+                      <PromotionCard
+                        variant="default"
+                        {...promo}
+                      />
+                    </div>
+                  );
+                }
+                return null;
+              })}
+            </div>
+          )}
+
+          {/* Load More */}
+          {filteredContent.length > 0 && (
+            <LoadMore
+              hasMore={!!hasMoreData}
+              loading={isLoading}
+              onLoadMore={handleLoadMore}
+            />
+          )}
         </div>
       </main>
 

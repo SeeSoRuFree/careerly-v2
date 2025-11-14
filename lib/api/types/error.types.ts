@@ -50,9 +50,6 @@ export const ERROR_CODES = {
   BAD_REQUEST: 'BAD_REQUEST',
   VALIDATION_ERROR: 'VALIDATION_ERROR',
 
-  // GraphQL 에러
-  GRAPHQL_ERROR: 'GRAPHQL_ERROR',
-
   // 알 수 없는 에러
   UNKNOWN_ERROR: 'UNKNOWN_ERROR',
 } as const;
@@ -77,7 +74,6 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
   SERVICE_UNAVAILABLE: '서비스를 일시적으로 사용할 수 없습니다.',
   BAD_REQUEST: '잘못된 요청입니다.',
   VALIDATION_ERROR: '입력 값을 확인해주세요.',
-  GRAPHQL_ERROR: 'GraphQL 오류가 발생했습니다.',
   UNKNOWN_ERROR: '알 수 없는 오류가 발생했습니다.',
 };
 

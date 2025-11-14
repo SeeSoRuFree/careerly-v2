@@ -49,31 +49,39 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
   user: User;
+  tokens: {
+    access: string;
+    refresh: string;
+  };
+}
+
+export interface RegisterRequest {
+  email: string;
+  name: string;
+  password: string;
+  password_confirm: string;
+  phone?: string;
 }
 
 export interface RefreshTokenRequest {
-  refreshToken: string;
+  refresh: string;
 }
 
 export interface RefreshTokenResponse {
-  accessToken: string;
-  refreshToken: string;
+  access: string;
 }
 
 /**
  * 사용자 타입
  */
 export interface User {
-  id: string;
-  email: string;
+  id: number;
   name: string;
-  avatar?: string;
-  role: 'user' | 'admin';
-  createdAt: string;
-  updatedAt: string;
+  email: string;
+  phone?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
