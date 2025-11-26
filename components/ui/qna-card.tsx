@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock } from 'lucide-react';
 
@@ -11,6 +12,13 @@ export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   qnaId: number;
   title: string;
   description: string;
+  author?: {
+    id: number;
+    name: string;
+    email: string;
+    image_url: string | null;
+    headline: string | null;
+  } | null;
   createdAt: string;
   updatedAt?: string;
   hashTagNames?: string;
@@ -35,6 +43,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
       qnaId,
       title,
       description,
+      author,
       createdAt,
       updatedAt,
       hashTagNames,
@@ -96,6 +105,22 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
             )}
           </div>
         </div>
+
+        {/* Author Profile */}
+        {author && (
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={author.image_url || ''} alt={author.name} />
+              <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-slate-900">{author.name}</span>
+              {author.headline && (
+                <span className="text-xs text-slate-500">{author.headline}</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Title */}
         <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">

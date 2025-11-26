@@ -11,7 +11,7 @@ interface MarkdownProps {
 
 export function Markdown({ content, className = '' }: MarkdownProps) {
   return (
-    <div className={`markdown-content ${className}`}>
+    <div className={`markdown-content overflow-hidden ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
@@ -22,7 +22,7 @@ export function Markdown({ content, className = '' }: MarkdownProps) {
               {...props}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-purple-600 hover:text-purple-800 underline transition-colors"
+              className="text-slate-600 hover:text-slate-900 underline transition-colors break-words"
             />
           ),
           // Custom code block handling
@@ -33,7 +33,7 @@ export function Markdown({ content, className = '' }: MarkdownProps) {
             if (isInline) {
               return (
                 <code
-                  className="bg-slate-100 text-teal-600 px-1.5 py-0.5 rounded text-sm font-mono"
+                  className="bg-slate-100 text-teal-600 px-1.5 py-0.5 rounded text-sm font-mono break-words"
                   {...props}
                 >
                   {children}
@@ -46,6 +46,21 @@ export function Markdown({ content, className = '' }: MarkdownProps) {
               </code>
             );
           },
+          // Pre tag (code blocks)
+          pre: ({ node, ...props }) => (
+            <pre className="overflow-x-auto max-w-full" {...props} />
+          ),
+          // Table wrapper
+          table: ({ node, ...props }) => (
+            <div className="overflow-x-auto max-w-full">
+              <table {...props} />
+            </div>
+          ),
+          // Image handling
+          img: ({ node, ...props }) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="max-w-full h-auto" alt="" {...props} />
+          ),
         }}
       >
         {content}

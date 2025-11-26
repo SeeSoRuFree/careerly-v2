@@ -73,6 +73,25 @@ export interface RefreshTokenResponse {
 }
 
 /**
+ * OAuth 인증 관련 타입
+ */
+export type OAuthProvider = 'google' | 'apple' | 'kakao';
+
+export interface OAuthLoginRequest {
+  provider: OAuthProvider;
+}
+
+export interface OAuthLoginResponse {
+  authUrl: string;
+}
+
+export interface OAuthCallbackRequest {
+  provider: OAuthProvider;
+  code: string;
+  state?: string;
+}
+
+/**
  * 사용자 타입
  */
 export interface User {
@@ -80,6 +99,9 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  image_url?: string;
+  headline?: string;
+  description?: string;
   created_at: string;
   updated_at: string;
 }

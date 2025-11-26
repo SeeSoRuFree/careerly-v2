@@ -3,13 +3,24 @@
  */
 
 /**
+ * 작성자 정보
+ */
+export interface Author {
+  id: number;
+  name: string;
+  email: string;
+  image_url: string | null;
+  headline: string | null;
+}
+
+/**
  * 답변 정보
  */
 export interface Answer {
   id: number;
   questionid: number;
   userid: number;
-  author_name: string;
+  author: Author | null;
   content: string;
   isdeleted: number;
   createdat: string;
@@ -22,7 +33,7 @@ export interface Answer {
 export interface Question {
   id: number;
   userid: number;
-  author: string;
+  author: Author | null;
   title: string;
   description: string;
   status: number;
@@ -40,13 +51,13 @@ export interface Question {
 export interface QuestionListItem {
   id: number;
   userid: number;
-  author: string;
+  author: Author | null;
   title: string;
   description: string;
   status: number;
+  answer_count: number;
+  answers: Answer[];
   ispublic: number;
-  isfiltered: number;
-  isdeleted: number;
   createdat: string;
   updatedat: string;
 }

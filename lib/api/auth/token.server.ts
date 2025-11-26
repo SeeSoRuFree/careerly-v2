@@ -3,8 +3,6 @@
  * Next.js 서버 액션과 API 라우트에서 사용
  */
 
-'use server';
-
 import { cookies } from 'next/headers';
 import { ApiError, ERROR_CODES, ERROR_MESSAGES } from '../types/error.types';
 
@@ -94,15 +92,15 @@ export async function refreshAccessToken(): Promise<string> {
   }
 
   try {
-    // Refresh Token으로 새 토큰 발급
+    // Django 백엔드 토큰 갱신 요청
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/refresh`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/auth/refresh/`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refresh: refreshToken }),
       }
     );
 
@@ -116,10 +114,10 @@ export async function refreshAccessToken(): Promise<string> {
 
     const data = await response.json();
 
-    // 새 토큰 저장
-    await setAuthCookies(data.accessToken, data.refreshToken);
+    // 새 토큰 저장 (Django 응답: { access, refresh })
+    await setAuthCookies(data.access, data.refresh);
 
-    return data.accessToken;
+    return data.access;
   } catch (error) {
     // 갱신 실패 시 쿠키 삭제
     await clearAuthCookies();

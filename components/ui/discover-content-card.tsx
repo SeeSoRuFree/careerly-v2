@@ -9,13 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
-import { Heart, Bookmark, Share2, Clock, Eye } from 'lucide-react';
+import { Heart, Bookmark, Share2, Clock, Eye, Image as ImageIcon } from 'lucide-react';
 
 export interface DiscoverContentCardProps extends React.HTMLAttributes<HTMLDivElement> {
   contentId?: string | number;
   title: string;
   summary?: string;
   thumbnailUrl?: string;
+  usePlainImg?: boolean;
   sources?: {
     name: string;
     icon?: React.ReactNode;
@@ -46,6 +47,7 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
       title,
       summary,
       thumbnailUrl,
+      usePlainImg = false,
       sources,
       postedAt,
       stats,
@@ -143,25 +145,46 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
           {...props}
         >
           {/* Thumbnail */}
-          {thumbnailUrl && (
-            <div className="relative overflow-hidden rounded-lg shrink-0 w-80">
-              <MediaThumb
-                src={thumbnailUrl}
-                alt={title}
-                ratio="16:9"
-                badge={badge}
-              />
-            </div>
-          )}
+          <div className="relative overflow-hidden rounded-lg shrink-0 w-80">
+            {thumbnailUrl ? (
+              usePlainImg ? (
+                <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                  <img
+                    src={thumbnailUrl}
+                    alt={title}
+                    className="h-full w-full object-cover"
+                  />
+                  {badge && (
+                    <div className="absolute top-2 right-2">
+                      <Badge tone={badgeTone}>{badge}</Badge>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <MediaThumb
+                  src={thumbnailUrl}
+                  alt={title}
+                  ratio="16:9"
+                  badge={badge}
+                />
+              )
+            ) : (
+              <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                <div className="text-slate-400 text-center">
+                  <ImageIcon className="mx-auto h-12 w-12 mb-2" />
+                  <p className="text-xs">이미지 없음</p>
+                </div>
+                {badge && (
+                  <div className="absolute top-2 right-2">
+                    <Badge tone={badgeTone}>{badge}</Badge>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Content */}
           <div className="flex flex-col flex-1 space-y-3">
-            {/* Badge (if no thumbnail) */}
-            {badge && !thumbnailUrl && (
-              <div>
-                <Badge tone={badgeTone}>{badge}</Badge>
-              </div>
-            )}
 
             {/* Title */}
             {href ? (
@@ -241,25 +264,46 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
         {...props}
       >
         {/* Thumbnail */}
-        {thumbnailUrl && (
-          <div className="relative mb-3 overflow-hidden rounded-lg">
-            <MediaThumb
-              src={thumbnailUrl}
-              alt={title}
-              ratio="16:9"
-              badge={badge}
-            />
-          </div>
-        )}
+        <div className="relative mb-3 overflow-hidden rounded-lg">
+          {thumbnailUrl ? (
+            usePlainImg ? (
+              <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
+                <img
+                  src={thumbnailUrl}
+                  alt={title}
+                  className="h-full w-full object-cover"
+                />
+                {badge && (
+                  <div className="absolute top-2 right-2">
+                    <Badge tone={badgeTone}>{badge}</Badge>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <MediaThumb
+                src={thumbnailUrl}
+                alt={title}
+                ratio="16:9"
+                badge={badge}
+              />
+            )
+          ) : (
+            <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+              <div className="text-slate-400 text-center">
+                <ImageIcon className="mx-auto h-12 w-12 mb-2" />
+                <p className="text-xs">이미지 없음</p>
+              </div>
+              {badge && (
+                <div className="absolute top-2 right-2">
+                  <Badge tone={badgeTone}>{badge}</Badge>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Content - No card wrapper */}
         <div className="flex flex-col flex-1 space-y-3">
-          {/* Badge (if no thumbnail) */}
-          {badge && !thumbnailUrl && (
-            <div>
-              <Badge tone={badgeTone}>{badge}</Badge>
-            </div>
-          )}
 
           {/* Title */}
           {href ? (

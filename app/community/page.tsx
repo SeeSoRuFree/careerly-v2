@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { QnaCard } from '@/components/ui/qna-card';
 import { PromotionCard } from '@/components/ui/promotion-card';
@@ -11,7 +12,9 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePosts, useQuestions } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions } from '@/lib/api';
+import { QnaDetail } from '@/components/ui/qna-detail';
+import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 
 // Mock data for sections that don't have APIs yet
 const mockFeedDataBackup = [
@@ -663,45 +666,89 @@ type SelectedContent = {
   type: 'post' | 'qna';
   id: string;
   userProfile?: UserProfile;
+  questionData?: QuestionListItem;
 };
 
 export default function CommunityPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // URL 파라미터에서 탭 읽기 (기본값: 'feed')
+  const currentTab = (searchParams.get('tab') as 'feed' | 'qna' | 'promotion' | 'following') || 'feed';
+
   const [selectedInterests, setSelectedInterests] = React.useState<string[]>([]);
-  const [contentFilter, setContentFilter] = React.useState<'feed' | 'qna' | 'promotion' | 'following'>('feed');
+  const [contentFilter, setContentFilter] = React.useState<'feed' | 'qna' | 'promotion' | 'following'>(currentTab);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
-  const [currentPage, setCurrentPage] = React.useState(1);
+
+  // URL과 상태 동기화
+  React.useEffect(() => {
+    setContentFilter(currentTab);
+  }, [currentTab]);
+
+  // 탭 변경 핸들러
+  const handleTabChange = (tab: 'feed' | 'qna' | 'promotion' | 'following') => {
+    setContentFilter(tab);
+    // URL 업데이트
+    if (tab === 'feed') {
+      router.push('/community');
+    } else {
+      router.push(`/community?tab=${tab}`);
+    }
+  };
 
   // API Hooks
   const {
     data: postsData,
     isLoading: isLoadingPosts,
-    error: postsError
-  } = usePosts({ page: currentPage });
+    error: postsError,
+    fetchNextPage: fetchNextPosts,
+    hasNextPage: hasNextPosts,
+    isFetchingNextPage: isFetchingNextPosts
+  } = useInfinitePosts();
 
   const {
     data: questionsData,
     isLoading: isLoadingQuestions,
-    error: questionsError
-  } = useQuestions({ page: currentPage });
+    error: questionsError,
+    fetchNextPage: fetchNextQuestions,
+    hasNextPage: hasNextQuestions,
+    isFetchingNextPage: isFetchingNextQuestions
+  } = useInfiniteQuestions();
 
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
     setDrawerOpen(true);
   };
 
-  const handleOpenQna = (qnaId: string) => {
-    setSelectedContent({ type: 'qna', id: qnaId });
+  const handleOpenQna = (qnaId: string, questionData: QuestionListItem) => {
+    setSelectedContent({ type: 'qna', id: qnaId, questionData });
     setDrawerOpen(true);
   };
 
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
-    setTimeout(() => setSelectedContent(null), 300); // Clear after animation
+    setTimeout(() => setSelectedContent(null), 300);
   };
 
   const handleLoadMore = () => {
-    setCurrentPage(prev => prev + 1);
+    if (contentFilter === 'feed') {
+      if (hasNextPosts && !isFetchingNextPosts) {
+        fetchNextPosts();
+      }
+    } else if (contentFilter === 'qna') {
+      if (hasNextQuestions && !isFetchingNextQuestions) {
+        fetchNextQuestions();
+      }
+    } else {
+      // promotion, following은 둘 다 fetch
+      if (hasNextPosts && !isFetchingNextPosts) {
+        fetchNextPosts();
+      }
+      if (hasNextQuestions && !isFetchingNextQuestions) {
+        fetchNextQuestions();
+      }
+    }
   };
 
   // Interest categories
@@ -717,13 +764,14 @@ export default function CommunityPage() {
   // Mix all content naturally by interleaving different types
   const allContent = React.useMemo(() => {
     // Use API data for feed and QnA, mock data for promotion
-    const feedItems = (postsData?.results || []).map((item, idx) => ({
+    // Flatten all pages
+    const feedItems = ((postsData?.pages as PaginatedPostResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
       type: 'feed' as const,
       data: item,
       originalIndex: idx,
     }));
 
-    const qnaItems = (questionsData?.results || []).map((item, idx) => ({
+    const qnaItems = ((questionsData?.pages as PaginatedQuestionResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
       type: 'qna' as const,
       data: item,
       originalIndex: idx,
@@ -759,13 +807,17 @@ export default function CommunityPage() {
   }, [allContent, contentFilter]);
 
   // Loading state
-  const isLoading = isLoadingPosts || isLoadingQuestions;
+  const isLoading = isLoadingPosts || isLoadingQuestions || isFetchingNextPosts || isFetchingNextQuestions;
 
   // Error state
   const hasError = postsError || questionsError;
 
   // Check if there's more data to load
-  const hasMoreData = postsData?.next || questionsData?.next;
+  const hasMoreData = contentFilter === 'feed'
+    ? hasNextPosts
+    : contentFilter === 'qna'
+      ? hasNextQuestions
+      : hasNextPosts || hasNextQuestions;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -786,26 +838,26 @@ export default function CommunityPage() {
                 <div className="flex items-center gap-2">
                   <Chip
                     variant={contentFilter === 'feed' ? 'selected' : 'default'}
-                    onClick={() => setContentFilter('feed')}
+                    onClick={() => handleTabChange('feed')}
                   >
                     <MessageSquare className="h-4 w-4" />
                     Feed
                   </Chip>
                   <Chip
                     variant={contentFilter === 'qna' ? 'selected' : 'default'}
-                    onClick={() => setContentFilter('qna')}
+                    onClick={() => handleTabChange('qna')}
                   >
                     Q&A
                   </Chip>
                   <Chip
                     variant={contentFilter === 'promotion' ? 'selected' : 'default'}
-                    onClick={() => setContentFilter('promotion')}
+                    onClick={() => handleTabChange('promotion')}
                   >
                     홍보
                   </Chip>
                   <Chip
                     variant={contentFilter === 'following' ? 'selected' : 'default'}
-                    onClick={() => setContentFilter('following')}
+                    onClick={() => handleTabChange('following')}
                   >
                     <Users className="h-4 w-4" />
                     팔로잉
@@ -844,10 +896,17 @@ export default function CommunityPage() {
                 if (item.type === 'feed') {
                   const post = item.data;
                   // Map API response to component props
-                  const userProfile: UserProfile = {
+                  const userProfile: UserProfile = post.author ? {
+                    id: post.author.id,
+                    name: post.author.name,
+                    image_url: post.author.image_url || '',
+                    headline: post.author.headline || '',
+                    description: post.author.description || '',
+                    small_image_url: post.author.image_url || '',
+                  } : {
                     id: post.userid,
-                    name: post.author_name,
-                    image_url: '', // API doesn't provide this in list view
+                    name: '알 수 없는 사용자',
+                    image_url: '',
                     headline: '',
                     description: '',
                     small_image_url: '',
@@ -884,18 +943,19 @@ export default function CommunityPage() {
                       <QnaCard
                         title={question.title}
                         description={question.description}
+                        author={question.author}
                         createdAt={question.createdat}
                         updatedAt={question.updatedat}
                         status={question.status}
                         isPublic={question.ispublic}
-                        answerCount={0} // Not available in QuestionListItem
+                        answerCount={question.answer_count || 0}
                         commentCount={0}
                         likeCount={0}
                         dislikeCount={0}
                         viewCount={0}
                         hashTagNames=""
                         qnaId={question.id}
-                        onClick={() => handleOpenQna(question.id.toString())}
+                        onClick={() => handleOpenQna(question.id.toString(), question)}
                         onLike={() => console.log('Like')}
                         onDislike={() => console.log('Dislike')}
                       />
@@ -1010,12 +1070,42 @@ export default function CommunityPage() {
                   title="Post Detail"
                 />
               )}
-              {selectedContent.type === 'qna' && (
-                <iframe
-                  src={`/community/qna/${selectedContent.id}?drawer=true`}
-                  className="w-full h-full border-0"
-                  title="QnA Detail"
-                />
+              {selectedContent.type === 'qna' && selectedContent.questionData && (
+                <div className="h-full overflow-y-auto p-6">
+                  <QnaDetail
+                    qnaId={selectedContent.questionData.id.toString()}
+                    title={selectedContent.questionData.title}
+                    description={selectedContent.questionData.description}
+                    createdAt={selectedContent.questionData.createdat}
+                    updatedAt={selectedContent.questionData.updatedat}
+                    hashTagNames=""
+                    viewCount={0}
+                    likeCount={0}
+                    dislikeCount={0}
+                    status={selectedContent.questionData.status}
+                    isPublic={selectedContent.questionData.ispublic}
+                    answers={selectedContent.questionData.answers.map(answer => ({
+                      id: answer.id,
+                      userId: answer.userid,
+                      userName: answer.author?.name || '익명',
+                      userImage: answer.author?.image_url || '',
+                      userHeadline: answer.author?.headline || '',
+                      content: answer.content,
+                      createdAt: answer.createdat,
+                      likeCount: 0,
+                      dislikeCount: 0,
+                      isAccepted: false,
+                      liked: false,
+                      disliked: false,
+                    }))}
+                    onLike={() => console.log('Like question')}
+                    onDislike={() => console.log('Dislike question')}
+                    onAnswerLike={(answerId) => console.log('Like answer', answerId)}
+                    onAnswerDislike={(answerId) => console.log('Dislike answer', answerId)}
+                    onAnswerSubmit={(content) => console.log('Submit answer', content)}
+                    onAcceptAnswer={(answerId) => console.log('Accept answer', answerId)}
+                  />
+                </div>
               )}
             </div>
           </div>

@@ -9,6 +9,7 @@
 export { publicClient, authClient } from './clients/rest-client';
 export { SSEClient, getSSEClient, createSSEClient } from './clients/sse-client';
 export type { SSEOptions, SSEEventHandlers } from './clients/sse-client';
+export { somoonClient } from './clients/somoon-client';
 
 // ============================================================
 // Services
@@ -23,6 +24,8 @@ export {
   signup,
   requestPasswordReset,
   resetPassword,
+  initiateOAuthLogin,
+  handleOAuthCallback,
 } from './services/auth.service';
 
 // Search Service
@@ -108,6 +111,26 @@ export {
   deleteAnswer,
 } from './services/questions.service';
 
+// Contents Service (Somoon)
+export { getDailyContents } from './services/contents.service';
+
+// Jobs Service (Somoon)
+export { getDailyJobs } from './services/jobs.service';
+
+// Profile Service
+export {
+  getProfileById,
+  getProfileByUserId,
+  getMyProfileDetail,
+  updateMyProfile,
+  addCareer,
+  updateCareer,
+  deleteCareer,
+  addEducation,
+  updateEducation,
+  deleteEducation,
+} from './services/profile.service';
+
 // ============================================================
 // React Query Hooks - Queries
 // ============================================================
@@ -154,6 +177,7 @@ export {
 export {
   usePosts,
   usePost,
+  useInfinitePosts,
   postsKeys,
 } from './hooks/queries/usePosts';
 
@@ -161,12 +185,35 @@ export {
 export {
   useQuestions,
   useQuestion,
+  useInfiniteQuestions,
   useQuestionAnswers,
   useAnswers,
   useAnswer,
   questionKeys,
   answerKeys,
 } from './hooks/queries/useQuestions';
+
+// Contents Queries (Somoon)
+export {
+  useDailyContents,
+  useInfiniteDailyContents,
+  contentsKeys,
+} from './hooks/queries/useContents';
+
+// Jobs Queries (Somoon)
+export {
+  useDailyJobs,
+  useInfiniteDailyJobs,
+  jobsKeys,
+} from './hooks/queries/useJobs';
+
+// Profile Queries
+export {
+  useProfileById,
+  useProfileByUserId,
+  useMyProfileDetail,
+  profileKeys,
+} from './hooks/queries/useProfile';
 
 // ============================================================
 // React Query Hooks - Mutations
@@ -177,6 +224,8 @@ export {
   useLogin,
   useLogout,
   useSignup,
+  useOAuthLogin,
+  useOAuthCallback,
 } from './hooks/mutations/useAuthMutations';
 
 // User Mutations
@@ -199,8 +248,9 @@ export {
 export {
   useChatSearch,
   useChatMessage,
+  useChatSearchAllVersions,
 } from './hooks/mutations/useChat';
-export type { UseChatMutationParams } from './hooks/mutations/useChat';
+export type { UseChatMutationParams, UseChatSearchAllVersionsParams } from './hooks/mutations/useChat';
 
 // Comments Mutations
 export {
@@ -231,6 +281,17 @@ export {
   useDeleteAnswer,
 } from './hooks/mutations/useQuestionsMutations';
 
+// Profile Mutations
+export {
+  useUpdateMyProfile,
+  useAddCareer,
+  useUpdateCareer,
+  useDeleteCareer,
+  useAddEducation,
+  useUpdateEducation,
+  useDeleteEducation,
+} from './hooks/mutations/useProfileMutations';
+
 // ============================================================
 // Types
 // ============================================================
@@ -251,6 +312,9 @@ export type {
   RegisterRequest,
   RefreshTokenRequest,
   RefreshTokenResponse,
+  OAuthProvider,
+  OAuthLoginResponse,
+  OAuthCallbackRequest,
   User,
   SearchResultItem,
   DiscoverFeed,
@@ -261,7 +325,9 @@ export type {
   ChatResponse,
   ChatSearchResult,
   ChatCitation,
+  ChatComparisonResult,
   HealthResponse,
+  ApiVersion,
 
   // Posts Types
   Post,
@@ -287,7 +353,33 @@ export type {
   AnswerUpdateRequest,
   PaginatedQuestionResponse,
   PaginatedAnswerResponse,
+
+  // Profile Types
+  ProfileDetail,
+  ProfileSummary,
+  ProfileUpdateRequest,
+  Career,
+  CareerRequest,
+  Education,
+  EducationRequest,
+  ProfileSkill,
+  ProfileSite,
+  CareerDuration,
 } from './types';
+
+// Somoon Types
+export type {
+  SomoonContentType,
+  SomoonAdditionalInfo,
+  SomoonAnalysisJson,
+  SomoonAnalysis,
+  SomoonCompanyInfo,
+  SomoonDailyContent,
+  SomoonPaginatedResponse,
+  GetDailyContentsParams,
+  SomoonJobItem,
+  GetDailyJobsParams,
+} from './types/somoon.types';
 
 // ============================================================
 // Auth Utilities (Client)
@@ -306,16 +398,9 @@ export {
 // ============================================================
 // Auth Utilities (Server) - Server Actions Only
 // ============================================================
-export {
-  setAuthCookies,
-  getAuthCookies,
-  getAccessToken,
-  getRefreshToken,
-  clearAuthCookies,
-  refreshAccessToken,
-  isAuthenticated,
-  getAuthHeader,
-} from './auth/token.server';
+// NOTE: token.server.ts exports are NOT included here to prevent
+// 'next/headers' from being bundled in client-side code.
+// API routes should use NextRequest.cookies and NextResponse.cookies directly.
 
 // ============================================================
 // Error Handling

@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
 import {
   getQuestions,
   getQuestion,
@@ -57,6 +57,26 @@ export function useQuestions(
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
     ...options,
+  });
+}
+
+/**
+ * 질문 무한 스크롤 훅
+ */
+export function useInfiniteQuestions() {
+  return useInfiniteQuery({
+    queryKey: questionKeys.lists(),
+    queryFn: ({ pageParam = 1 }) => getQuestions(pageParam as number),
+    getNextPageParam: (lastPage: PaginatedQuestionResponse, allPages: PaginatedQuestionResponse[]) => {
+      // next가 있으면 다음 페이지 번호 반환
+      if (lastPage.next) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 2 * 60 * 1000, // 2분
+    gcTime: 10 * 60 * 1000, // 10분
   });
 }
 

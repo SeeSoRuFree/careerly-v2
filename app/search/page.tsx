@@ -3,7 +3,9 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useChatSearch } from '@/lib/api';
+import { useChatSearchAllVersions } from '@/lib/api';
+import type { ChatSearchResult, ApiVersion } from '@/lib/api';
+import { cn } from '@/lib/utils';
 
 // 10개 지정 컴포넌트 import
 import { SearchQueryHeader } from '@/components/ui/search-query-header';
@@ -15,6 +17,7 @@ import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-inpu
 import { ModelSelectControl, type Model } from '@/components/ui/model-select-control';
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
+import { ApiVersionToggle } from '@/components/ui/api-version-toggle';
 
 // Mock 데이터
 const MOCK_MODELS: Model[] = [
@@ -383,19 +386,29 @@ function SearchContent() {
   const [selectedModel, setSelectedModel] = useState('gpt-4');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followUpValue, setFollowUpValue] = useState('');
-  const [answerData, setAnswerData] = useState<{
-    answer: string;
-    citations: { id: string; title: string; url: string }[];
-    session_id?: string;
-  } | null>(null);
+  // API 버전 선택 상태 (화면 표시용)
+  const [apiVersion, setApiVersion] = useState<ApiVersion>('v1');
+  // 전체 비교 모드 토글
+  const [compareMode, setCompareMode] = useState(false);
+  // 3개 버전 결과 저장
+  const [allVersionsData, setAllVersionsData] = useState<{
+    v1: ChatSearchResult | null;
+    v3: ChatSearchResult | null;
+    v4: ChatSearchResult | null;
+  }>({
+    v1: null,
+    v3: null,
+    v4: null,
+  });
 
-  // Chat API Mutation
-  const chatMutation = useChatSearch({
+  // 3개 버전 동시 호출 Mutation
+  const chatMutation = useChatSearchAllVersions({
     onSuccess: (data) => {
-      setAnswerData({
-        answer: data.answer,
-        citations: data.citations,
-        session_id: data.session_id,
+      // 3개 버전 모두 저장
+      setAllVersionsData({
+        v1: data.v1Result,
+        v3: data.v3Result,
+        v4: data.v4Result,
       });
     },
     onError: (error) => {
@@ -403,7 +416,7 @@ function SearchContent() {
     },
   });
 
-  // 쿼리가 변경되면 API 호출
+  // 쿼리가 변경되면 3개 버전 동시 호출
   useEffect(() => {
     if (!query || query.trim().length === 0) return;
 
@@ -432,7 +445,7 @@ function SearchContent() {
 
   const handleRewrite = () => {
     console.log('Rewrite answer');
-    // 재작성 요청
+    // 재작성 요청 (3개 버전 모두 다시 호출)
     if (query) {
       chatMutation.mutate({
         query: query.trim(),
@@ -442,7 +455,7 @@ function SearchContent() {
   };
 
   const handleRetry = () => {
-    // 재시도
+    // 재시도 (3개 버전 모두 다시 호출)
     if (query) {
       chatMutation.mutate({
         query: query.trim(),
@@ -455,14 +468,25 @@ function SearchContent() {
     setSelectedModel(modelId);
   };
 
+  // API 버전 변경 핸들러 (화면 표시용)
+  const handleApiVersionChange = (version: ApiVersion) => {
+    setApiVersion(version);
+  };
+
+  // 전체 비교 모드 토글 핸들러
+  const handleCompareModeToggle = () => {
+    setCompareMode(!compareMode);
+  };
+
   const handleFollowUpSubmit = () => {
     if (!followUpValue.trim()) return;
 
-    // 후속 질문으로 새로운 검색 수행 (session_id 전달)
+    // 후속 질문으로 새로운 검색 수행 (선택된 버전의 session_id 전달)
+    const currentData = allVersionsData[apiVersion];
     chatMutation.mutate({
       query: followUpValue.trim(),
       userId: 'anonymous',
-      sessionId: answerData?.session_id,
+      sessionId: currentData?.session_id,
     });
 
     setFollowUpValue('');
@@ -487,8 +511,11 @@ function SearchContent() {
   const isLoading = chatMutation.isPending;
   const hasError = chatMutation.isError;
 
-  // Citations 변환
-  const citationSources: CitationSource[] = answerData?.citations.map((citation) => ({
+  // 현재 선택된 버전의 데이터 (단일 모드용)
+  const currentVersionData = allVersionsData[apiVersion];
+
+  // Citations 변환 (단일 모드용)
+  const citationSources: CitationSource[] = currentVersionData?.citations.map((citation) => ({
     id: citation.id,
     title: citation.title,
     href: citation.url,
@@ -497,57 +524,157 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-4 max-w-4xl">
         {/* 1. SearchQueryHeader */}
         <SearchQueryHeader
           queryText={query}
           onEdit={handleEdit}
-          className="mb-4 border-b-0"
+          className="mb-3 border-b-0"
         />
 
-        {/* 컨트롤 바: ViewToggle + ActionBar */}
-        <div className="flex items-center justify-between mb-6 py-4 border-b border-slate-200">
-          {/* 9. ViewModeToggle */}
-          <ViewModeToggle
-            mode={viewMode}
-            onChange={setViewMode}
-          />
+        {/* 통합 컨트롤 바 */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-200">
+          {/* 좌측: API 버전 토글 + 전체 비교 토글 */}
+          <div className="flex items-center gap-3">
+            <ApiVersionToggle
+              version={apiVersion}
+              onChange={handleApiVersionChange}
+            />
 
-          {/* 2. ThreadActionBar */}
-          <ThreadActionBar
-            onShare={handleShare}
-            onBookmark={handleBookmark}
-            onExport={handleExport}
-            onRewrite={handleRewrite}
-            isBookmarked={isBookmarked}
-          />
+            {/* 전체 비교 토글 - ViewModeToggle 스타일 적용 */}
+            <div className="inline-flex items-center bg-slate-100 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={handleCompareModeToggle}
+                className={cn(
+                  'flex items-center justify-center px-3 py-2 rounded-md text-sm font-medium transition-all duration-200',
+                  compareMode
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900'
+                )}
+                aria-pressed={compareMode}
+                aria-label="전체 비교 모드"
+              >
+                전체비교
+              </button>
+            </div>
+          </div>
+
+          {/* 우측: ViewModeToggle + ThreadActionBar */}
+          <div className="flex items-center gap-3">
+            <ViewModeToggle
+              mode={viewMode}
+              onChange={setViewMode}
+            />
+            <ThreadActionBar
+              onShare={handleShare}
+              onBookmark={handleBookmark}
+              onExport={handleExport}
+              onRewrite={handleRewrite}
+              isBookmarked={isBookmarked}
+            />
+          </div>
         </div>
 
-        {/* 1열 레이아웃 */}
-        <div className="space-y-6">
-          {/* Answer 모드 */}
-          {viewMode === 'answer' && (
+        {/* 비교 모드: 3컬럼 그리드, 단일 모드: 1열 레이아웃 */}
+        <div className={compareMode ? 'grid grid-cols-3 gap-6' : 'space-y-6'}>
+          {compareMode ? (
+            // 비교 모드: 3개 버전 나란히 표시
             <>
-              {/* 3. AnswerResponsePanel */}
-              <AnswerResponsePanel
-                answerHtml={answerData?.answer || ''}
-                loading={isLoading}
-                error={hasError ? '답변을 가져오는 중 오류가 발생했습니다.' : undefined}
-                onRetry={handleRetry}
-                className="border-0 shadow-none bg-transparent p-0"
-              />
+              {(['v1', 'v3', 'v4'] as ApiVersion[]).map((version) => {
+                const data = allVersionsData[version];
+                const citations = data?.citations.map((c) => ({
+                  id: c.id,
+                  title: c.title,
+                  href: c.url,
+                  faviconUrl: undefined,
+                })) || [];
 
-              {/* 4. CitationSourceList */}
-              {!isLoading && answerData && citationSources.length > 0 && (
-                <div className="py-4 border-t border-slate-200">
-                  <CitationSourceList sources={citationSources} />
-                </div>
+                return (
+                  <div
+                    key={version}
+                    className="border border-slate-200 rounded-lg p-4 bg-white"
+                  >
+                    {/* 버전 헤더 */}
+                    <div className="mb-4 pb-4 border-b border-slate-200">
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        {version === 'v1' ? '기본 (v1)' : version === 'v3' ? '차세대 (v3)' : '테스트 (v4)'}
+                      </h3>
+                    </div>
+
+                    {/* 답변 패널 */}
+                    {isLoading && !data ? (
+                      <div className="py-8 text-center text-slate-500">
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                        <p className="text-xs">조회 중...</p>
+                      </div>
+                    ) : data ? (
+                      <>
+                        <AnswerResponsePanel
+                          answerHtml={data.answer}
+                          loading={false}
+                          error={undefined}
+                          onRetry={handleRetry}
+                          className="border-0 shadow-none bg-transparent p-0 mb-4"
+                        />
+
+                        {/* 인용 출처 */}
+                        {citations.length > 0 && (
+                          <div className="text-xs text-slate-600">
+                            <span className="font-medium">출처: {citations.length}개</span>
+                            <ul className="mt-2 space-y-1">
+                              {citations.slice(0, 3).map((c) => (
+                                <li key={c.id} className="truncate">
+                                  <a
+                                    href={c.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-teal-500 hover:underline"
+                                  >
+                                    {c.title}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="py-8 text-center text-slate-500">
+                        <p className="text-xs">데이터를 불러올 수 없습니다</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            // 단일 모드: 기존 레이아웃
+            <>
+              {viewMode === 'answer' && (
+                <>
+                  {/* 3. AnswerResponsePanel */}
+                  <AnswerResponsePanel
+                    answerHtml={currentVersionData?.answer || ''}
+                    loading={isLoading}
+                    error={hasError ? '답변을 가져오는 중 오류가 발생했습니다.' : undefined}
+                    onRetry={handleRetry}
+                    className="border-0 shadow-none bg-transparent p-0"
+                  />
+
+                  {/* 4. CitationSourceList */}
+                  {!isLoading && currentVersionData && citationSources.length > 0 && (
+                    <div className="py-4 border-t border-slate-200">
+                      <CitationSourceList sources={citationSources} />
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
 
-          {/* Sources 모드 */}
-          {viewMode === 'sources' && !isLoading && answerData && (
+          {/* Sources 모드 (비교 모드에서는 표시 안함) */}
+          {viewMode === 'sources' && !compareMode && !isLoading && currentVersionData && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900">
                 Search Results
@@ -564,8 +691,8 @@ function SearchContent() {
             </div>
           )}
 
-          {/* 6. RelatedQueriesSection */}
-          {!isLoading && answerData && (
+          {/* 6. RelatedQueriesSection (비교 모드에서는 표시 안함) */}
+          {!compareMode && !isLoading && currentVersionData && (
             <div className="py-6 border-t border-slate-200">
               <RelatedQueriesSection
                 relatedQueries={MOCK_RELATED_QUERIES}
@@ -574,8 +701,8 @@ function SearchContent() {
             </div>
           )}
 
-          {/* 7. SuggestedFollowUpInput */}
-          {!isLoading && answerData && (
+          {/* 7. SuggestedFollowUpInput (비교 모드에서는 표시 안함) */}
+          {!compareMode && !isLoading && currentVersionData && (
             <div className="py-6 border-t border-slate-200">
               <div className="flex items-start justify-between gap-4 mb-3">
                 <h3 className="text-sm font-semibold text-slate-700">

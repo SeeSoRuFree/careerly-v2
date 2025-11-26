@@ -3,11 +3,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccessToken, getAuthHeader } from '@/lib/api/auth/token.server';
 
 export async function GET(request: NextRequest) {
   try {
-    const accessToken = await getAccessToken();
+    const accessToken = request.cookies.get('accessToken')?.value;
 
     if (!accessToken) {
       return NextResponse.json(
@@ -16,11 +15,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // TODO: 실제 API 서버로 사용자 정보 요청
+    // Django 백엔드 사용자 정보 요청
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/me`,
+      `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/users/me/`,
       {
-        headers: await getAuthHeader(),
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       }
     );
 
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      user: data.user || data.data,
+      user: data,
     });
   } catch (error) {
     console.error('Get user error:', error);

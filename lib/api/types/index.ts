@@ -8,3 +8,4 @@ export * from './chat.types';
 export * from './posts.types';
 export * from './comments.types';
 export * from './questions.types';
+export * from './profile.types';

@@ -9,11 +9,13 @@ import { useMutation, UseMutationOptions } from '@tanstack/react-query';
 import {
   chatSearch,
   sendChatMessage,
+  chatSearchAllVersions,
 } from '../../services/chat.service';
 import type {
   ChatRequest,
   ChatResponse,
   ChatSearchResult,
+  ChatComparisonResult,
 } from '../../types/chat.types';
 
 /**
@@ -51,7 +53,31 @@ export function useChatMessage(
   options?: Omit<UseMutationOptions<ChatResponse, Error, ChatRequest>, 'mutationFn'>
 ) {
   return useMutation<ChatResponse, Error, ChatRequest>({
-    mutationFn: sendChatMessage,
+    mutationFn: (request: ChatRequest) => sendChatMessage(request),
+    ...options,
+  });
+}
+
+/**
+ * 3개 버전 API를 동시에 호출하는 훅
+ * v1, v3, v4 API 결과를 동시에 비교할 수 있음
+ */
+export interface UseChatSearchAllVersionsParams {
+  query: string;
+  userId?: string;
+  sessionId?: string;
+}
+
+export function useChatSearchAllVersions(
+  options?: Omit<
+    UseMutationOptions<ChatComparisonResult, Error, UseChatSearchAllVersionsParams>,
+    'mutationFn'
+  >
+) {
+  return useMutation<ChatComparisonResult, Error, UseChatSearchAllVersionsParams>({
+    mutationFn: async ({ query, userId, sessionId }) => {
+      return chatSearchAllVersions(query, userId, sessionId);
+    },
     ...options,
   });
 }

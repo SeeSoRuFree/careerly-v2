@@ -3,23 +3,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { clearAuthCookies } from '@/lib/api/auth/token.server';
 
 export async function POST(request: NextRequest) {
   try {
-    // httpOnly 쿠키 삭제
-    await clearAuthCookies();
-
-    // TODO: 실제 API 서버로 로그아웃 요청 (선택사항)
-    // await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/logout`, {
-    //   method: 'POST',
-    //   headers: await getAuthHeader(),
-    // });
-
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       message: '로그아웃되었습니다.',
     });
+
+    // httpOnly 쿠키 삭제
+    res.cookies.delete('accessToken');
+    res.cookies.delete('refreshToken');
+
+    return res;
   } catch (error) {
     console.error('Logout error:', error);
 

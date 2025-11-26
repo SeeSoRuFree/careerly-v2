@@ -12,6 +12,8 @@ import type {
   ChatSearchResult,
   ChatCitation,
   HealthResponse,
+  ApiVersion,
+  ChatComparisonResult,
 } from '../types/chat.types';
 
 /**
@@ -29,12 +31,17 @@ const agentClient = axios.create({
 /**
  * Chat API 호출 (프록시를 통해)
  * @param request - Chat 요청 객체
+ * @param version - API 버전 (v1, v3, v4) - 선택사항
  * @returns Chat 응답
  */
-export async function sendChatMessage(request: ChatRequest): Promise<ChatResponse> {
+export async function sendChatMessage(
+  request: ChatRequest,
+  version?: ApiVersion
+): Promise<ChatResponse> {
   try {
-    // baseURL이 /api/agent-chat이므로 그냥 POST 요청
-    const response = await agentClient.post<ChatResponse>('', request);
+    // 버전 쿼리 파라미터 추가
+    const params = version ? { version } : {};
+    const response = await agentClient.post<ChatResponse>('', request, { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -44,11 +51,17 @@ export async function sendChatMessage(request: ChatRequest): Promise<ChatRespons
 /**
  * Chat API 호출 (기존 SearchResult 형식으로 변환)
  * 기존 UI 컴포넌트와 호환되도록 변환
+ * @param query - 사용자 질문
+ * @param userId - 사용자 ID (선택사항)
+ * @param sessionId - 세션 ID (선택사항)
+ * @param version - API 버전 (v1, v3, v4) - 선택사항
+ * @returns 변환된 Chat 응답
  */
 export async function chatSearch(
   query: string,
   userId?: string,
-  sessionId?: string
+  sessionId?: string,
+  version?: ApiVersion
 ): Promise<ChatSearchResult> {
   try {
     const request: ChatRequest = {
@@ -57,7 +70,7 @@ export async function chatSearch(
       session_id: sessionId,
     };
 
-    const response = await sendChatMessage(request);
+    const response = await sendChatMessage(request, version);
 
     // sources를 Citation 형식으로 변환
     const citations: ChatCitation[] = response.sources.map((url, index) => ({
@@ -88,6 +101,52 @@ export async function checkAgentHealth(): Promise<HealthResponse> {
     return response.data;
   } catch (error) {
     throw handleApiError(error, { showToast: false });
+  }
+}
+
+/**
+ * 3개 버전 API를 병렬로 호출하여 결과 비교
+ * 한 버전이 실패해도 다른 버전은 계속 진행됨
+ * @param query - 사용자 질문
+ * @param userId - 사용자 ID (선택사항)
+ * @param sessionId - 세션 ID (선택사항)
+ * @returns 버전별 결과 객체 (실패한 버전은 null)
+ */
+export async function chatSearchAllVersions(
+  query: string,
+  userId?: string,
+  sessionId?: string
+): Promise<ChatComparisonResult> {
+  try {
+    // 3개 버전을 병렬로 호출
+    const results = await Promise.allSettled([
+      chatSearch(query, userId, sessionId, 'v1'),
+      chatSearch(query, userId, sessionId, 'v3'),
+      chatSearch(query, userId, sessionId, 'v4'),
+    ]);
+
+    return {
+      v1Result:
+        results[0].status === 'fulfilled'
+          ? results[0].value
+          : null,
+      v3Result:
+        results[1].status === 'fulfilled'
+          ? results[1].value
+          : null,
+      v4Result:
+        results[2].status === 'fulfilled'
+          ? results[2].value
+          : null,
+    };
+  } catch (error) {
+    // 예상치 못한 에러의 경우 (Promise.allSettled는 일반적으로 throw하지 않음)
+    console.error('All versions chat search error:', error);
+    return {
+      v1Result: null,
+      v3Result: null,
+      v4Result: null,
+    };
   }
 }
 

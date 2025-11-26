@@ -4,6 +4,11 @@
  */
 
 /**
+ * API 버전 타입
+ */
+export type ApiVersion = 'v1' | 'v3' | 'v4';
+
+/**
  * Chat API 요청 타입
  */
 export interface ChatRequest {
@@ -13,6 +18,8 @@ export interface ChatRequest {
   user_id?: string;
   /** 대화 세션 ID (선택, 없으면 자동 생성) */
   session_id?: string;
+  /** API 버전 (선택, 기본값은 서버에서 결정) */
+  version?: ApiVersion;
 }
 
 /**
@@ -71,4 +78,17 @@ export interface ChatSearchResult {
   citations: ChatCitation[];
   session_id?: string;
   metadata?: ChatResponse['metadata'];
+}
+
+/**
+ * API 버전별 응답 비교 결과 타입
+ * 여러 버전의 API 응답을 동시에 비교하기 위해 사용
+ */
+export interface ChatComparisonResult {
+  /** v1 API 응답 결과 (에러 발생 시 null) */
+  v1Result: ChatSearchResult | null;
+  /** v3 API 응답 결과 (에러 발생 시 null) */
+  v3Result: ChatSearchResult | null;
+  /** v4 API 응답 결과 (에러 발생 시 null) */
+  v4Result: ChatSearchResult | null;
 }

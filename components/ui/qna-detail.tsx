@@ -22,7 +22,7 @@ import {
 export interface Answer {
   id: number;
   userId: number;
-  userName: string;
+  userName?: string;
   userImage?: string;
   userHeadline?: string;
   content: string;
@@ -279,13 +279,13 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                     src={acceptedAnswer.userImage}
                     alt={acceptedAnswer.userName}
                   />
-                  <AvatarFallback>{acceptedAnswer.userName.charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{acceptedAnswer.userName?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1">
                       <span className="font-semibold text-slate-900 text-sm">
-                        {acceptedAnswer.userName}
+                        {acceptedAnswer.userName || '알 수 없음'}
                       </span>
                       {acceptedAnswer.userHeadline && (
                         <p className="text-xs text-slate-600">
@@ -414,13 +414,13 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                   <div className="flex items-start gap-2">
                     <Avatar className="h-10 w-10 flex-shrink-0">
                       <AvatarImage src={answer.userImage} alt={answer.userName} />
-                      <AvatarFallback>{answer.userName.charAt(0)}</AvatarFallback>
+                      <AvatarFallback>{answer.userName?.charAt(0) || '?'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex-1">
                           <span className="font-semibold text-slate-900 text-sm">
-                            {answer.userName}
+                            {answer.userName || '알 수 없음'}
                           </span>
                           {answer.userHeadline && (
                             <p className="text-xs text-slate-600">

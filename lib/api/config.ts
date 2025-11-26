@@ -12,6 +12,10 @@ export const API_CONFIG = {
     process.env.NEXT_PUBLIC_AGENT_API_URL ||
     'https://seulchan--careerly-agent-poc-fastapi-app.modal.run',
 
+  // Somoon API
+  SOMOON_API_URL: process.env.NEXT_PUBLIC_SOMOON_API_URL || '/api/somoon',
+  SOMOON_CSRF_TOKEN: process.env.NEXT_PUBLIC_SOMOON_CSRF_TOKEN || '',
+
   // API 타임아웃 (밀리초)
   TIMEOUT: Number(process.env.NEXT_PUBLIC_API_TIMEOUT) || 10000,
 

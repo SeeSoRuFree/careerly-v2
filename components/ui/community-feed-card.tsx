@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
-import { Heart, MessageCircle, Repeat2, Share2, Bookmark, Eye, Clock, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Repeat2, Share2, Bookmark, Eye, Clock, MoreHorizontal, ChevronDown } from 'lucide-react';
 
 export interface UserProfile {
   id: number;
@@ -74,6 +75,23 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     },
     ref
   ) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const MAX_LENGTH = 300;
+
+    // contentHtml이 있는 경우 텍스트로 변환하여 길이 체크
+    const getPlainText = () => {
+      if (contentHtml) {
+        const div = document.createElement('div');
+        div.innerHTML = contentHtml;
+        return div.textContent || div.innerText || '';
+      }
+      return content;
+    };
+
+    const plainText = getPlainText();
+    const isTruncatable = plainText.length > MAX_LENGTH;
+    const displayText = !isExpanded && isTruncatable ? plainText.substring(0, MAX_LENGTH) : plainText;
+
     const actions = [];
 
     if (onLike) {
@@ -151,12 +169,12 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-start gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={userProfile.image_url} alt={userProfile.name} />
-              <AvatarFallback>{userProfile.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={userProfile.image_url} alt={userProfile.name || '사용자'} />
+              <AvatarFallback>{userProfile.name?.charAt(0) || '?'}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col">
               <span className="font-semibold text-slate-900">
-                {userProfile.name}
+                {userProfile.name || '알 수 없는 사용자'}
               </span>
               {userProfile.headline && (
                 <p className="text-sm text-slate-600">{userProfile.headline}</p>
@@ -182,14 +200,44 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         {/* Content */}
         <div className="mb-2">
           {contentHtml ? (
-            <div
-              className="text-slate-900 text-sm leading-relaxed prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: contentHtml }}
-            />
+            <div className="text-slate-900 text-sm leading-relaxed prose prose-sm max-w-none break-words whitespace-pre-wrap">
+              {isExpanded ? (
+                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+              ) : isTruncatable ? (
+                <div dangerouslySetInnerHTML={{ __html: contentHtml.substring(0, MAX_LENGTH) }} />
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+              )}
+            </div>
           ) : (
-            <p className="text-slate-900 text-sm leading-relaxed whitespace-pre-wrap">
-              {content}
+            <p className="text-slate-900 text-sm leading-relaxed whitespace-pre-wrap break-words">
+              {displayText}
+              {!isExpanded && isTruncatable && '...'}
             </p>
+          )}
+
+          {/* More/Less Button */}
+          {isTruncatable && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="inline-flex items-center gap-1 text-coral-500 hover:text-coral-600 transition-colors text-sm font-medium mt-2 group"
+              aria-label={isExpanded ? '접기' : '더보기'}
+            >
+              {isExpanded ? (
+                <>
+                  <span>접기</span>
+                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[-2px] transition-transform rotate-180" />
+                </>
+              ) : (
+                <>
+                  <span>더보기</span>
+                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[2px] transition-transform" />
+                </>
+              )}
+            </button>
           )}
         </div>
 

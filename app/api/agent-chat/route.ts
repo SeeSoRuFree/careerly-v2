@@ -1,6 +1,7 @@
 /**
  * Careerly Agent API 프록시
  * CORS 우회 및 서버사이드 API 호출
+ * 버전별 엔드포인트 지원 (v1, v3, v4)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -9,13 +10,37 @@ const AGENT_API_URL =
   process.env.NEXT_PUBLIC_AGENT_API_URL ||
   'https://seulchan--careerly-agent-poc-fastapi-app.modal.run';
 
+/**
+ * API 버전에 따라 엔드포인트 URL 생성
+ * @param version - API 버전 (v1, v3, v4) 또는 undefined (기본값: v1)
+ * @returns 버전별 엔드포인트 경로
+ */
+function getVersionedEndpoint(version?: string): string {
+  switch (version) {
+    case 'v3':
+      return '/chat/v3';
+    case 'v4':
+      return '/chat/v4';
+    case 'v1':
+    default:
+      return '/chat';
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 클라이언트로부터 받은 요청 body
     const body = await request.json();
 
+    // URL 쿼리 파라미터에서 버전 추출
+    const searchParams = request.nextUrl.searchParams;
+    const version = searchParams.get('version');
+
+    // 버전별 엔드포인트 결정
+    const endpoint = getVersionedEndpoint(version || undefined);
+
     // Agent API로 프록시 요청
-    const response = await fetch(`${AGENT_API_URL}/chat`, {
+    const response = await fetch(`${AGENT_API_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
