@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E2E Test Report - Careerly</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { color: #1a1a1a; margin-bottom: 10px; }
+    .meta { color: #666; margin-bottom: 30px; font-size: 14px; }
+    .summary { display: flex; gap: 20px; margin-bottom: 30px; }
+    .summary-card { background: white; padding: 20px; border-radius: 8px; flex: 1; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .summary-card.pass { border-left: 4px solid #22c55e; }
+    .summary-card.fail { border-left: 4px solid #ef4444; }
+    .summary-card.skip { border-left: 4px solid #f59e0b; }
+    .summary-card h2 { font-size: 36px; margin-bottom: 5px; }
+    .summary-card p { color: #666; }
+    .section { background: white; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+    .section-header { padding: 15px 20px; background: #fafafa; border-bottom: 1px solid #eee; font-weight: 600; }
+    .test-item { padding: 12px 20px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 12px; }
+    .test-item:last-child { border-bottom: none; }
+    .status { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; color: white; }
+    .status.pass { background: #22c55e; }
+    .status.fail { background: #ef4444; }
+    .status.skip { background: #f59e0b; }
+    .test-name { flex: 1; }
+    .test-detail { color: #666; font-size: 13px; }
+    .issues { background: #fef2f2; }
+    .issues .section-header { background: #fee2e2; color: #991b1b; }
+    .issue-item { padding: 15px 20px; border-bottom: 1px solid #fecaca; }
+    .issue-item:last-child { border-bottom: none; }
+    .issue-title { font-weight: 600; color: #991b1b; margin-bottom: 5px; }
+    .issue-desc { color: #666; font-size: 14px; margin-bottom: 10px; }
+    .issue-fix { background: #f0fdf4; padding: 10px; border-radius: 4px; font-size: 13px; color: #166534; }
+    .todos { background: #fffbeb; }
+    .todos .section-header { background: #fef3c7; color: #92400e; }
+    .todo-item { padding: 12px 20px; border-bottom: 1px solid #fde68a; display: flex; gap: 10px; }
+    .todo-item:last-child { border-bottom: none; }
+    .todo-priority { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .todo-priority.high { background: #fee2e2; color: #991b1b; }
+    .todo-priority.medium { background: #fef3c7; color: #92400e; }
+    .todo-priority.low { background: #e0e7ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>E2E Test Report</h1>
+    <p class="meta">Generated: <span id="timestamp">{{TIMESTAMP}}</span> | Environment: localhost:3000</p>
+
+    <div class="summary">
+      <div class="summary-card pass">
+        <h2 id="pass-count">{{PASS_COUNT}}</h2>
+        <p>Passed</p>
+      </div>
+      <div class="summary-card fail">
+        <h2 id="fail-count">{{FAIL_COUNT}}</h2>
+        <p>Failed</p>
+      </div>
+      <div class="summary-card skip">
+        <h2 id="skip-count">{{SKIP_COUNT}}</h2>
+        <p>Skipped</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">페이지 로드 테스트</div>
+      <!-- {{PAGE_TESTS}} -->
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">메인 페이지 로드</div>
+        <div class="test-detail">GET / → 200</div>
+      </div>
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">Community 페이지 로드</div>
+        <div class="test-detail">GET /community → 200</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">API 헬스체크</div>
+      <!-- {{API_TESTS}} -->
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">Post 목록 조회</div>
+        <div class="test-detail">GET /api/v1/posts/?page=1 → 200</div>
+      </div>
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">Post 상세 조회</div>
+        <div class="test-detail">GET /api/v1/posts/123406/ → 200</div>
+      </div>
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">댓글 조회</div>
+        <div class="test-detail">GET /api/v1/comments/?postId=123406 → 200</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">인증 플로우</div>
+      <!-- {{AUTH_TESTS}} -->
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">로그인 모달 열기</div>
+        <div class="test-detail">UI 렌더링 확인</div>
+      </div>
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">로그인 실패 처리</div>
+        <div class="test-detail">POST /api/auth/login → 401</div>
+      </div>
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">회원가입 성공</div>
+        <div class="test-detail">POST /api/auth/register → 200</div>
+      </div>
+      <div class="test-item">
+        <div class="status pass">✓</div>
+        <div class="test-name">로그아웃</div>
+        <div class="test-detail">POST /api/auth/logout → 200</div>
+      </div>
+    </div>
+
+    <div class="section issues">
+      <div class="section-header">발견된 이슈</div>
+      <!-- {{ISSUES}} -->
+      <div class="issue-item">
+        <div class="issue-title">React Query undefined 에러</div>
+        <div class="issue-desc">비로그인 상태에서 is-liked/is-saved API 호출 시 401 에러가 React Query에서 undefined로 처리됨</div>
+        <div class="issue-fix">
+          <strong>Fix:</strong> usePostLikeStatus/usePostSaveStatus 훅에서 에러 시 false 반환하도록 수정
+        </div>
+      </div>
+      <div class="issue-item">
+        <div class="issue-title">로그아웃 UI 동기화 지연</div>
+        <div class="issue-desc">로그아웃 API 성공 후 UI가 즉시 업데이트되지 않음 (새로고침 필요)</div>
+        <div class="issue-fix">
+          <strong>Fix:</strong> 로그아웃 mutation의 onSuccess에서 queryClient.clear() 또는 router.refresh() 호출
+        </div>
+      </div>
+    </div>
+
+    <div class="section todos">
+      <div class="section-header">수정 TODO</div>
+      <!-- {{TODOS}} -->
+      <div class="todo-item">
+        <span class="todo-priority medium">MEDIUM</span>
+        <span>lib/api/hooks/queries/usePosts.ts - usePostLikeStatus 에러 핸들링 추가</span>
+      </div>
+      <div class="todo-item">
+        <span class="todo-priority medium">MEDIUM</span>
+        <span>lib/api/hooks/queries/usePosts.ts - usePostSaveStatus 에러 핸들링 추가</span>
+      </div>
+      <div class="todo-item">
+        <span class="todo-priority low">LOW</span>
+        <span>로그아웃 후 React Query 캐시 초기화 로직 확인</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
