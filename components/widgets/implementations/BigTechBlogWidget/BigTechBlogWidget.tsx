@@ -45,16 +45,18 @@ export function BigTechBlogWidget({
                 <ExternalLink className="inline-block w-3 h-3 ml-1 opacity-0 group-hover:opacity-100" />
               </h4>
               <div className="flex items-center gap-2 mt-1">
-                <div className="flex gap-1">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                {post.tags && post.tags.length > 0 && (
+                  <div className="flex gap-1">
+                    {post.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <span className="text-xs text-gray-400">{post.postedAt}</span>
               </div>
             </a>

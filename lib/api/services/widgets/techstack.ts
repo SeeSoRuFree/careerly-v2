@@ -1,7 +1,13 @@
 import type { TechStackItem } from '@/components/widgets/implementations/TechStackWidget/types';
+import { API_CONFIG } from '../../config';
+
+interface TechStackAPIResponse {
+  stacks: TechStackItem[];
+  rising: string[];
+}
 
 /**
- * Fetch TechStack data from npm API
+ * Fetch TechStack data from Django backend
  */
 export async function fetchTechStackData(config?: {
   category?: 'frontend' | 'backend' | 'all';
@@ -18,13 +24,10 @@ export async function fetchTechStackData(config?: {
     period,
   });
 
-  const response = await fetch(`/api/widgets/techstack?${params}`, {
+  const response = await fetch(`${API_CONFIG.WIDGET_API_URL}/techstack/?${params}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-    },
-    next: {
-      revalidate: 1800, // 30 minutes
     },
   });
 
@@ -32,5 +35,11 @@ export async function fetchTechStackData(config?: {
     throw new Error(`TechStack API failed: ${response.statusText}`);
   }
 
-  return response.json();
+  const data: TechStackAPIResponse = await response.json();
+
+  // Transform backend response (rising) to frontend expected format (hot)
+  return {
+    stacks: data.stacks,
+    hot: data.rising,
+  };
 }

@@ -9,8 +9,10 @@ import { WeatherWidget } from './implementations/WeatherWidget/WeatherWidget';
 import { useWeatherData } from './implementations/WeatherWidget/useWeatherData';
 import { StockWidget } from './implementations/StockWidget/StockWidget';
 import { useStockData } from './implementations/StockWidget/useStockData';
+import type { StockWidgetConfig } from './implementations/StockWidget/types';
 import { JobWidget } from './implementations/JobWidget/JobWidget';
 import { useJobData } from './implementations/JobWidget/useJobData';
+import type { JobWidgetConfig } from './implementations/JobWidget/types';
 
 // 새로운 커리어 위젯
 import { GeekNewsWidget } from './implementations/GeekNewsWidget/GeekNewsWidget';
@@ -207,7 +209,7 @@ export function registerAllWidgets() {
     defaultConfig: {
       symbols: ['KOSPI', 'KOSDAQ'],
       market: 'KOSPI',
-    },
+    } as StockWidgetConfig,
   });
 
   // 채용 위젯
@@ -227,7 +229,6 @@ export function registerAllWidgets() {
     useData: useJobData,
     defaultConfig: {
       limit: 5,
-      category: undefined,
-    },
+    } as JobWidgetConfig,
   });
 }

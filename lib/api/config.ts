@@ -7,6 +7,9 @@ export const API_CONFIG = {
   // RESTful API Base URL
   REST_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
 
+  // Widget API URL (Django Backend)
+  WIDGET_API_URL: process.env.NEXT_PUBLIC_WIDGET_API_URL || 'http://localhost:8000/api/v1/widgets',
+
   // Careerly Agent API URL (AI Chat)
   AGENT_API_URL:
     process.env.NEXT_PUBLIC_AGENT_API_URL ||

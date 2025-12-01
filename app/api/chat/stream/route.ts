@@ -11,7 +11,32 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // 빈 body 체크
+    const contentLength = request.headers.get('content-length');
+    if (!contentLength || contentLength === '0') {
+      return NextResponse.json(
+        { error: '요청 본문이 비어있습니다.' },
+        { status: 400 }
+      );
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { error: '잘못된 JSON 형식입니다.' },
+        { status: 400 }
+      );
+    }
+
+    if (!body.content) {
+      return NextResponse.json(
+        { error: '질문 내용이 필요합니다.' },
+        { status: 400 }
+      );
+    }
+
     const cookieStore = await cookies();
     const accessToken = cookieStore.get('accessToken')?.value;
 

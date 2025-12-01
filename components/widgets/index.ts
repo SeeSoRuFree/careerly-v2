@@ -14,6 +14,7 @@ export { registerAllWidgets } from './registerWidgets';
 // 기존 위젯
 export { WeatherWidget } from './implementations/WeatherWidget/WeatherWidget';
 export { StockWidget } from './implementations/StockWidget/StockWidget';
+export { MarketWidget } from './implementations/StockWidget/MarketWidget';
 export { JobWidget } from './implementations/JobWidget/JobWidget';
 
 // 커리어 위젯 (신규)

@@ -1,36 +1,46 @@
 import type {
   AITrendData,
   AITrendWidgetConfig,
+  HuggingFaceModel,
+  AIGitHubRepo,
+  AINewsItem,
 } from '@/components/widgets/implementations/AITrendWidget/types';
+import { API_CONFIG } from '../../config';
+
+interface HuggingFaceAPIModel {
+  id: string;
+  name: string;
+  author: string;
+  description: string;
+  url: string;
+  downloads: number;
+  likes: number;
+  tags: string[];
+}
+
+interface AITrendAPIResponse {
+  lastUpdated: string;
+  huggingface?: HuggingFaceAPIModel[];
+  github?: AIGitHubRepo[];
+  news?: AINewsItem[];
+}
 
 /**
- * Fetch AI Trend data from multiple sources
- *
- * Data sources:
- * - Hugging Face trending models: https://huggingface.co/api/trending
- * - GitHub trending (AI-related repos): scraped from trending page
- * - GeekNews AI-tagged articles: filtered from RSS feed
+ * Fetch AI Trend data from Django backend
  */
 export async function fetchAITrendData(config?: AITrendWidgetConfig): Promise<AITrendData> {
   const limit = config?.limit || 5;
-  const period = config?.period || 'daily';
   const sources = config?.sources || ['huggingface', 'github', 'news'];
-  const githubLanguage = config?.githubLanguage || 'python';
 
   const params = new URLSearchParams({
     limit: limit.toString(),
-    period,
     sources: sources.join(','),
-    githubLanguage,
   });
 
-  const response = await fetch(`/api/widgets/ai-trend?${params}`, {
+  const response = await fetch(`${API_CONFIG.WIDGET_API_URL}/ai-trend/?${params}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-    },
-    next: {
-      revalidate: 600, // 10 minutes
     },
   });
 
@@ -38,6 +48,18 @@ export async function fetchAITrendData(config?: AITrendWidgetConfig): Promise<AI
     throw new Error(`AI Trend API failed: ${response.statusText}`);
   }
 
-  const data = await response.json();
-  return data;
+  const data: AITrendAPIResponse = await response.json();
+
+  // Transform backend response to frontend expected format
+  const huggingface: HuggingFaceModel[] = (data.huggingface || []).map((model) => ({
+    ...model,
+    lastModified: data.lastUpdated, // Use lastUpdated as fallback
+  }));
+
+  return {
+    huggingface,
+    github: data.github || [],
+    news: data.news || [],
+    lastUpdated: data.lastUpdated,
+  };
 }

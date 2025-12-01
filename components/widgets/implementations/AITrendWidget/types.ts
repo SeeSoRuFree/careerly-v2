@@ -51,7 +51,7 @@ export interface AITrendData {
 }
 
 export interface AITrendWidgetConfig {
-  sources?: AITrendSource[];
+  sources?: readonly AITrendSource[] | AITrendSource[];
   limit?: number;
   period?: AITrendPeriod;
   githubLanguage?: string;

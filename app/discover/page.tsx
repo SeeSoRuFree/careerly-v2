@@ -20,7 +20,7 @@ import { BigTechBlogWidget } from '@/components/widgets/implementations/BigTechB
 import { GitHubTrendingWidget } from '@/components/widgets/implementations/GitHubTrendingWidget/GitHubTrendingWidget';
 import { ITNewsWidget } from '@/components/widgets/implementations/ITNewsWidget/ITNewsWidget';
 import { WeatherWidget } from '@/components/widgets/implementations/WeatherWidget/WeatherWidget';
-import { StockWidget } from '@/components/widgets/implementations/StockWidget/StockWidget';
+import { MarketWidget } from '@/components/widgets/implementations/StockWidget/MarketWidget';
 import { AITrendWidget } from '@/components/widgets/implementations/AITrendWidget/AITrendWidget';
 
 type ContentType = 'all' | 'jobs' | 'blogs' | 'books' | 'courses';
@@ -35,16 +35,16 @@ const widgetConfigs = {
     size: 'small' as const,
     order: 0,
     enabled: true,
-    config: { location: '서울', units: 'metric' },
+    config: { location: '서울', units: 'metric' as const },
   },
-  stock: {
-    id: 'stock-1',
-    type: 'stock',
-    title: '주식/지수',
-    size: 'small' as const,
+  market: {
+    id: 'market-1',
+    type: 'market',
+    title: '시장 전망',
+    size: 'medium' as const,
     order: 1,
     enabled: true,
-    config: { symbols: ['KOSPI', 'KOSDAQ'], market: 'KOSPI' },
+    config: { market: 'all' as const, showTrending: true },
   },
   aitrend: {
     id: 'aitrend-1',
@@ -53,7 +53,7 @@ const widgetConfigs = {
     size: 'large' as const,
     order: 2,
     enabled: true,
-    config: { sources: ['huggingface', 'github', 'news'], limit: 5, showTabs: true },
+    config: { sources: ['huggingface', 'github', 'news'] as const, limit: 5, showTabs: true },
   },
   geeknews: {
     id: 'geeknews-1',
@@ -71,7 +71,7 @@ const widgetConfigs = {
     size: 'medium' as const,
     order: 4,
     enabled: true,
-    config: { category: 'frontend', period: 'week' },
+    config: { category: 'frontend' as const, period: 'week' as const },
   },
   bigtech: {
     id: 'bigtech-1',
@@ -80,7 +80,7 @@ const widgetConfigs = {
     size: 'medium' as const,
     order: 5,
     enabled: true,
-    config: { companies: ['kakao', 'naver', 'toss'], limit: 4 },
+    config: { companies: ['kakao', 'naver', 'toss'] as const, limit: 4 },
   },
   github: {
     id: 'github-1',
@@ -89,7 +89,7 @@ const widgetConfigs = {
     size: 'medium' as const,
     order: 6,
     enabled: true,
-    config: { since: 'daily', limit: 5 },
+    config: { since: 'daily' as const, limit: 5 },
   },
   itnews: {
     id: 'itnews-1',
@@ -98,7 +98,7 @@ const widgetConfigs = {
     size: 'medium' as const,
     order: 7,
     enabled: true,
-    config: { sources: ['bloter', 'zdnet', 'itchosun'], limit: 4 },
+    config: { sources: ['bloter', 'zdnet', 'itchosun'] as const, limit: 4 },
   },
 };
 
@@ -317,7 +317,7 @@ export default function DiscoverPage() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Main Content */}
-      <main className="lg:col-span-9">
+      <main className="lg:col-span-8">
         <div className="space-y-6">
           {/* Header Section */}
           <div className="pt-16 pb-8">
@@ -431,13 +431,13 @@ export default function DiscoverPage() {
       </main>
 
       {/* Right Sidebar - Widgets */}
-      <aside className="lg:col-span-3">
+      <aside className="lg:col-span-4">
         <div className="space-y-4 pt-16">
           {/* 날씨 */}
           <WeatherWidget config={widgetConfigs.weather} />
 
-          {/* 주식/지수 */}
-          <StockWidget config={widgetConfigs.stock} />
+          {/* 시장 전망 (Perplexity 스타일) */}
+          <MarketWidget config={widgetConfigs.market.config} />
 
           {/* AI 트렌드 */}
           <AITrendWidget config={widgetConfigs.aitrend} />

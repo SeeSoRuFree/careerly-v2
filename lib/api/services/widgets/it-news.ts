@@ -1,13 +1,13 @@
 import type { ITNewsItem, ITNewsWidgetConfig } from '@/components/widgets/implementations/ITNewsWidget/types';
+import { API_CONFIG } from '../../config';
 
 /**
- * Fetch IT News data
- * Sources: Bloter, ZDNet, IT Chosun, ETNews
+ * Fetch IT News data from Django backend
  */
 export async function fetchITNewsData(
   config?: ITNewsWidgetConfig
 ): Promise<ITNewsItem[]> {
-  const sources = config?.sources || ['bloter', 'zdnet', 'itchosun', 'etnews'];
+  const sources = config?.sources || ['bloter', 'zdnet', 'itchosun'];
   const limit = config?.limit || 10;
 
   const params = new URLSearchParams({
@@ -15,13 +15,10 @@ export async function fetchITNewsData(
     limit: limit.toString(),
   });
 
-  const response = await fetch(`/api/widgets/it-news?${params}`, {
+  const response = await fetch(`${API_CONFIG.WIDGET_API_URL}/it-news/?${params}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-    },
-    next: {
-      revalidate: 300, // 5 minutes
     },
   });
 
@@ -30,5 +27,5 @@ export async function fetchITNewsData(
   }
 
   const data = await response.json();
-  return data.items || [];
+  return data.news || [];
 }

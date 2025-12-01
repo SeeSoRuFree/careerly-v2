@@ -2,9 +2,11 @@
  * Widget API Services
  *
  * Central export point for all widget-related API services.
- * These services interact with Next.js API routes for server-side data fetching.
+ * These services interact with Django backend for server-side data fetching.
  */
 
+export { fetchWeatherData } from './weather';
+export { fetchStockData } from './stock';
 export { fetchGeekNewsData } from './geeknews';
 export { fetchTechStackData } from './techstack';
 export { fetchBigTechBlogData } from './bigtech-blog';

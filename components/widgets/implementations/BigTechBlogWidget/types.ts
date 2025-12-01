@@ -10,6 +10,6 @@ export interface BigTechBlogPost {
 }
 
 export interface BigTechBlogWidgetConfig {
-  companies?: ('kakao' | 'naver' | 'toss' | 'line' | 'woowa')[];
+  companies?: readonly ('kakao' | 'naver' | 'toss' | 'line' | 'woowa')[] | ('kakao' | 'naver' | 'toss' | 'line' | 'woowa')[];
   limit?: number;
 }

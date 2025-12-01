@@ -8,6 +8,6 @@ export interface ITNewsItem {
 }
 
 export interface ITNewsWidgetConfig {
-  sources?: ('bloter' | 'zdnet' | 'itchosun' | 'etnews')[];
+  sources?: readonly ('bloter' | 'zdnet' | 'itchosun' | 'etnews')[] | ('bloter' | 'zdnet' | 'itchosun' | 'etnews')[];
   limit?: number;
 }
