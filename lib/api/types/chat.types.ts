@@ -157,6 +157,17 @@ export interface SSECompleteEvent {
   execution_time_ms?: number;
   session_id?: string;
   message_id?: string;
+  /** 최종 답변 (token 스트리밍 대신 complete에서 전체 답변을 보낼 때 사용) */
+  answer?: string;
+  /** 메타데이터 */
+  metadata?: {
+    intent_confidence?: number;
+    intent_reasoning?: string;
+    complexity?: string;
+    execution_mode?: string;
+    success_rate?: number;
+    synthesis_metadata?: Record<string, unknown>;
+  };
 }
 
 /**

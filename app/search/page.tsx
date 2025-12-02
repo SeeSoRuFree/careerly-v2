@@ -270,6 +270,8 @@ function SearchContent() {
   const cleanupRef = useRef<(() => void) | null>(null);
   // 이미 요청 중인 쿼리 추적 (중복 요청 방지)
   const currentQueryRef = useRef<string | null>(null);
+  // isStreaming을 ref로도 추적 (useCallback 의존성 문제 해결)
+  const isStreamingRef = useRef(false);
 
   // 스트리밍 시작 함수
   const startStreaming = useCallback((queryText: string, existingSessionId?: string | null) => {
@@ -277,7 +279,7 @@ function SearchContent() {
     if (!trimmedQuery) return;
 
     // 중복 요청 방지 (같은 쿼리로 이미 요청 중인 경우)
-    if (currentQueryRef.current === trimmedQuery && isStreaming) {
+    if (currentQueryRef.current === trimmedQuery && isStreamingRef.current) {
       return;
     }
 
@@ -286,6 +288,7 @@ function SearchContent() {
     currentQueryRef.current = trimmedQuery;
 
     // 상태 초기화
+    isStreamingRef.current = true;
     setIsStreaming(true);
     setStreamingContent('');
     setStreamingSources([]);
@@ -309,9 +312,12 @@ function SearchContent() {
       },
       onComplete: (metadata: SSECompleteEvent) => {
         // 최종 답변 저장
+        // 1. streamingContent가 있으면 그것을 사용 (token 스트리밍 방식)
+        // 2. 없으면 metadata.answer 사용 (complete에서 전체 답변 전송 방식)
         setStreamingContent((currentContent) => {
-          if (currentContent) {
-            setCompletedAnswer(currentContent);
+          const finalAnswer = currentContent || metadata.answer || '';
+          if (finalAnswer) {
+            setCompletedAnswer(finalAnswer);
           }
           return '';
         });
@@ -325,6 +331,7 @@ function SearchContent() {
         }
 
         setStreamStatus(null);
+        isStreamingRef.current = false;
         setIsStreaming(false);
         cleanupRef.current = null;
         currentQueryRef.current = null;
@@ -334,6 +341,7 @@ function SearchContent() {
         setError(errorMsg);
         setStreamStatus(null);
         setStreamingContent('');
+        isStreamingRef.current = false;
         setIsStreaming(false);
         cleanupRef.current = null;
         currentQueryRef.current = null;
@@ -341,7 +349,8 @@ function SearchContent() {
     });
 
     cleanupRef.current = cleanup;
-  }, [isStreaming]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 쿼리 변경 시 스트리밍 시작
   useEffect(() => {
@@ -350,8 +359,12 @@ function SearchContent() {
 
     return () => {
       cleanupRef.current?.();
+      // cleanup 시 상태 초기화 (React Strict Mode 대응)
+      currentQueryRef.current = null;
+      isStreamingRef.current = false;
     };
-  }, [query, startStreaming]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   // 핸들러들
   const handleEdit = () => {
