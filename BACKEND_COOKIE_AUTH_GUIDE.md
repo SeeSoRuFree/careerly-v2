@@ -54,7 +54,7 @@ COOKIE_SAMESITE=none
 
 ```bash
 # 프론트엔드 도메인을 CORS 허용 목록에 추가
-CORS_ALLOWED_ORIGINS=https://app.careerly.co.kr,https://www.careerly.co.kr
+CORS_ALLOWED_ORIGINS=https://dev.careerly.co.kr
 ```
 
 ---
@@ -74,7 +74,7 @@ CORS_ALLOWED_ORIGINS=http://localhost:3000
 COOKIE_DOMAIN=.careerly.co.kr
 COOKIE_SECURE=true
 COOKIE_SAMESITE=none
-CORS_ALLOWED_ORIGINS=https://app.careerly.co.kr,https://www.careerly.co.kr
+CORS_ALLOWED_ORIGINS=https://dev.careerly.co.kr
 ```
 
 ---
@@ -91,7 +91,7 @@ CORS_ALLOWED_ORIGINS=https://app.careerly.co.kr,https://www.careerly.co.kr
 
 ## 주의사항
 
-1. **도메인 일치**: 프론트엔드와 백엔드는 같은 루트 도메인(`careerly.co.kr`)의 서브도메인이어야 쿠키 공유 가능
+1. **도메인 일치**: 프론트엔드(`dev.careerly.co.kr`)와 백엔드(`v2.careerly.co.kr`)는 같은 루트 도메인의 서브도메인이므로 `.careerly.co.kr` 쿠키 공유 가능
 2. **HTTPS 필수**: `SameSite=None`은 반드시 `Secure=true`와 함께 사용
 3. **CORS 설정**: `credentials: 'include'` 요청을 받으려면 CORS에서 해당 도메인 허용 필요
 
