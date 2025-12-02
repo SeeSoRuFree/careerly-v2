@@ -152,13 +152,14 @@ export async function signup(data: RegisterRequest): Promise<LoginResponse> {
 }
 
 /**
- * 비밀번호 재설정 요청
+ * 비밀번호 재설정 요청 (백엔드 직접 호출)
  */
 export async function requestPasswordReset(email: string): Promise<{ success: boolean; message: string }> {
   try {
-    const response = await fetch('/api/auth/password-reset/request', {
+    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/password/reset-request/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // 쿠키 전송 허용
       body: JSON.stringify({ email }),
     });
 
@@ -177,7 +178,7 @@ export async function requestPasswordReset(email: string): Promise<{ success: bo
 }
 
 /**
- * 비밀번호 재설정 확인
+ * 비밀번호 재설정 확인 (백엔드 직접 호출)
  */
 export async function verifyPasswordReset(
   email: string,
@@ -185,10 +186,15 @@ export async function verifyPasswordReset(
   newPassword: string
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const response = await fetch('/api/auth/password-reset/verify', {
+    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/password/reset-verify/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code, newPassword }),
+      credentials: 'include', // 쿠키 전송 허용
+      body: JSON.stringify({
+        email,
+        code,
+        new_password: newPassword // 백엔드 필드명으로 변환
+      }),
     });
 
     if (!response.ok) {
@@ -210,9 +216,8 @@ export async function verifyPasswordReset(
  */
 export async function initiateOAuthLogin(provider: OAuthProvider): Promise<OAuthLoginResponse> {
   try {
-    // OAuth는 프론트엔드 API 라우트를 유지 (리다이렉트 처리 필요)
-    const response = await fetch(`/api/auth/oauth/${provider}/login`, {
-      credentials: 'include',
+    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/oauth/${provider}/login/`, {
+      credentials: 'include', // 쿠키 전송 허용
     });
 
     if (!response.ok) {
@@ -220,7 +225,12 @@ export async function initiateOAuthLogin(provider: OAuthProvider): Promise<OAuth
       throw new Error(error.error || 'OAuth 인증을 시작할 수 없습니다.');
     }
 
-    return await response.json();
+    const data = await response.json();
+
+    // 백엔드 응답의 authorization_url을 authUrl로 변환
+    return {
+      authUrl: data.authorization_url
+    };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
@@ -230,17 +240,16 @@ export async function initiateOAuthLogin(provider: OAuthProvider): Promise<OAuth
 }
 
 /**
- * OAuth 콜백 처리
+ * OAuth 콜백 처리 (백엔드 직접 호출)
  */
 export async function handleOAuthCallback(
   data: OAuthCallbackRequest
 ): Promise<LoginResponse> {
   try {
-    // OAuth는 프론트엔드 API 라우트를 유지 (복잡한 리다이렉트 처리 필요)
-    const response = await fetch(`/api/auth/oauth/${data.provider}/callback`, {
+    const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/oauth/${data.provider}/callback/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      credentials: 'include', // 쿠키 전송 허용
       body: JSON.stringify({
         code: data.code,
         ...(data.state && { state: data.state }),
@@ -254,11 +263,13 @@ export async function handleOAuthCallback(
 
     const result = await response.json();
 
+    // Django 백엔드 응답 형식: { user, tokens: { access, refresh } }
+    // 백엔드에서 httpOnly 쿠키를 직접 설정함
     return {
       user: result.user,
       tokens: {
-        access: result.accessToken || result.tokens?.access,
-        refresh: result.refreshToken || result.tokens?.refresh || '',
+        access: result.tokens.access,
+        refresh: result.tokens.refresh,
       },
     };
   } catch (error) {
