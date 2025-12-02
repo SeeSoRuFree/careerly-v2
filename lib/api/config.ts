@@ -10,11 +10,6 @@ export const API_CONFIG = {
   // Widget API URL (Django Backend)
   WIDGET_API_URL: process.env.NEXT_PUBLIC_WIDGET_API_URL || 'http://localhost:8000/api/v1/widgets',
 
-  // Careerly Agent API URL (AI Chat)
-  AGENT_API_URL:
-    process.env.NEXT_PUBLIC_AGENT_API_URL ||
-    'https://seulchan--careerly-agent-poc-fastapi-app.modal.run',
-
   // Somoon API
   SOMOON_API_URL: process.env.NEXT_PUBLIC_SOMOON_API_URL || '/api/somoon',
   SOMOON_CSRF_TOKEN: process.env.NEXT_PUBLIC_SOMOON_CSRF_TOKEN || '',
