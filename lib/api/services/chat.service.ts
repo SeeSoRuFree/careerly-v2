@@ -1,11 +1,11 @@
 /**
  * Careerly Chat API 서비스
- * Next.js API Route를 통한 Django Backend 프록시
- * CORS 우회 및 httpOnly 쿠키 기반 인증
+ * Django Backend 직접 호출 (httpOnly 쿠키 자동 전송)
  */
 
 import axios from 'axios';
 import { handleApiError } from '../clients/rest-client';
+import { API_CONFIG } from '../config';
 import type {
   ChatRequest,
   ChatResponse,
@@ -22,10 +22,10 @@ import type {
 } from '../types/chat.types';
 
 /**
- * Chat API용 클라이언트 (Next.js 프록시 사용)
+ * Chat API용 클라이언트 (Django Backend 직접 호출)
  */
 const chatClient = axios.create({
-  baseURL: '/api/chat',
+  baseURL: `${API_CONFIG.REST_BASE_URL}/api/v1/chat`,
   timeout: 300000, // 5분 (AI 응답 시간 고려)
   headers: {
     'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ const chatClient = axios.create({
 });
 
 /**
- * Chat API 호출 (Next.js 프록시를 통해 Django Backend)
+ * Chat API 호출 (Django Backend 직접 호출)
  * @param request - Chat 요청 객체
  * @returns Chat 응답
  */
@@ -42,7 +42,7 @@ export async function sendChatMessage(
   request: ChatRequest
 ): Promise<ChatResponse> {
   try {
-    const response = await chatClient.post<ChatResponse>('', request);
+    const response = await chatClient.post<ChatResponse>('/', request);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -167,6 +167,7 @@ function parseSSEEvent(
 /**
  * 스트리밍 Chat 메시지 전송 (SSE)
  * fetch + ReadableStream을 사용하여 POST SSE 처리
+ * Django 백엔드에 직접 요청하여 httpOnly 쿠키 자동 전송
  * @param content - 사용자 질문
  * @param sessionId - 세션 ID (선택)
  * @param callbacks - SSE 이벤트 콜백
@@ -181,10 +182,12 @@ export function streamChatMessage(
 
   const startStream = async () => {
     try {
-      const response = await fetch('/api/chat/stream', {
+      // Django 백엔드에 직접 요청 (브라우저가 자동으로 httpOnly 쿠키 전송)
+      const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/chat/stream/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
         },
         credentials: 'include',
         body: JSON.stringify({

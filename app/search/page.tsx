@@ -2,10 +2,11 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
-import { Loader2, Search, Sparkles, Database, Globe, FileText, CheckCircle2 } from 'lucide-react';
+import { Loader2, Search, Sparkles, Database, Globe, FileText, CheckCircle2, LogIn } from 'lucide-react';
 import { streamChatMessage } from '@/lib/api/services/chat.service';
 import type { SSEStatusStep, SSECompleteEvent, ChatCitation } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useStore } from '@/hooks/useStore';
 
 // 컴포넌트 import
 import { SearchQueryHeader } from '@/components/ui/search-query-header';
@@ -244,6 +245,7 @@ function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get('q') || '';
+  const openLoginModal = useStore((state) => state.openLoginModal);
 
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>('answer');
@@ -259,7 +261,7 @@ function SearchContent() {
   } | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; code?: string } | null>(null);
 
   // 완료된 답변 저장
   const [completedAnswer, setCompletedAnswer] = useState<string>('');
@@ -336,9 +338,20 @@ function SearchContent() {
         cleanupRef.current = null;
         currentQueryRef.current = null;
       },
-      onError: (errorMsg) => {
-        console.error('Streaming error:', errorMsg);
-        setError(errorMsg);
+      onError: (errorMsg, errorCode) => {
+        console.error('Streaming error:', errorMsg, 'Code:', errorCode);
+
+        // 401 에러 시 로그인 모달 열기
+        if (errorCode === '401') {
+          openLoginModal();
+          setError({
+            message: '로그인이 필요합니다. 로그인 후 다시 시도해주세요.',
+            code: errorCode
+          });
+        } else {
+          setError({ message: errorMsg, code: errorCode });
+        }
+
         setStreamStatus(null);
         setStreamingContent('');
         isStreamingRef.current = false;
@@ -350,7 +363,7 @@ function SearchContent() {
 
     cleanupRef.current = cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [openLoginModal]);
 
   // 쿼리 변경 시 스트리밍 시작
   useEffect(() => {
@@ -478,14 +491,43 @@ function SearchContent() {
 
         {/* 에러 표시 */}
         {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200">
-            <p className="text-sm text-red-700">{error}</p>
-            <button
-              onClick={handleRetry}
-              className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-            >
-              다시 시도
-            </button>
+          <div className={cn(
+            "mb-6 p-4 rounded-lg border",
+            error.code === '401'
+              ? "bg-amber-50 border-amber-200"
+              : "bg-red-50 border-red-200"
+          )}>
+            <div className="flex items-start gap-3">
+              {error.code === '401' && (
+                <LogIn className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              )}
+              <div className="flex-1">
+                <p className={cn(
+                  "text-sm",
+                  error.code === '401' ? "text-amber-700" : "text-red-700"
+                )}>
+                  {error.message}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  {error.code === '401' ? (
+                    <button
+                      onClick={openLoginModal}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 rounded-md transition-colors"
+                    >
+                      <LogIn className="h-4 w-4" />
+                      로그인
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleRetry}
+                      className="text-sm text-red-600 hover:text-red-800 underline"
+                    >
+                      다시 시도
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
