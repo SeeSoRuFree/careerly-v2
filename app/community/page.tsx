@@ -14,7 +14,8 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRecommendedPosts, useRecommendedFollowers, useCurrentUser } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser } from '@/lib/api';
+import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
@@ -48,14 +49,14 @@ function CommunityPageContent() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
 
+  // 좋아요 상태 관리 (postId -> liked 상태)
+  const [likedPosts, setLikedPosts] = React.useState<Record<number, boolean>>({});
+  // 북마크 상태 관리 (postId -> saved 상태)
+  const [savedPosts, setSavedPosts] = React.useState<Record<number, boolean>>({});
+
   // Get current user and login modal state
   const { data: user } = useCurrentUser();
   const { openLoginModal } = useStore();
-
-  // URL과 상태 동기화
-  React.useEffect(() => {
-    setContentFilter(currentTab);
-  }, [currentTab]);
 
   // 탭 변경 핸들러
   const handleTabChange = (tab: 'feed' | 'qna' | 'following') => {
@@ -104,6 +105,29 @@ function CommunityPageContent() {
   const unlikePost = useUnlikePost();
   const savePost = useSavePost();
   const unsavePost = useUnsavePost();
+  const followUser = useFollowUser();
+  const unfollowUser = useUnfollowUser();
+
+  // URL과 상태 동기화
+  React.useEffect(() => {
+    setContentFilter(currentTab);
+  }, [currentTab]);
+
+  // API 응답에서 초기 좋아요/북마크 상태 설정
+  React.useEffect(() => {
+    if (postsData?.pages) {
+      const initialLikedState: Record<number, boolean> = {};
+      const initialSavedState: Record<number, boolean> = {};
+      postsData.pages.forEach((page) => {
+        (page as PaginatedPostResponse).results.forEach((post) => {
+          initialLikedState[post.id] = post.is_liked;
+          initialSavedState[post.id] = post.is_saved;
+        });
+      });
+      setLikedPosts(prev => ({ ...prev, ...initialLikedState }));
+      setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
+    }
+  }, [postsData]);
 
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
@@ -120,21 +144,85 @@ function CommunityPageContent() {
     setTimeout(() => setSelectedContent(null), 300);
   };
 
-  // 좋아요 핸들러
-  const handleLikePost = (postId: number, isLiked?: boolean) => {
-    if (isLiked) {
-      unlikePost.mutate(postId);
+  // 좋아요 핸들러 (Optimistic Update)
+  const handleLikePost = (postId: number) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+
+    const isCurrentlyLiked = likedPosts[postId] || false;
+
+    // Optimistic update
+    setLikedPosts(prev => ({
+      ...prev,
+      [postId]: !isCurrentlyLiked
+    }));
+
+    // API 호출
+    if (isCurrentlyLiked) {
+      unlikePost.mutate(postId, {
+        onError: () => {
+          // 실패 시 롤백
+          setLikedPosts(prev => ({
+            ...prev,
+            [postId]: true
+          }));
+          toast.error('좋아요 취소에 실패했습니다');
+        }
+      });
     } else {
-      likePost.mutate(postId);
+      likePost.mutate(postId, {
+        onError: () => {
+          // 실패 시 롤백
+          setLikedPosts(prev => ({
+            ...prev,
+            [postId]: false
+          }));
+          toast.error('좋아요에 실패했습니다');
+        }
+      });
     }
   };
 
-  // 북마크 핸들러
-  const handleBookmarkPost = (postId: number, isSaved?: boolean) => {
-    if (isSaved) {
-      unsavePost.mutate(postId);
+  // 북마크 핸들러 (Optimistic Update)
+  const handleBookmarkPost = (postId: number) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+
+    const isCurrentlySaved = savedPosts[postId] || false;
+
+    // Optimistic update
+    setSavedPosts(prev => ({
+      ...prev,
+      [postId]: !isCurrentlySaved
+    }));
+
+    // API 호출
+    if (isCurrentlySaved) {
+      unsavePost.mutate(postId, {
+        onError: () => {
+          // 실패 시 롤백
+          setSavedPosts(prev => ({
+            ...prev,
+            [postId]: true
+          }));
+          toast.error('북마크 취소에 실패했습니다');
+        }
+      });
     } else {
-      savePost.mutate(postId);
+      savePost.mutate(postId, {
+        onError: () => {
+          // 실패 시 롤백
+          setSavedPosts(prev => ({
+            ...prev,
+            [postId]: false
+          }));
+          toast.error('북마크에 실패했습니다');
+        }
+      });
     }
   };
 
@@ -144,6 +232,17 @@ function CommunityPageContent() {
       router.push('/community/new/post');
     } else {
       openLoginModal();
+    }
+  };
+
+  // 공유하기 핸들러
+  const handleShare = async (postId: string) => {
+    const url = `${window.location.origin}/community/post/${postId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success('링크가 클립보드에 복사되었습니다');
+    } catch (error) {
+      toast.error('링크 복사에 실패했습니다');
     }
   };
 
@@ -332,7 +431,7 @@ function CommunityPageContent() {
 
           {/* Unified 2-Column Grid */}
           {filteredContent.length > 0 && (
-            <div className="columns-1 md:columns-2 gap-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {filteredContent.map((item, idx) => {
                 if (item.type === 'feed') {
                   const post = item.data;
@@ -354,14 +453,14 @@ function CommunityPageContent() {
                   };
 
                   return (
-                    <div key={`feed-${post.id}`} className="break-inside-avoid mb-6">
+                    <div key={`feed-${post.id}`}>
                       <CommunityFeedCard
                         userProfile={userProfile}
                         content={post.description}
                         contentHtml={post.description} // API doesn't provide HTML separately in list
                         createdAt={post.createdat}
                         stats={{
-                          likeCount: 0, // Not available in list view
+                          likeCount: post.like_count || 0,
                           replyCount: post.comment_count || 0,
                           repostCount: 0,
                           viewCount: 0,
@@ -371,9 +470,11 @@ function CommunityPageContent() {
                         onLike={() => handleLikePost(post.id)}
                         onReply={() => console.log('Reply')}
                         onRepost={() => console.log('Repost')}
-                        onShare={() => console.log('Share')}
+                        onShare={() => handleShare(post.id.toString())}
                         onBookmark={() => handleBookmarkPost(post.id)}
                         onMore={() => console.log('More')}
+                        liked={likedPosts[post.id] || false}
+                        bookmarked={savedPosts[post.id] || false}
                       />
                     </div>
                   );
@@ -387,11 +488,16 @@ function CommunityPageContent() {
                     image_url: null,
                     headline: null,
                   };
+                  // 질문 미리보기 텍스트 (최대 100자)
+                  const truncatedDescription = question.title.length > 100
+                    ? question.title.substring(0, 100) + '...'
+                    : question.title;
+
                   return (
-                    <div key={`qna-${question.id}`} className="break-inside-avoid mb-6">
+                    <div key={`qna-${question.id}`}>
                       <QnaCard
                         title={question.title}
-                        description={'질문 내용을 확인하려면 클릭하세요'}
+                        description={truncatedDescription}
                         author={author}
                         createdAt={question.createdat}
                         updatedAt={question.updatedat}
@@ -443,8 +549,8 @@ function CommunityPageContent() {
           <RecommendedFollowersPanel
             followers={recommendedFollowers}
             maxItems={5}
-            onFollow={(userId) => console.log('Follow:', userId)}
-            onUnfollow={(userId) => console.log('Unfollow:', userId)}
+            onFollow={(userId) => followUser.mutate(userId)}
+            onUnfollow={(userId) => unfollowUser.mutate(userId)}
           />
         </div>
       </aside>
@@ -517,7 +623,7 @@ function CommunityPageContent() {
                   <QnaDetail
                     qnaId={selectedContent.questionData.id.toString()}
                     title={selectedContent.questionData.title}
-                    description={'질문 상세 내용'}
+                    description={selectedContent.questionData.title}
                     createdAt={selectedContent.questionData.createdat}
                     updatedAt={selectedContent.questionData.updatedat}
                     hashTagNames=""

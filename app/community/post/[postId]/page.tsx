@@ -4,7 +4,7 @@ import * as React from 'react';
 import { PostDetail } from '@/components/ui/post-detail';
 import { AiChatPanel, Message } from '@/components/ui/ai-chat-panel';
 import { useParams, useRouter } from 'next/navigation';
-import { usePost, useComments, useCreateComment, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useViewPost, usePostLikeStatus, usePostSaveStatus } from '@/lib/api';
+import { usePost, useComments, useCreateComment, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useViewPost, usePostLikeStatus, usePostSaveStatus, useCurrentUser } from '@/lib/api';
 import type { Comment as ApiComment } from '@/lib/api';
 
 export default function PostDetailPage() {
@@ -16,6 +16,7 @@ export default function PostDetailPage() {
   const { data: post, isLoading, error } = usePost(Number(postId));
   const { data: isLiked, isLoading: isLikedLoading } = usePostLikeStatus(Number(postId));
   const { data: isSaved, isLoading: isSavedLoading } = usePostSaveStatus(Number(postId));
+  const { data: user } = useCurrentUser();
 
   // 댓글 목록 조회
   const { data: commentsData, isLoading: isCommentsLoading } = useComments({
@@ -194,6 +195,7 @@ export default function PostDetailPage() {
           onClearSharedContent={() => setSharedAiContent('')}
           liked={isLiked}
           bookmarked={isSaved}
+          currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
         />
       </div>
 

@@ -28,7 +28,16 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useStore } from '@/hooks/useStore';
+import { toast } from 'sonner';
 
+
+const DRAFT_KEY = 'careerly_draft_post';
+
+interface DraftData {
+  title: string;
+  content: string;
+  savedAt: string;
+}
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -75,6 +84,68 @@ export default function NewPostPage() {
     },
   });
 
+  // Draft functions
+  const saveDraft = React.useCallback((silent = false) => {
+    if (!editor) return;
+
+    const draft: DraftData = {
+      title,
+      content: editor.getHTML(),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+
+    if (!silent) {
+      toast.success('임시저장되었습니다');
+    }
+  }, [title, editor]);
+
+  const loadDraft = React.useCallback((): DraftData | null => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to load draft:', error);
+    }
+    return null;
+  }, []);
+
+  const clearDraft = React.useCallback(() => {
+    localStorage.removeItem(DRAFT_KEY);
+  }, []);
+
+  // Auto-save every 30 seconds
+  React.useEffect(() => {
+    if (!editor) return;
+
+    const interval = setInterval(() => {
+      const editorText = editor.getText().trim();
+      if (title || editorText) {
+        saveDraft(true); // Silent save
+      }
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [title, editor, saveDraft]);
+
+  // Load draft on mount (when editor is ready)
+  React.useEffect(() => {
+    if (!editor) return;
+
+    const draft = loadDraft();
+    if (draft && (draft.title || draft.content)) {
+      if (confirm('이전에 작성 중이던 글이 있습니다. 불러오시겠습니까?')) {
+        setTitle(draft.title || '');
+        if (draft.title) {
+          setShowTitle(true);
+        }
+        editor.commands.setContent(draft.content || '');
+      }
+    }
+  }, [editor, loadDraft]);
+
   const canSubmit = editor?.getText().trim().length ?? 0 > 0;
 
   const handleCancel = () => {
@@ -97,6 +168,9 @@ export default function NewPostPage() {
         description: editor.getText(),
         posttype: 0, // Regular post
       });
+
+      // Clear draft on successful post
+      clearDraft();
 
       // Success - redirect to community
       router.push('/community');
@@ -152,7 +226,12 @@ export default function NewPostPage() {
             <span className="font-semibold text-slate-900">글쓰기</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-slate-500 hidden sm:flex hover:bg-slate-200">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-500 hidden sm:flex hover:bg-slate-200"
+              onClick={() => saveDraft(false)}
+            >
               임시저장
             </Button>
             <Button

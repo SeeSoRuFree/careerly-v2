@@ -57,6 +57,10 @@ export interface QnaDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   disliked?: boolean;
   sharedAiContent?: string;
   onClearSharedContent?: () => void;
+  currentUser?: {
+    name: string;
+    image_url?: string;
+  };
 }
 
 export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
@@ -84,6 +88,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
       disliked = false,
       sharedAiContent,
       onClearSharedContent,
+      currentUser,
       className,
       ...props
     },
@@ -242,7 +247,12 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
 
               <div className="flex gap-2">
                 <Avatar className="h-10 w-10 flex-shrink-0">
-                  <AvatarFallback className="bg-slate-200 text-slate-600">U</AvatarFallback>
+                  {currentUser?.image_url ? (
+                    <AvatarImage src={currentUser.image_url} alt={currentUser.name} />
+                  ) : null}
+                  <AvatarFallback className="bg-slate-200 text-slate-600">
+                    {currentUser?.name?.charAt(0) || 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 flex gap-2">
                   <Input

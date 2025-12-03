@@ -4,7 +4,7 @@ import * as React from 'react';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { AiChatPanel, Message } from '@/components/ui/ai-chat-panel';
 import { useParams } from 'next/navigation';
-import { useQuestion, useCreateQuestionAnswer, useUpdateAnswer, useDeleteAnswer } from '@/lib/api';
+import { useQuestion, useCreateQuestionAnswer, useUpdateAnswer, useDeleteAnswer, useCurrentUser } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
 export default function QnaDetailPage() {
@@ -13,6 +13,7 @@ export default function QnaDetailPage() {
 
   // API 호출
   const { data: qnaData, isLoading, error } = useQuestion(Number(qnaId));
+  const { data: user } = useCurrentUser();
 
   // 답변 CRUD mutations
   const createAnswer = useCreateQuestionAnswer();
@@ -144,6 +145,7 @@ export default function QnaDetailPage() {
           onAcceptAnswer={(answerId) => console.log('Accept answer', answerId)}
           sharedAiContent={sharedAiContent}
           onClearSharedContent={() => setSharedAiContent('')}
+          currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
         />
       </div>
 

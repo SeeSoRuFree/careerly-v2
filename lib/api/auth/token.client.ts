@@ -1,18 +1,14 @@
 /**
  * 클라이언트 사이드 토큰 유틸리티
  * 브라우저 환경에서 사용
+ *
+ * 주의: 이 파일은 interceptor에서 사용되므로 rest-client를 import하면 안 됩니다.
+ * 순환 의존성 방지를 위해 fetch를 직접 사용합니다.
  */
 
 'use client';
 
 import { API_CONFIG } from '../config';
-
-/**
- * 클라이언트에서는 httpOnly 쿠키에 직접 접근할 수 없으므로
- * 백엔드 API를 직접 호출하여 쿠키를 관리합니다.
- *
- * 백엔드에서 httpOnly 쿠키를 직접 설정합니다.
- */
 
 /**
  * 로그인 처리 (백엔드 직접 호출)
@@ -23,7 +19,7 @@ export async function login(email: string, password: string): Promise<void> {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include', // 쿠키 전송 허용
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
 
@@ -37,13 +33,13 @@ export async function login(email: string, password: string): Promise<void> {
  * 로그아웃 처리 (백엔드 직접 호출)
  */
 export async function logout(): Promise<void> {
-  const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/logout/`, {
-    method: 'POST',
-    credentials: 'include', // 쿠키 전송 허용
-  });
-
-  if (!response.ok) {
-    throw new Error('로그아웃에 실패했습니다.');
+  try {
+    await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/logout/`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
   }
 }
 
@@ -53,7 +49,7 @@ export async function logout(): Promise<void> {
 export async function refreshToken(): Promise<void> {
   const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/refresh/`, {
     method: 'POST',
-    credentials: 'include', // 쿠키 전송 허용
+    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -67,7 +63,7 @@ export async function refreshToken(): Promise<void> {
 export async function checkAuth(): Promise<boolean> {
   try {
     const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/users/me/`, {
-      credentials: 'include', // 쿠키 전송 허용
+      credentials: 'include',
     });
     return response.ok;
   } catch {

@@ -67,21 +67,16 @@ export function useLogout(
 
   return useMutation<void, Error, void>({
     mutationFn: logoutService,
-    onSuccess: () => {
-      // 메모리 토큰 삭제
+    onSettled: () => {
+      // 성공/실패 관계없이 항상 로컬 상태 정리
       clearMemoryToken();
-
-      // 모든 쿼리 캐시 삭제
       queryClient.clear();
-
-      toast.success('로그아웃되었습니다.');
-
-      // 로그인 페이지로 이동
       router.push('/login');
     },
-    onError: (error) => {
-      toast.error(error.message || '로그아웃에 실패했습니다.');
+    onSuccess: () => {
+      toast.success('로그아웃되었습니다.');
     },
+    // onError는 제거 - 실패해도 조용히 로그아웃 처리
     ...options,
   });
 }

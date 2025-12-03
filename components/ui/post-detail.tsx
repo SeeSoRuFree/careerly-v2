@@ -70,6 +70,10 @@ export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   feedType?: string;
   sharedAiContent?: string;
   onClearSharedContent?: () => void;
+  currentUser?: {
+    name: string;
+    image_url?: string;
+  };
 }
 
 export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
@@ -96,6 +100,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       feedType,
       sharedAiContent,
       onClearSharedContent,
+      currentUser,
       className,
       ...props
     },
@@ -309,7 +314,12 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
 
               <div className="flex gap-2">
                 <Avatar className="h-10 w-10 flex-shrink-0">
-                  <AvatarFallback className="bg-slate-200 text-slate-600">U</AvatarFallback>
+                  {currentUser?.image_url ? (
+                    <AvatarImage src={currentUser.image_url} alt={currentUser.name} />
+                  ) : null}
+                  <AvatarFallback className="bg-slate-200 text-slate-600">
+                    {currentUser?.name?.charAt(0) || 'U'}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 flex gap-2">
                   <Input

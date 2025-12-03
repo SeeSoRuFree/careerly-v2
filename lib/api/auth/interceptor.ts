@@ -4,16 +4,21 @@
  */
 
 import { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { getMemoryToken } from './token.client';
+import { getMemoryToken, clearMemoryToken } from './token.client';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
+let refreshRejectSubscribers: Array<(error: Error) => void> = [];
 
 /**
- * 토큰 갱신 대기 중인 요청들을 처리
+ * 토큰 갱신 대기 중인 요청들을 등록
  */
-function subscribeTokenRefresh(callback: (token: string) => void): void {
-  refreshSubscribers.push(callback);
+function subscribeTokenRefresh(
+  onResolved: (token: string) => void,
+  onRejected: (error: Error) => void
+): void {
+  refreshSubscribers.push(onResolved);
+  refreshRejectSubscribers.push(onRejected);
 }
 
 /**
@@ -22,13 +27,16 @@ function subscribeTokenRefresh(callback: (token: string) => void): void {
 function onTokenRefreshed(token: string): void {
   refreshSubscribers.forEach((callback) => callback(token));
   refreshSubscribers = [];
+  refreshRejectSubscribers = [];
 }
 
 /**
  * 토큰 갱신 실패 시 대기 중인 요청들을 거부
  */
-function onTokenRefreshFailed(): void {
+function onTokenRefreshFailed(error: Error): void {
+  refreshRejectSubscribers.forEach((callback) => callback(error));
   refreshSubscribers = [];
+  refreshRejectSubscribers = [];
 }
 
 /**
@@ -60,16 +68,27 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         return Promise.reject(error);
       }
 
+      // 인증 관련 엔드포인트는 토큰 갱신 시도하지 않음 (무한 루프 방지)
+      const url = originalRequest.url || '';
+      if (url.includes('/auth/refresh') || url.includes('/auth/login') || url.includes('/auth/logout')) {
+        return Promise.reject(error);
+      }
+
       // 재시도 플래그 설정
       originalRequest._retry = true;
 
-      // 이미 토큰 갱신 중인 경우
+      // 이미 토큰 갱신 중인 경우 - 대기열에 등록
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
-          subscribeTokenRefresh((token: string) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            resolve(axiosInstance(originalRequest));
-          });
+          subscribeTokenRefresh(
+            (token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(axiosInstance(originalRequest));
+            },
+            (err: Error) => {
+              reject(err);
+            }
+          );
         });
       }
 
@@ -103,14 +122,20 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         isRefreshing = false;
-        onTokenRefreshFailed();
+
+        // 메모리 토큰 정리
+        clearMemoryToken();
+
+        // 대기 중인 요청들 reject
+        const error = refreshError instanceof Error ? refreshError : new Error('Token refresh failed');
+        onTokenRefreshFailed(error);
 
         // 토큰 갱신 실패 시 로그인 페이지로 이동
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
 
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       }
     }
   );

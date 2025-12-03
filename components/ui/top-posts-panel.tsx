@@ -25,6 +25,14 @@ const getRankStyle = (rank: number) => {
   return 'bg-slate-200 text-slate-600';              // 나머지
 };
 
+// 프로필 이미지 테두리 색상 (1~3위)
+const getAvatarRingStyle = (rank: number) => {
+  if (rank === 1) return 'ring-2 ring-yellow-500';   // 금
+  if (rank === 2) return 'ring-2 ring-slate-400';    // 은
+  if (rank === 3) return 'ring-2 ring-amber-600';    // 동
+  return '';                                          // 나머지
+};
+
 export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps>(
   (
     {
@@ -115,6 +123,17 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
                   >
                     {rank}
                   </div>
+
+                  {/* Author Avatar */}
+                  <Avatar className={cn('flex-shrink-0 w-8 h-8', getAvatarRingStyle(rank))}>
+                    <AvatarImage
+                      src={post.author?.image_url}
+                      alt={post.author?.name || '알 수 없음'}
+                    />
+                    <AvatarFallback className="bg-slate-200 text-slate-600 text-xs">
+                      {post.author?.name?.[0]?.toUpperCase() || '?'}
+                    </AvatarFallback>
+                  </Avatar>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
