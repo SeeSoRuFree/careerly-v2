@@ -5,8 +5,8 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
-import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
-import type { TopPostsPeriod } from '../../services/posts.service';
+import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, getFollowingPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
+import type { TopPostsPeriod, GetPostsParams } from '../../services/posts.service';
 import type { Post, PostListItem, PaginatedPostResponse } from '../../types/posts.types';
 
 /**
@@ -16,6 +16,7 @@ export const postsKeys = {
   all: ['posts'] as const,
   lists: () => [...postsKeys.all, 'list'] as const,
   list: (page?: number) => [...postsKeys.lists(), { page }] as const,
+  following: (page?: number) => [...postsKeys.all, 'following', { page }] as const,
   popular: (limit?: number) => [...postsKeys.all, 'popular', { limit }] as const,
   top: (period: TopPostsPeriod, limit?: number) => [...postsKeys.all, 'top', { period, limit }] as const,
   recommended: (limit?: number) => [...postsKeys.all, 'recommended', { limit }] as const,
@@ -29,12 +30,28 @@ export const postsKeys = {
  * 게시물 목록 조회 훅
  */
 export function usePosts(
-  params?: { page?: number },
+  params?: GetPostsParams,
   options?: Omit<UseQueryOptions<PaginatedPostResponse, Error>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery<PaginatedPostResponse, Error>({
     queryKey: postsKeys.list(params?.page),
-    queryFn: () => getPosts(params?.page),
+    queryFn: () => getPosts(params),
+    staleTime: 2 * 60 * 1000, // 2분
+    gcTime: 10 * 60 * 1000, // 10분
+    ...options,
+  });
+}
+
+/**
+ * 팔로잉 피드 조회 훅
+ */
+export function useFollowingPosts(
+  page?: number,
+  options?: Omit<UseQueryOptions<PaginatedPostResponse, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<PaginatedPostResponse, Error>({
+    queryKey: postsKeys.following(page),
+    queryFn: () => getFollowingPosts(page),
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
     ...options,
@@ -64,7 +81,7 @@ export function usePost(
 export function useInfinitePosts() {
   return useInfiniteQuery({
     queryKey: postsKeys.lists(),
-    queryFn: ({ pageParam = 1 }) => getPosts(pageParam as number),
+    queryFn: ({ pageParam = 1 }) => getPosts({ page: pageParam as number }),
     getNextPageParam: (lastPage: PaginatedPostResponse, allPages: PaginatedPostResponse[]) => {
       // next가 있으면 다음 페이지 번호 반환
       if (lastPage.next) {

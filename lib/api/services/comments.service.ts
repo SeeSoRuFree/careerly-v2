@@ -94,3 +94,27 @@ export async function deleteComment(id: number): Promise<void> {
     throw handleApiError(error);
   }
 }
+
+/**
+ * 댓글 좋아요
+ * 인증 필요
+ */
+export async function likeComment(commentId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/comments/${commentId}/like/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 댓글 좋아요 취소
+ * 인증 필요
+ */
+export async function unlikeComment(commentId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/comments/${commentId}/unlike/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}

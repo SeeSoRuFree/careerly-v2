@@ -11,6 +11,8 @@ import {
   updateComment,
   patchComment,
   deleteComment,
+  likeComment,
+  unlikeComment,
 } from '../../services/comments.service';
 import { commentKeys } from '../queries/useComments';
 import type {
@@ -148,6 +150,58 @@ export function useDeleteComment(
     },
     onError: (error) => {
       toast.error(error.message || '댓글 삭제에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 댓글 좋아요 mutation
+ */
+export function useLikeComment(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: likeComment,
+    onSuccess: (_, commentId) => {
+      // 해당 댓글 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: commentKeys.detail(commentId) });
+
+      // 댓글 목록 무효화
+      queryClient.invalidateQueries({ queryKey: commentKeys.lists() });
+
+      toast.success('댓글을 좋아합니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 댓글 좋아요 취소 mutation
+ */
+export function useUnlikeComment(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: unlikeComment,
+    onSuccess: (_, commentId) => {
+      // 해당 댓글 상세 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: commentKeys.detail(commentId) });
+
+      // 댓글 목록 무효화
+      queryClient.invalidateQueries({ queryKey: commentKeys.lists() });
+
+      toast.success('좋아요를 취소했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요 취소에 실패했습니다.');
     },
     ...options,
   });

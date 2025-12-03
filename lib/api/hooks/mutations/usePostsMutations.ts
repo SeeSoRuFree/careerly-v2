@@ -16,9 +16,12 @@ import {
   savePost,
   unsavePost,
   viewPost,
+  repostPost,
+  unrepostPost,
+  uploadPostImage,
 } from '../../services/posts.service';
 import { postsKeys } from '../queries/usePosts';
-import type { Post, PostCreateRequest, PostUpdateRequest } from '../../types/posts.types';
+import type { Post, PostCreateRequest, PostUpdateRequest, ImageUploadResponse } from '../../types/posts.types';
 
 /**
  * 게시물 생성 mutation
@@ -239,6 +242,68 @@ export function useViewPost(
     onError: (error) => {
       // 조회수 증가 실패는 조용히 처리 (토스트 표시 안함)
       console.error('Failed to increment view count:', error);
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 리포스트 mutation
+ */
+export function useRepostPost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: repostPost,
+    onSuccess: (_, postId) => {
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+      queryClient.invalidateQueries({ queryKey: postsKeys.lists() });
+      toast.success('리포스트 되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '리포스트에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 리포스트 취소 mutation
+ */
+export function useUnrepostPost(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: unrepostPost,
+    onSuccess: (_, postId) => {
+      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+      queryClient.invalidateQueries({ queryKey: postsKeys.lists() });
+      toast.success('리포스트를 취소했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '리포스트 취소에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 게시물 이미지 업로드 mutation
+ */
+export function useUploadPostImage(
+  options?: Omit<UseMutationOptions<ImageUploadResponse, Error, File>, 'mutationFn'>
+) {
+  return useMutation<ImageUploadResponse, Error, File>({
+    mutationFn: uploadPostImage,
+    onSuccess: () => {
+      toast.success('이미지가 업로드되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '이미지 업로드에 실패했습니다.');
     },
     ...options,
   });

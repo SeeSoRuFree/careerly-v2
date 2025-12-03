@@ -81,6 +81,7 @@ export {
 export {
   getPosts,
   getPost,
+  getFollowingPosts,
   getPopularPosts,
   getTopPosts,
   getRecommendedPosts,
@@ -95,8 +96,10 @@ export {
   unsavePost,
   isPostSaved,
   viewPost,
+  repostPost,
+  unrepostPost,
 } from './services/posts.service';
-export type { TopPostsPeriod } from './services/posts.service';
+export type { TopPostsPeriod, GetPostsParams } from './services/posts.service';
 
 // Comments Service
 export {
@@ -106,6 +109,8 @@ export {
   updateComment,
   patchComment,
   deleteComment,
+  likeComment,
+  unlikeComment,
 } from './services/comments.service';
 
 // Questions Service
@@ -124,6 +129,7 @@ export {
   updateAnswer,
   patchAnswer,
   deleteAnswer,
+  acceptAnswer,
 } from './services/questions.service';
 
 // Contents Service (Somoon)
@@ -195,6 +201,7 @@ export {
 export {
   usePosts,
   usePost,
+  useFollowingPosts,
   useInfinitePosts,
   usePopularPosts,
   useTopPosts,
@@ -283,6 +290,8 @@ export {
   useUpdateComment,
   usePatchComment,
   useDeleteComment,
+  useLikeComment,
+  useUnlikeComment,
 } from './hooks/mutations/useCommentsMutations';
 
 // Posts Mutations
@@ -296,6 +305,8 @@ export {
   useSavePost,
   useUnsavePost,
   useViewPost,
+  useRepostPost,
+  useUnrepostPost,
 } from './hooks/mutations/usePostsMutations';
 
 // Questions Mutations
@@ -309,6 +320,7 @@ export {
   useUpdateAnswer,
   usePatchAnswer,
   useDeleteAnswer,
+  useAcceptAnswer,
 } from './hooks/mutations/useQuestionsMutations';
 
 // Profile Mutations

@@ -22,6 +22,9 @@ export interface Answer {
   user_id: number;
   author_name: string;
   description: string;
+  like_count: number;
+  is_liked: boolean;
+  is_accepted: boolean;
   isdeleted: number;
   createdat: string;
   updatedat: string;
@@ -36,6 +39,8 @@ export interface Question {
   author: Author | null;
   title: string;
   description: string;
+  like_count: number;
+  is_liked: boolean;
   status: number;
   ispublic: number;
   isfiltered: number;
@@ -53,6 +58,8 @@ export interface QuestionListItem {
   user_id: number;
   author_name: string;
   title: string;
+  like_count: number;
+  is_liked: boolean;
   status: number;
   answer_count: number;
   ispublic: number;

@@ -196,3 +196,63 @@ export async function deleteAnswer(id: number): Promise<void> {
     throw handleApiError(error);
   }
 }
+
+/**
+ * 답변 채택
+ * 인증 필요, 질문 작성자만 가능
+ */
+export async function acceptAnswer(answerId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/answers/${answerId}/accept/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 질문 좋아요
+ * 인증 필요
+ */
+export async function likeQuestion(questionId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/questions/${questionId}/like/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 질문 좋아요 취소
+ * 인증 필요
+ */
+export async function unlikeQuestion(questionId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/questions/${questionId}/unlike/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 답변 좋아요
+ * 인증 필요
+ */
+export async function likeAnswer(answerId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/answers/${answerId}/like/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 답변 좋아요 취소
+ * 인증 필요
+ */
+export async function unlikeAnswer(answerId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/answers/${answerId}/unlike/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}

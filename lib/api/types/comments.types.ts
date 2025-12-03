@@ -15,6 +15,8 @@ export interface Comment {
   content: string;
   ispostwriter: number;
   isdeleted: number;
+  like_count: number;
+  is_liked: boolean;
   createdat: string;
   updatedat: string;
 }

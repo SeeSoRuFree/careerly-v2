@@ -32,8 +32,11 @@ export interface Post {
   like_count: number;
   save_count: number;
   view_count: number;
+  repost_count: number;
   is_liked: boolean;
   is_saved: boolean;
+  is_reposted: boolean;
+  images?: string[];
 }
 
 /**
@@ -53,8 +56,10 @@ export interface PostListItem {
   like_count: number;
   save_count: number;
   view_count: number;
+  repost_count: number;
   is_liked: boolean;
   is_saved: boolean;
+  is_reposted: boolean;
 }
 
 /**
@@ -65,6 +70,7 @@ export interface PostCreateRequest {
   description: string;
   posttype?: PostType;
   articleid?: number;
+  images?: string[];
 }
 
 /**
@@ -75,6 +81,13 @@ export interface PostUpdateRequest {
   description?: string;
   posttype?: PostType;
   articleid?: number;
+}
+
+/**
+ * 이미지 업로드 응답
+ */
+export interface ImageUploadResponse {
+  url: string;
 }
 
 /**

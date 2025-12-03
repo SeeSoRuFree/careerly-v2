@@ -16,6 +16,11 @@ import {
   updateAnswer,
   patchAnswer,
   deleteAnswer,
+  acceptAnswer,
+  likeQuestion,
+  unlikeQuestion,
+  likeAnswer,
+  unlikeAnswer,
 } from '../../services/questions.service';
 import { questionKeys, answerKeys } from '../queries/useQuestions';
 import type {
@@ -292,6 +297,141 @@ export function useDeleteAnswer(
     },
     onError: (error) => {
       toast.error(error.message || '답변 삭제에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 답변 채택 mutation
+ */
+export function useAcceptAnswer(
+  options?: Omit<UseMutationOptions<void, Error, { answerId: number; questionId: number }>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { answerId: number; questionId: number }>({
+    mutationFn: ({ answerId }) => acceptAnswer(answerId),
+    onSuccess: (_, { answerId, questionId }) => {
+      // 답변 상세 무효화
+      queryClient.invalidateQueries({ queryKey: answerKeys.detail(answerId) });
+      // 질문 상세 무효화 (채택된 답변 표시)
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(questionId) });
+      // 질문의 답변 목록 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(questionId) });
+
+      toast.success('답변이 채택되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '답변 채택에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 질문 좋아요 mutation
+ */
+export function useLikeQuestion(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: likeQuestion,
+    onSuccess: (_, questionId) => {
+      // 질문 상세 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(questionId) });
+      // 질문 목록 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.lists() });
+
+      toast.success('질문을 좋아합니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 질문 좋아요 취소 mutation
+ */
+export function useUnlikeQuestion(
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, number>({
+    mutationFn: unlikeQuestion,
+    onSuccess: (_, questionId) => {
+      // 질문 상세 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(questionId) });
+      // 질문 목록 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.lists() });
+
+      toast.success('좋아요를 취소했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요 취소에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 답변 좋아요 mutation
+ */
+export function useLikeAnswer(
+  options?: Omit<UseMutationOptions<void, Error, { answerId: number; questionId: number }>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { answerId: number; questionId: number }>({
+    mutationFn: ({ answerId }) => likeAnswer(answerId),
+    onSuccess: (_, { answerId, questionId }) => {
+      // 답변 상세 무효화
+      queryClient.invalidateQueries({ queryKey: answerKeys.detail(answerId) });
+      // 질문 상세 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(questionId) });
+      // 질문의 답변 목록 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(questionId) });
+      // 전체 답변 목록 무효화
+      queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
+
+      toast.success('답변을 좋아합니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * 답변 좋아요 취소 mutation
+ */
+export function useUnlikeAnswer(
+  options?: Omit<UseMutationOptions<void, Error, { answerId: number; questionId: number }>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, { answerId: number; questionId: number }>({
+    mutationFn: ({ answerId }) => unlikeAnswer(answerId),
+    onSuccess: (_, { answerId, questionId }) => {
+      // 답변 상세 무효화
+      queryClient.invalidateQueries({ queryKey: answerKeys.detail(answerId) });
+      // 질문 상세 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(questionId) });
+      // 질문의 답변 목록 무효화
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(questionId) });
+      // 전체 답변 목록 무효화
+      queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
+
+      toast.success('좋아요를 취소했습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '좋아요 취소에 실패했습니다.');
     },
     ...options,
   });

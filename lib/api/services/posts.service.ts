@@ -9,15 +9,39 @@ import type {
   PostCreateRequest,
   PostUpdateRequest,
   PaginatedPostResponse,
+  ImageUploadResponse,
 } from '../types/posts.types';
 
 /**
- * 게시물 목록 조회 (페이징)
+ * 팔로잉 피드 조회 파라미터
  */
-export async function getPosts(page?: number): Promise<PaginatedPostResponse> {
+export interface GetPostsParams {
+  page?: number;
+  following?: boolean;
+  ordering?: string;
+  page_size?: number;
+}
+
+/**
+ * 게시물 목록 조회 (페이징, 필터)
+ */
+export async function getPosts(params?: GetPostsParams): Promise<PaginatedPostResponse> {
   try {
-    const params = page ? { page } : {};
     const response = await publicClient.get<PaginatedPostResponse>('/api/v1/posts/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 팔로잉 피드 조회
+ * 인증 필요
+ */
+export async function getFollowingPosts(page?: number): Promise<PaginatedPostResponse> {
+  try {
+    const params = { page, following: true };
+    const response = await authClient.get<PaginatedPostResponse>('/api/v1/posts/', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -187,6 +211,30 @@ export async function viewPost(postId: number): Promise<void> {
 }
 
 /**
+ * 게시물 리포스트
+ * 인증 필요
+ */
+export async function repostPost(postId: number): Promise<void> {
+  try {
+    await authClient.post(`/api/v1/posts/${postId}/repost/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 리포스트 취소
+ * 인증 필요
+ */
+export async function unrepostPost(postId: number): Promise<void> {
+  try {
+    await authClient.delete(`/api/v1/posts/${postId}/repost/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * Top Posts 기간별 타입
  */
 export type TopPostsPeriod = 'daily' | 'weekly' | 'monthly';
@@ -217,6 +265,30 @@ export async function getRecommendedPosts(limit: number = 10): Promise<PostListI
   try {
     const params = { limit };
     const response = await publicClient.get<PostListItem[]>('/api/v1/posts/recommended/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 이미지 업로드
+ * 인증 필요
+ */
+export async function uploadPostImage(file: File): Promise<ImageUploadResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await authClient.post<ImageUploadResponse>(
+      '/api/v1/posts/upload-image/',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     throw handleApiError(error);
