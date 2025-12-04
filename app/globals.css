@@ -442,6 +442,12 @@
     word-break: break-all;
   }
 
+  .markdown-content s,
+  .markdown-content del,
+  .markdown-content strike {
+    @apply line-through;
+  }
+
   .markdown-content hr {
     @apply border-t border-slate-200 my-6;
   }
@@ -472,6 +478,13 @@
 
   .markdown-content img {
     @apply max-w-full h-auto;
+  }
+
+  /* Prose styles */
+  .prose s,
+  .prose del,
+  .prose strike {
+    text-decoration: line-through;
   }
 
   /* Tiptap Editor Styles */

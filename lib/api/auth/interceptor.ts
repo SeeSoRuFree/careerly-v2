@@ -5,6 +5,7 @@
 
 import { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getMemoryToken, clearMemoryToken } from './token.client';
+import { useStore } from '@/hooks/useStore';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
@@ -130,9 +131,13 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         const error = refreshError instanceof Error ? refreshError : new Error('Token refresh failed');
         onTokenRefreshFailed(error);
 
-        // 토큰 갱신 실패 시 로그인 모달 열기 이벤트 발생
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('auth:login-required'));
+        // POST/PUT/DELETE/PATCH 요청에서만 로그인 모달 열기 (액션 수행 시도)
+        // GET 요청은 단순 데이터 조회이므로 조용히 처리
+        const method = originalRequest.method?.toUpperCase();
+        const isActionRequest = method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+
+        if (isActionRequest) {
+          useStore.getState().openLoginModal();
         }
 
         return Promise.reject(error);

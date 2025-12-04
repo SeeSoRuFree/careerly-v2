@@ -8,7 +8,6 @@ export interface CitationSource {
   id: string;
   title: string;
   faviconUrl?: string;
-  href: string;
 }
 
 export interface CitationSourceListProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -31,7 +30,6 @@ const CitationSourceList = React.forwardRef<HTMLDivElement, CitationSourceListPr
               key={source.id}
               title={source.title}
               faviconUrl={source.faviconUrl}
-              href={source.href}
             />
           ))}
         </div>

@@ -42,6 +42,49 @@ function statusToErrorCode(status: number): ErrorCode {
 }
 
 /**
+ * Django/DRF 에러 응답에서 메시지 추출
+ */
+function extractDjangoErrorMessage(data: any): string | null {
+  if (!data) return null;
+
+  // DRF 표준 에러 형식: { "detail": "..." }
+  if (typeof data.detail === 'string') {
+    return data.detail;
+  }
+
+  // DRF 상세 에러 형식: { "detail": { "message": "...", ... } }
+  if (data.detail && typeof data.detail === 'object' && data.detail.message) {
+    return data.detail.message;
+  }
+
+  // 커스텀 메시지 형식: { "message": "..." }
+  if (typeof data.message === 'string') {
+    return data.message;
+  }
+
+  // 커스텀 에러 형식: { "error": "..." }
+  if (typeof data.error === 'string') {
+    return data.error;
+  }
+
+  // 폼 에러 형식: { "non_field_errors": ["...", ...] }
+  if (Array.isArray(data.non_field_errors) && data.non_field_errors.length > 0) {
+    return data.non_field_errors[0];
+  }
+
+  // 필드별 에러 형식: { "email": ["..."], "password": ["..."] }
+  const fieldErrors = Object.entries(data)
+    .filter(([key, value]) => Array.isArray(value) && value.length > 0)
+    .map(([key, value]) => `${key}: ${(value as string[])[0]}`);
+
+  if (fieldErrors.length > 0) {
+    return fieldErrors.join(', ');
+  }
+
+  return null;
+}
+
+/**
  * Axios 에러를 ApiError로 정규화
  */
 function normalizeAxiosError(error: AxiosError): ApiError {
@@ -65,7 +108,10 @@ function normalizeAxiosError(error: AxiosError): ApiError {
   const status = error.response.status;
   const data = error.response.data as any;
   const code = data?.code || statusToErrorCode(status);
-  const message = data?.message || ERROR_MESSAGES[code as ErrorCode] || error.message;
+
+  // Django/DRF 에러 메시지 추출 시도
+  const djangoMessage = extractDjangoErrorMessage(data);
+  const message = djangoMessage || ERROR_MESSAGES[code as ErrorCode] || error.message;
 
   return new ApiError(status, code, message, data);
 }

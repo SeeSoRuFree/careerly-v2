@@ -46,16 +46,22 @@ export default function PostDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [postId]);
 
-  // API 댓글 데이터를 UI 댓글 형식으로 변환
-  const transformComments = (apiComments: ApiComment[]) => {
-    // Initialize comment likes state from API data
-    const initialLikes: Record<number, boolean> = {};
-    apiComments.forEach(comment => {
-      initialLikes[comment.id] = comment.is_liked || false;
-    });
-    setCommentLikes(prev => ({ ...prev, ...initialLikes }));
+  // 댓글 좋아요 상태 초기화 (commentsData 변경 시)
+  React.useEffect(() => {
+    if (commentsData?.results) {
+      const initialLikes: Record<number, boolean> = {};
+      commentsData.results.forEach(comment => {
+        initialLikes[comment.id] = comment.is_liked || false;
+      });
+      setCommentLikes(initialLikes);
+    }
+  }, [commentsData]);
 
-    return apiComments.map((comment) => ({
+  // API 댓글 데이터를 UI 댓글 형식으로 변환 (useMemo로 최적화)
+  const transformedComments = React.useMemo(() => {
+    if (!commentsData?.results) return [];
+
+    return commentsData.results.map((comment) => ({
       id: comment.id,
       userId: comment.user_id,
       userName: comment.author_name,
@@ -64,9 +70,9 @@ export default function PostDetailPage() {
       content: comment.content,
       createdAt: new Date(comment.createdat).toLocaleDateString('ko-KR'),
       likeCount: comment.like_count || 0,
-      liked: commentLikes[comment.id] || comment.is_liked || false,
+      liked: commentLikes[comment.id] ?? comment.is_liked ?? false,
     }));
-  };
+  }, [commentsData, commentLikes]);
 
   // 댓글 작성 핸들러
   const handleCommentSubmit = async (content: string) => {
@@ -218,7 +224,7 @@ export default function PostDetailPage() {
             viewCount: 0,
           }}
           imageUrls={[]}
-          comments={commentsData?.results ? transformComments(commentsData.results) : []}
+          comments={transformedComments}
           onLike={handleLike}
           onReply={() => console.log('Reply to post')}
           onRepost={() => console.log('Repost')}

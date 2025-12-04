@@ -8,6 +8,7 @@ import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils/date';
 import { Heart, MessageCircle, Repeat2, Share2, Bookmark, Eye, Clock, MoreHorizontal, ChevronDown } from 'lucide-react';
 
 export interface UserProfile {
@@ -78,6 +79,16 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     const [isExpanded, setIsExpanded] = useState(false);
     const MAX_LENGTH = 300;
 
+    // Optimistic Update를 위한 로컬 state
+    const [localLiked, setLocalLiked] = useState(liked);
+    const [localLikeCount, setLocalLikeCount] = useState(stats?.likeCount ?? 0);
+
+    // props가 변경되면 로컬 state도 업데이트
+    React.useEffect(() => {
+      setLocalLiked(liked);
+      setLocalLikeCount(stats?.likeCount ?? 0);
+    }, [liked, stats?.likeCount]);
+
     // contentHtml이 있는 경우 텍스트로 변환하여 길이 체크
     const getPlainText = () => {
       if (contentHtml) {
@@ -97,9 +108,9 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     if (onLike) {
       actions.push({
         id: 'like',
-        icon: <Heart className={cn('h-5 w-5', liked && 'fill-current text-coral-500')} />,
-        label: stats?.likeCount ? `${stats.likeCount}` : '0',
-        pressed: liked,
+        icon: <Heart className={cn('h-5 w-5', localLiked && 'fill-current text-coral-500')} />,
+        label: localLikeCount ? `${localLikeCount}` : '0',
+        pressed: localLiked,
       });
     }
 
@@ -131,6 +142,9 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     const handleAction = (actionId: string) => {
       switch (actionId) {
         case 'like':
+          // Optimistic Update
+          setLocalLiked(!localLiked);
+          setLocalLikeCount(prev => localLiked ? prev - 1 : prev + 1);
           onLike?.();
           break;
         case 'reply':
@@ -281,11 +295,11 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         )}
 
         {/* Stats Row */}
-        {stats && (stats.viewCount || stats.likeCount || stats.replyCount) && (
+        {stats && (stats.viewCount || localLikeCount || stats.replyCount) && (
           <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              <span>{createdAt}</span>
+              <span>{formatRelativeTime(createdAt)}</span>
             </div>
             {stats.viewCount !== undefined && (
               <div className="flex items-center gap-1">
@@ -293,10 +307,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
                 <span>{stats.viewCount.toLocaleString()} 조회</span>
               </div>
             )}
-            {stats.likeCount !== undefined && stats.likeCount > 0 && (
+            {localLikeCount > 0 && (
               <div className="flex items-center gap-1">
                 <Heart className="h-3.5 w-3.5" />
-                <span>{stats.likeCount.toLocaleString()} 좋아요</span>
+                <span>{localLikeCount.toLocaleString()} 좋아요</span>
               </div>
             )}
             {stats.replyCount !== undefined && stats.replyCount > 0 && (

@@ -14,9 +14,10 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRepostPost, useUnrepostPost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRepostPost, useUnrepostPost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, usePostLikeStatus, usePostSaveStatus, useViewPost, useLikeComment, useUnlikeComment } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
+import { PostDetail } from '@/components/ui/post-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
 
@@ -36,6 +37,186 @@ type SelectedContent = {
   userProfile?: UserProfile;
   questionData?: QuestionListItem;
 };
+
+// Post 상세 Drawer 컨텐츠 컴포넌트
+function PostDetailDrawerContent({ postId }: { postId: string }) {
+  const { data: post, isLoading, error } = usePost(Number(postId));
+  const { data: isLiked } = usePostLikeStatus(Number(postId));
+  const { data: isSaved } = usePostSaveStatus(Number(postId));
+  const { data: user } = useCurrentUser();
+  const { data: commentsData } = useComments({ postId: Number(postId) });
+  const { openLoginModal } = useStore();
+
+  const createComment = useCreateComment();
+  const likePost = useLikePost();
+  const unlikePost = useUnlikePost();
+  const savePost = useSavePost();
+  const unsavePost = useUnsavePost();
+  const viewPost = useViewPost();
+  const likeComment = useLikeComment();
+  const unlikeComment = useUnlikeComment();
+
+  const [commentLikes, setCommentLikes] = React.useState<Record<number, boolean>>({});
+
+  // 조회수 증가
+  React.useEffect(() => {
+    if (postId && !isLoading && !error) {
+      viewPost.mutate(Number(postId));
+    }
+  }, [postId]);
+
+  // 댓글 좋아요 상태 초기화
+  React.useEffect(() => {
+    if (commentsData?.results) {
+      const initialLikes: Record<number, boolean> = {};
+      commentsData.results.forEach(comment => {
+        initialLikes[comment.id] = comment.is_liked || false;
+      });
+      setCommentLikes(initialLikes);
+    }
+  }, [commentsData]);
+
+  const transformedComments = React.useMemo(() => {
+    if (!commentsData?.results) return [];
+    return commentsData.results.map((comment) => ({
+      id: comment.id,
+      userId: comment.user_id,
+      userName: comment.author_name,
+      userImage: undefined,
+      userHeadline: undefined,
+      content: comment.content,
+      createdAt: new Date(comment.createdat).toLocaleDateString('ko-KR'),
+      likeCount: comment.like_count || 0,
+      liked: commentLikes[comment.id] ?? comment.is_liked ?? false,
+    }));
+  }, [commentsData, commentLikes]);
+
+  const handleCommentSubmit = async (content: string) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    try {
+      await createComment.mutateAsync({
+        post_id: Number(postId),
+        content,
+      });
+    } catch (error) {
+      console.error('Failed to create comment:', error);
+    }
+  };
+
+  const handleLike = () => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    const postIdNum = Number(postId);
+    if (isLiked) {
+      unlikePost.mutate(postIdNum);
+    } else {
+      likePost.mutate(postIdNum);
+    }
+  };
+
+  const handleBookmark = () => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    const postIdNum = Number(postId);
+    if (isSaved) {
+      unsavePost.mutate(postIdNum);
+    } else {
+      savePost.mutate(postIdNum);
+    }
+  };
+
+  const handleCommentLike = (commentId: number) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    const isCurrentlyLiked = commentLikes[commentId] || false;
+    setCommentLikes(prev => ({ ...prev, [commentId]: !isCurrentlyLiked }));
+
+    if (isCurrentlyLiked) {
+      unlikeComment.mutate(commentId, {
+        onError: () => setCommentLikes(prev => ({ ...prev, [commentId]: true })),
+      });
+    } else {
+      likeComment.mutate(commentId, {
+        onError: () => setCommentLikes(prev => ({ ...prev, [commentId]: false })),
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (error || !post) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-slate-600">게시글을 불러올 수 없습니다.</p>
+      </div>
+    );
+  }
+
+  const userProfile = post.author
+    ? {
+        id: post.author.id,
+        name: post.author.name,
+        image_url: post.author.image_url,
+        headline: post.author.headline,
+        title: post.author.headline,
+      }
+    : {
+        id: post.userid,
+        name: '알 수 없는 사용자',
+        image_url: undefined,
+        headline: '탈퇴한 사용자',
+        title: '탈퇴한 사용자',
+      };
+
+  return (
+    <div className="p-4">
+      <PostDetail
+        postId={postId}
+        userProfile={userProfile}
+        content={post.description}
+        contentHtml={post.descriptionhtml}
+        createdAt={post.createdat}
+        stats={{
+          likeCount: post.like_count || 0,
+          replyCount: commentsData?.count || post.comment_count || 0,
+          repostCount: post.repost_count || 0,
+          viewCount: post.view_count || 0,
+        }}
+        imageUrls={[]}
+        comments={transformedComments}
+        onLike={handleLike}
+        onReply={() => {}}
+        onRepost={() => {}}
+        onShare={() => {
+          const url = `${window.location.origin}/community/post/${postId}`;
+          navigator.clipboard.writeText(url);
+          toast.success('링크가 복사되었습니다');
+        }}
+        onBookmark={handleBookmark}
+        onCommentLike={handleCommentLike}
+        onCommentSubmit={handleCommentSubmit}
+        liked={isLiked}
+        bookmarked={isSaved}
+        currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
+      />
+    </div>
+  );
+}
 
 function CommunityPageContent() {
   const router = useRouter();
@@ -781,11 +962,7 @@ function CommunityPageContent() {
             {/* Drawer Content */}
             <div className="flex-1 overflow-y-auto">
               {selectedContent.type === 'post' && (
-                <iframe
-                  src={`/community/post/${selectedContent.id}?drawer=true`}
-                  className="w-full h-full border-0"
-                  title="Post Detail"
-                />
+                <PostDetailDrawerContent postId={selectedContent.id} />
               )}
               {selectedContent.type === 'qna' && selectedContent.questionData && (
                 <div className="h-full overflow-y-auto p-6">

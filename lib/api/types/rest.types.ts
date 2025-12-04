@@ -155,7 +155,7 @@ export interface DiscoverFeed {
   id: string;
   title: string;
   description: string;
-  imageUrl?: string;
+  image_url?: string;
   category: string;
   tags: string[];
   author: {

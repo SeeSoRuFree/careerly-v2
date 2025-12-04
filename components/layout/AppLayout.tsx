@@ -40,18 +40,6 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     logout.mutate();
   };
 
-  // 401 에러 시 로그인 모달 열기 이벤트 리스너
-  React.useEffect(() => {
-    const handleAuthRequired = () => {
-      openLoginModal();
-    };
-
-    window.addEventListener('auth:login-required', handleAuthRequired);
-    return () => {
-      window.removeEventListener('auth:login-required', handleAuthRequired);
-    };
-  }, [openLoginModal]);
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Sidebar - Fixed (hidden in drawer mode) */}
