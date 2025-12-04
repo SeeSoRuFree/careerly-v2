@@ -703,7 +703,7 @@ function SearchContent() {
                   key={source.id}
                   title={source.title}
                   snippet=""
-                  href={source.href || ""}
+                  href={source.href || ''}
                   faviconUrl={source.faviconUrl}
                 />
               ))}
