@@ -1,12 +1,14 @@
 'use client';
 
 import * as React from 'react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock } from 'lucide-react';
+import { formatRelativeTime } from '@/lib/utils/date';
+import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock, ChevronDown } from 'lucide-react';
 
 export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   qnaId: number;
@@ -65,8 +67,16 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
     },
     ref
   ) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const MAX_LENGTH = 300;
+
     const tags = hashTagNames ? hashTagNames.split(' ').filter(Boolean) : [];
     const hasAnswer = answerCount > 0;
+
+    const isTruncatable = description.length > MAX_LENGTH;
+    const displayText = !isExpanded && isTruncatable
+      ? description.substring(0, MAX_LENGTH)
+      : description;
 
     return (
       <Card
@@ -79,21 +89,29 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         )}
         {...props}
       >
-        {/* Header - Tags and Status */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            {tags.map((tag, idx) => (
-              <Badge key={idx} tone="slate" className="text-xs">
-                #{tag}
-              </Badge>
-            ))}
-          </div>
+        {/* Author Profile with Status Badges */}
+        <div className="flex items-center justify-between mb-3">
+          {author ? (
+            <Link
+              href={`/profile/${author.id}`}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={author.image_url || ''} alt={author.name} />
+                <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-slate-900">{author.name}</span>
+                {author.headline && (
+                  <span className="text-xs text-slate-500">{author.headline}</span>
+                )}
+              </div>
+            </Link>
+          ) : (
+            <div />
+          )}
           <div className="flex items-center gap-2">
-            {isPublic === 0 && (
-              <Badge tone="warning" className="text-xs">
-                비공개
-              </Badge>
-            )}
             {hasAnswer ? (
               <Badge tone="success" className="text-xs">
                 답변 {answerCount}
@@ -106,24 +124,15 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
           </div>
         </div>
 
-        {/* Author Profile */}
-        {author && (
-          <Link
-            href={`/profile/${author.id}`}
-            className="flex items-center gap-3 mb-3 hover:opacity-80 transition-opacity"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={author.image_url || ''} alt={author.name} />
-              <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-slate-900">{author.name}</span>
-              {author.headline && (
-                <span className="text-xs text-slate-500">{author.headline}</span>
-              )}
-            </div>
-          </Link>
+        {/* Hashtags */}
+        {tags.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            {tags.map((tag, idx) => (
+              <Badge key={idx} tone="slate" className="text-xs">
+                #{tag}
+              </Badge>
+            ))}
+          </div>
         )}
 
         {/* Title */}
@@ -132,16 +141,43 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         </h3>
 
         {/* Description */}
-        <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed mb-2 whitespace-pre-wrap">
-          {description}
-        </p>
+        <div className="mb-2">
+          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+            {displayText}
+            {!isExpanded && isTruncatable && '...'}
+          </p>
+
+          {/* More/Less Button */}
+          {isTruncatable && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              className="inline-flex items-center gap-1 text-coral-500 hover:text-coral-600 transition-colors text-sm font-medium mt-2 group"
+              aria-label={isExpanded ? '접기' : '더보기'}
+            >
+              {isExpanded ? (
+                <>
+                  <span>접기</span>
+                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[-2px] transition-transform rotate-180" />
+                </>
+              ) : (
+                <>
+                  <span>더보기</span>
+                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[2px] transition-transform" />
+                </>
+              )}
+            </button>
+          )}
+        </div>
 
         {/* Meta Info */}
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3 text-xs text-slate-500">
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              <span>{createdAt}</span>
+              <span>{formatRelativeTime(createdAt)}</span>
             </div>
             <div className="flex items-center gap-1">
               <Eye className="h-3.5 w-3.5" />

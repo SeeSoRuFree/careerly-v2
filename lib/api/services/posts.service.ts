@@ -13,13 +13,14 @@ import type {
 } from '../types/posts.types';
 
 /**
- * 팔로잉 피드 조회 파라미터
+ * 게시물 조회 파라미터
  */
 export interface GetPostsParams {
   page?: number;
   following?: boolean;
   ordering?: string;
   page_size?: number;
+  user_id?: number;  // 특정 사용자의 게시물만 조회
 }
 
 /**

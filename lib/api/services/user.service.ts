@@ -5,6 +5,7 @@
 import { authClient, publicClient, handleApiError } from '../clients/rest-client';
 import type { User } from '../types/rest.types';
 import type { PaginatedPostResponse } from '../types/posts.types';
+import type { PaginatedQuestionResponse } from '../types/questions.types';
 
 /**
  * 사용자 프로필 조회
@@ -133,6 +134,36 @@ export async function getMySavedPosts(page?: number): Promise<PaginatedPostRespo
   try {
     const params = page ? { page } : {};
     const response = await authClient.get<PaginatedPostResponse>('/api/v1/users/me/saved-posts/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 내가 작성한 게시글 목록 조회
+ * user_id 파라미터로 posts API에서 필터링
+ */
+export async function getMyPosts(userId: number, page?: number): Promise<PaginatedPostResponse> {
+  try {
+    const params: Record<string, number> = { user_id: userId };
+    if (page) params.page = page;
+    const response = await authClient.get<PaginatedPostResponse>('/api/v1/posts/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 내가 작성한 질문 목록 조회
+ * user_id 파라미터로 questions API에서 필터링
+ */
+export async function getMyQuestions(userId: number, page?: number): Promise<PaginatedQuestionResponse> {
+  try {
+    const params: Record<string, number> = { user_id: userId };
+    if (page) params.page = page;
+    const response = await authClient.get<PaginatedQuestionResponse>('/api/v1/questions/', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);

@@ -13,7 +13,6 @@ import { CategoryTabs } from '@/components/ui/category-tabs';
 export default function CommunityComponentsPage() {
   const [feedLiked, setFeedLiked] = React.useState(false);
   const [feedBookmarked, setFeedBookmarked] = React.useState(false);
-  const [feedReposted, setFeedReposted] = React.useState(false);
   const [qnaLiked, setQnaLiked] = React.useState(false);
   const [qnaDisliked, setQnaDisliked] = React.useState(false);
   const [communityTab, setCommunityTab] = React.useState('feed');
@@ -73,20 +72,15 @@ export default function CommunityComponentsPage() {
                     stats={{
                       likeCount: 2,
                       replyCount: 21,
-                      repostCount: 0,
                       viewCount: 1628,
                     }}
                     feedType="RECOMMENDED.INTERESTS"
                     href="#"
                     liked={feedLiked}
                     bookmarked={feedBookmarked}
-                    reposted={feedReposted}
                     onLike={() => setFeedLiked(!feedLiked)}
-                    onReply={() => console.log('Reply clicked')}
-                    onRepost={() => setFeedReposted(!feedReposted)}
                     onShare={() => console.log('Share clicked')}
                     onBookmark={() => setFeedBookmarked(!feedBookmarked)}
-                    onMore={() => console.log('More clicked')}
                   />
                 </div>
 
@@ -99,7 +93,6 @@ export default function CommunityComponentsPage() {
                     stats={{
                       likeCount: 145,
                       replyCount: 32,
-                      repostCount: 18,
                       viewCount: 2345,
                     }}
                     imageUrls={[
@@ -108,8 +101,6 @@ export default function CommunityComponentsPage() {
                     ]}
                     href="#"
                     onLike={() => console.log('Like')}
-                    onReply={() => console.log('Reply')}
-                    onRepost={() => console.log('Repost')}
                     onShare={() => console.log('Share')}
                     onBookmark={() => console.log('Bookmark')}
                   />
@@ -134,7 +125,7 @@ export default function CommunityComponentsPage() {
                     ]}
                     href="#"
                     onLike={() => console.log('Like')}
-                    onReply={() => console.log('Reply')}
+                    onShare={() => console.log('Share')}
                     onBookmark={() => console.log('Bookmark')}
                   />
                 </div>

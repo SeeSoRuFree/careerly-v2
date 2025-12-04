@@ -7,6 +7,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CommunityFeedCard } from '@/components/ui/community-feed-card';
+import { QnaCard } from '@/components/ui/qna-card';
 import {
   User,
   Briefcase,
@@ -20,6 +22,8 @@ import {
   Plus,
   X,
   HelpCircle,
+  Bookmark,
+  Loader2,
 } from 'lucide-react';
 import { useStore } from '@/hooks/useStore';
 import {
@@ -32,7 +36,11 @@ import {
   useUpdateCareer,
   useAddEducation,
   useUpdateEducation,
+  useInfiniteMyPosts,
+  useInfiniteMyQuestions,
+  useInfiniteMySavedPosts,
 } from '@/lib/api';
+import { formatRelativeTime } from '@/lib/utils/date';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
@@ -61,9 +69,14 @@ function ProfileSkeleton() {
   );
 }
 
+type ContentTab = 'posts' | 'qna' | 'bookmarks';
+
 function ProfilePageContent() {
   const router = useRouter();
   const { recentQueries, clearRecentQueries } = useStore();
+
+  // 탭 상태
+  const [activeTab, setActiveTab] = useState<ContentTab>('posts');
 
   // 편집 상태
   const [editingDescription, setEditingDescription] = useState(false);
@@ -111,6 +124,31 @@ function ProfilePageContent() {
   const updateCareer = useUpdateCareer();
   const addEducation = useAddEducation();
   const updateEducation = useUpdateEducation();
+
+  // 내 게시글/질문/북마크 훅
+  const {
+    data: myPostsData,
+    isLoading: isLoadingMyPosts,
+    fetchNextPage: fetchNextPosts,
+    hasNextPage: hasNextPosts,
+    isFetchingNextPage: isFetchingNextPosts,
+  } = useInfiniteMyPosts(currentUser?.id);
+
+  const {
+    data: myQuestionsData,
+    isLoading: isLoadingMyQuestions,
+    fetchNextPage: fetchNextQuestions,
+    hasNextPage: hasNextQuestions,
+    isFetchingNextPage: isFetchingNextQuestions,
+  } = useInfiniteMyQuestions(currentUser?.id);
+
+  const {
+    data: myBookmarksData,
+    isLoading: isLoadingMyBookmarks,
+    fetchNextPage: fetchNextBookmarks,
+    hasNextPage: hasNextBookmarks,
+    isFetchingNextPage: isFetchingNextBookmarks,
+  } = useInfiniteMySavedPosts();
 
   const isLoading = isUserLoading || isProfileLoading;
 
@@ -898,27 +936,222 @@ function ProfilePageContent() {
             </div>
           )}
 
-          {/* 게시글 */}
-          <div className="space-y-3 pt-6 border-t border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-slate-600" />
-              게시글
-            </h2>
-            <div className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">작성한 게시글이 없습니다.</p>
+          {/* 컨텐츠 탭 */}
+          <div className="space-y-4 pt-6 border-t border-slate-200">
+            {/* 탭 버튼 */}
+            <div className="flex gap-1 border-b border-slate-200">
+              <button
+                onClick={() => setActiveTab('posts')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'posts'
+                    ? 'border-teal-500 text-teal-600'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                게시글
+                {myPostsData?.pages?.[0]?.count !== undefined && (
+                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full">
+                    {myPostsData.pages[0].count}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('qna')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'qna'
+                    ? 'border-teal-500 text-teal-600'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <HelpCircle className="h-4 w-4" />
+                Q&A
+                {myQuestionsData?.pages?.[0]?.count !== undefined && (
+                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full">
+                    {myQuestionsData.pages[0].count}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setActiveTab('bookmarks')}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'bookmarks'
+                    ? 'border-teal-500 text-teal-600'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Bookmark className="h-4 w-4" />
+                북마크
+                {myBookmarksData?.pages?.[0]?.count !== undefined && (
+                  <span className="text-xs bg-slate-100 px-2 py-0.5 rounded-full">
+                    {myBookmarksData.pages[0].count}
+                  </span>
+                )}
+              </button>
             </div>
-          </div>
 
-          {/* Q&A */}
-          <div className="space-y-3 pt-6 border-t border-slate-200">
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <HelpCircle className="h-4 w-4 text-slate-600" />
-              Q&A
-            </h2>
-            <div className="text-center py-8">
-              <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">작성한 질문이 없습니다.</p>
+            {/* 탭 컨텐츠 */}
+            <div className="min-h-[200px]">
+              {/* 게시글 탭 */}
+              {activeTab === 'posts' && (
+                <div className="space-y-4">
+                  {isLoadingMyPosts ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    </div>
+                  ) : myPostsData?.pages?.flatMap(p => p.results).length === 0 ? (
+                    <div className="text-center py-8">
+                      <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500">작성한 게시글이 없습니다.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {myPostsData?.pages?.flatMap(p => p.results).map((post) => {
+                        // 내 게시글이므로 현재 프로필 정보 사용
+                        const userProfile = {
+                          id: currentUser?.id || post.author?.id || 0,
+                          name: profile?.name || currentUser?.name || post.author?.name || '',
+                          image_url: profile?.image_url || post.author?.image_url || '',
+                          headline: profile?.headline || post.author?.headline || '',
+                        };
+                        return (
+                          <CommunityFeedCard
+                            key={post.id}
+                            userProfile={userProfile}
+                            content={post.description}
+                            createdAt={post.createdat}
+                            stats={{
+                              likeCount: post.like_count || 0,
+                              replyCount: post.comment_count || 0,
+                              viewCount: post.view_count || 0,
+                            }}
+                            onClick={() => router.push(`/community?post=${post.id}`)}
+                            liked={post.is_liked}
+                            bookmarked={post.is_saved}
+                          />
+                        );
+                      })}
+                      {hasNextPosts && (
+                        <button
+                          onClick={() => fetchNextPosts()}
+                          disabled={isFetchingNextPosts}
+                          className="w-full py-3 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+                        >
+                          {isFetchingNextPosts ? (
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                          ) : (
+                            '더 보기'
+                          )}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Q&A 탭 */}
+              {activeTab === 'qna' && (
+                <div className="space-y-4">
+                  {isLoadingMyQuestions ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    </div>
+                  ) : myQuestionsData?.pages?.flatMap(p => p.results).length === 0 ? (
+                    <div className="text-center py-8">
+                      <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500">작성한 질문이 없습니다.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {myQuestionsData?.pages?.flatMap(p => p.results).map((question) => (
+                        <QnaCard
+                          key={question.id}
+                          qnaId={question.id}
+                          title={question.title}
+                          description=""
+                          createdAt={question.createdat}
+                          answerCount={question.answer_count || 0}
+                          likeCount={question.like_count || 0}
+                          viewCount={0}
+                          status={question.status}
+                          liked={question.is_liked}
+                          onClick={() => router.push(`/community?qna=${question.id}`)}
+                        />
+                      ))}
+                      {hasNextQuestions && (
+                        <button
+                          onClick={() => fetchNextQuestions()}
+                          disabled={isFetchingNextQuestions}
+                          className="w-full py-3 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+                        >
+                          {isFetchingNextQuestions ? (
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                          ) : (
+                            '더 보기'
+                          )}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 북마크 탭 */}
+              {activeTab === 'bookmarks' && (
+                <div className="space-y-4">
+                  {isLoadingMyBookmarks ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                    </div>
+                  ) : myBookmarksData?.pages?.flatMap(p => p.results).length === 0 ? (
+                    <div className="text-center py-8">
+                      <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-500">북마크한 게시글이 없습니다.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {myBookmarksData?.pages?.flatMap(p => p.results).map((post) => {
+                        // 북마크는 다른 사람 게시글이므로 author 정보 사용
+                        const userProfile = {
+                          id: post.author?.id || post.userid,
+                          name: post.author?.name || '알 수 없는 사용자',
+                          image_url: post.author?.image_url || '',
+                          headline: post.author?.headline || '',
+                        };
+                        return (
+                          <CommunityFeedCard
+                            key={post.id}
+                            userProfile={userProfile}
+                            content={post.description}
+                            createdAt={post.createdat}
+                            stats={{
+                              likeCount: post.like_count || 0,
+                              replyCount: post.comment_count || 0,
+                              viewCount: post.view_count || 0,
+                            }}
+                            onClick={() => router.push(`/community?post=${post.id}`)}
+                            liked={post.is_liked}
+                            bookmarked={true}
+                          />
+                        );
+                      })}
+                      {hasNextBookmarks && (
+                        <button
+                          onClick={() => fetchNextBookmarks()}
+                          disabled={isFetchingNextBookmarks}
+                          className="w-full py-3 text-sm text-slate-600 hover:text-slate-900 transition-colors"
+                        >
+                          {isFetchingNextBookmarks ? (
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                          ) : (
+                            '더 보기'
+                          )}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

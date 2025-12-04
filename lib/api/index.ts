@@ -193,6 +193,10 @@ export {
   useFollowing,
   useMySavedPosts,
   useInfiniteMySavedPosts,
+  useMyPosts,
+  useInfiniteMyPosts,
+  useMyQuestions,
+  useInfiniteMyQuestions,
   useRecommendedFollowers,
   userKeys,
 } from './hooks/queries/useUser';

@@ -11,7 +11,6 @@ import { cn } from '@/lib/utils';
 import {
   Heart,
   MessageCircle,
-  Repeat2,
   Share2,
   Bookmark,
   Eye,
@@ -19,6 +18,7 @@ import {
   Send,
   X,
 } from 'lucide-react';
+import { formatRelativeTime } from '@/lib/utils/date';
 
 export interface Comment {
   id: number;
@@ -58,15 +58,12 @@ export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   imageUrls?: string[];
   comments?: Comment[];
   onLike?: () => void;
-  onReply?: () => void;
-  onRepost?: () => void;
   onShare?: () => void;
   onBookmark?: () => void;
   onCommentLike?: (commentId: number) => void;
   onCommentSubmit?: (content: string) => void;
   liked?: boolean;
   bookmarked?: boolean;
-  reposted?: boolean;
   feedType?: string;
   sharedAiContent?: string;
   onClearSharedContent?: () => void;
@@ -88,15 +85,12 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       imageUrls = [],
       comments = [],
       onLike,
-      onReply,
-      onRepost,
       onShare,
       onBookmark,
       onCommentLike,
       onCommentSubmit,
       liked = false,
       bookmarked = false,
-      reposted = false,
       feedType,
       sharedAiContent,
       onClearSharedContent,
@@ -125,23 +119,6 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       });
     }
 
-    if (onReply) {
-      actions.push({
-        id: 'reply',
-        icon: <MessageCircle className="h-5 w-5" />,
-        label: stats?.replyCount ? `${stats.replyCount}` : '0',
-      });
-    }
-
-    if (onRepost) {
-      actions.push({
-        id: 'repost',
-        icon: <Repeat2 className={cn('h-5 w-5', reposted && 'text-green-500')} />,
-        label: stats?.repostCount ? `${stats.repostCount}` : '0',
-        pressed: reposted,
-      });
-    }
-
     if (onShare) {
       actions.push({
         id: 'share',
@@ -154,12 +131,6 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       switch (actionId) {
         case 'like':
           onLike?.();
-          break;
-        case 'reply':
-          onReply?.();
-          break;
-        case 'repost':
-          onRepost?.();
           break;
         case 'share':
           onShare?.();
@@ -186,6 +157,29 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
               </Badge>
             </div>
           )}
+
+          {/* Author Profile */}
+          <a
+            href={`/profile/${userProfile.id}`}
+            className="flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity"
+          >
+            <Avatar className="h-10 w-10">
+              {userProfile.image_url && (
+                <AvatarImage src={userProfile.image_url} alt={userProfile.name} />
+              )}
+              <AvatarFallback className="text-sm font-medium">
+                {userProfile.name?.charAt(0) || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-slate-900 truncate">{userProfile.name}</p>
+              {(userProfile.headline || userProfile.title) && (
+                <p className="text-sm text-slate-500 truncate">
+                  {userProfile.headline || userProfile.title}
+                </p>
+              )}
+            </div>
+          </a>
 
           {/* Content */}
           <div className="mb-3">
@@ -238,22 +232,28 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           )}
 
           {/* Stats Row */}
-          {stats && (stats.viewCount || stats.likeCount) && (
-            <div className="flex items-center gap-4 text-sm text-slate-500 mb-3 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4" />
-                <span>{createdAt}</span>
+          {stats && (stats.viewCount || stats.likeCount || stats.replyCount) && (
+            <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
+              <div className="flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{formatRelativeTime(createdAt)}</span>
               </div>
               {stats.viewCount !== undefined && (
-                <div className="flex items-center gap-1.5">
-                  <Eye className="h-4 w-4" />
+                <div className="flex items-center gap-1">
+                  <Eye className="h-3.5 w-3.5" />
                   <span>{stats.viewCount.toLocaleString()} 조회</span>
                 </div>
               )}
               {stats.likeCount !== undefined && stats.likeCount > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <Heart className="h-4 w-4" />
+                <div className="flex items-center gap-1">
+                  <Heart className="h-3.5 w-3.5" />
                   <span>{stats.likeCount.toLocaleString()} 좋아요</span>
+                </div>
+              )}
+              {stats.replyCount !== undefined && stats.replyCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  <span>{stats.replyCount.toLocaleString()} 댓글</span>
                 </div>
               )}
             </div>

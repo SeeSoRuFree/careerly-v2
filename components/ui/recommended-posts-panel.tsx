@@ -21,6 +21,7 @@ export interface RecommendedPostsPanelProps extends React.HTMLAttributes<HTMLDiv
   posts: RecommendedPost[];
   title?: string;
   maxItems?: number;
+  onPostClick?: (postId: string) => void;
 }
 
 export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, RecommendedPostsPanelProps>(
@@ -29,6 +30,7 @@ export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, Recommende
       posts,
       title = '추천 포스트',
       maxItems = 5,
+      onPostClick,
       className,
       ...props
     },
@@ -50,16 +52,16 @@ export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, Recommende
         </p>
 
         {/* Posts List */}
-        <div className="space-y-3">
+        <div className="space-y-3 -mx-4">
           {displayedPosts.map((post, index) => {
             const isLast = index === displayedPosts.length - 1;
 
             return (
-              <a
+              <button
                 key={post.id}
-                href={post.href || '#'}
+                onClick={() => onPostClick?.(post.id)}
                 className={cn(
-                  'block pb-3 hover:bg-slate-50 -mx-4 px-4 rounded-lg transition-colors',
+                  'block w-full text-left pb-3 hover:bg-slate-50 px-4 rounded-lg transition-colors',
                   !isLast && 'border-b border-slate-200'
                 )}
               >
@@ -87,7 +89,7 @@ export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, Recommende
                     </div>
                   </div>
                 </div>
-              </a>
+              </button>
             );
           })}
         </div>

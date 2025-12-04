@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { Heart, MessageCircle, Repeat2, Share2, Bookmark, Eye, Clock, MoreHorizontal, ChevronDown } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown } from 'lucide-react';
 
 export interface UserProfile {
   id: number;
@@ -37,14 +37,10 @@ export interface CommunityFeedCardProps extends React.HTMLAttributes<HTMLDivElem
   href?: string;
   onClick?: () => void;
   onLike?: () => void;
-  onReply?: () => void;
-  onRepost?: () => void;
   onShare?: () => void;
   onBookmark?: () => void;
-  onMore?: () => void;
   liked?: boolean;
   bookmarked?: boolean;
-  reposted?: boolean;
   feedType?: string;
   selectedReason?: string;
 }
@@ -61,14 +57,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       href,
       onClick,
       onLike,
-      onReply,
-      onRepost,
       onShare,
       onBookmark,
-      onMore,
       liked = false,
       bookmarked = false,
-      reposted = false,
       feedType,
       selectedReason,
       className,
@@ -114,23 +106,6 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       });
     }
 
-    if (onReply) {
-      actions.push({
-        id: 'reply',
-        icon: <MessageCircle className="h-5 w-5" />,
-        label: stats?.replyCount ? `${stats.replyCount}` : '0',
-      });
-    }
-
-    if (onRepost) {
-      actions.push({
-        id: 'repost',
-        icon: <Repeat2 className={cn('h-5 w-5', reposted && 'text-green-500')} />,
-        label: stats?.repostCount ? `${stats.repostCount}` : '0',
-        pressed: reposted,
-      });
-    }
-
     if (onShare) {
       actions.push({
         id: 'share',
@@ -146,12 +121,6 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
           setLocalLiked(!localLiked);
           setLocalLikeCount(prev => localLiked ? prev - 1 : prev + 1);
           onLike?.();
-          break;
-        case 'reply':
-          onReply?.();
-          break;
-        case 'repost':
-          onRepost?.();
           break;
         case 'share':
           onShare?.();
@@ -200,20 +169,6 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
               )}
             </div>
           </Link>
-
-          {/* More Actions */}
-          {onMore && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMore();
-              }}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
-              aria-label="더보기"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
-          )}
         </div>
 
         {/* Content */}

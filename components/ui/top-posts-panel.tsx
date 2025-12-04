@@ -10,6 +10,7 @@ import type { TopPostsPeriod } from '@/lib/api';
 
 export interface TopPostsPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   maxItems?: number;
+  onPostClick?: (postId: string) => void;
 }
 
 const periodLabels: Record<'weekly' | 'monthly', string> = {
@@ -37,6 +38,7 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
   (
     {
       maxItems = 10,
+      onPostClick,
       className,
       ...props
     },
@@ -109,10 +111,10 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
               const title = post.title || post.description.substring(0, 40) + '...';
 
               return (
-                <a
+                <button
                   key={post.id}
-                  href={`/community/post/${post.id}`}
-                  className="flex items-start gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors group"
+                  onClick={() => onPostClick?.(post.id.toString())}
+                  className="flex items-start gap-3 py-2 px-2 -mx-2 rounded-lg hover:bg-slate-50 transition-colors group w-full text-left"
                 >
                   {/* Rank Badge */}
                   <div
@@ -150,7 +152,7 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
                       </div>
                     </div>
                   </div>
-                </a>
+                </button>
               );
             })}
           </div>

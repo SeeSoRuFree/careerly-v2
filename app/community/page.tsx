@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Masonry from 'react-masonry-css';
 import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { QnaCard } from '@/components/ui/qna-card';
 import { Chip } from '@/components/ui/chip';
@@ -14,7 +15,7 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useRepostPost, useUnrepostPost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, usePostLikeStatus, usePostSaveStatus, useViewPost, useLikeComment, useUnlikeComment } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
@@ -39,19 +40,25 @@ type SelectedContent = {
 };
 
 // Post 상세 Drawer 컨텐츠 컴포넌트
-function PostDetailDrawerContent({ postId }: { postId: string }) {
+function PostDetailDrawerContent({
+  postId,
+  isLiked,
+  isSaved,
+  onLike,
+  onBookmark,
+}: {
+  postId: string;
+  isLiked: boolean;
+  isSaved: boolean;
+  onLike: () => void;
+  onBookmark: () => void;
+}) {
   const { data: post, isLoading, error } = usePost(Number(postId));
-  const { data: isLiked } = usePostLikeStatus(Number(postId));
-  const { data: isSaved } = usePostSaveStatus(Number(postId));
   const { data: user } = useCurrentUser();
   const { data: commentsData } = useComments({ postId: Number(postId) });
   const { openLoginModal } = useStore();
 
   const createComment = useCreateComment();
-  const likePost = useLikePost();
-  const unlikePost = useUnlikePost();
-  const savePost = useSavePost();
-  const unsavePost = useUnsavePost();
   const viewPost = useViewPost();
   const likeComment = useLikeComment();
   const unlikeComment = useUnlikeComment();
@@ -103,32 +110,6 @@ function PostDetailDrawerContent({ postId }: { postId: string }) {
       });
     } catch (error) {
       console.error('Failed to create comment:', error);
-    }
-  };
-
-  const handleLike = () => {
-    if (!user) {
-      openLoginModal();
-      return;
-    }
-    const postIdNum = Number(postId);
-    if (isLiked) {
-      unlikePost.mutate(postIdNum);
-    } else {
-      likePost.mutate(postIdNum);
-    }
-  };
-
-  const handleBookmark = () => {
-    if (!user) {
-      openLoginModal();
-      return;
-    }
-    const postIdNum = Number(postId);
-    if (isSaved) {
-      unsavePost.mutate(postIdNum);
-    } else {
-      savePost.mutate(postIdNum);
     }
   };
 
@@ -194,24 +175,72 @@ function PostDetailDrawerContent({ postId }: { postId: string }) {
         stats={{
           likeCount: post.like_count || 0,
           replyCount: commentsData?.count || post.comment_count || 0,
-          repostCount: post.repost_count || 0,
           viewCount: post.view_count || 0,
         }}
         imageUrls={[]}
         comments={transformedComments}
-        onLike={handleLike}
-        onReply={() => {}}
-        onRepost={() => {}}
+        onLike={onLike}
         onShare={() => {
           const url = `${window.location.origin}/community/post/${postId}`;
           navigator.clipboard.writeText(url);
           toast.success('링크가 복사되었습니다');
         }}
-        onBookmark={handleBookmark}
+        onBookmark={onBookmark}
         onCommentLike={handleCommentLike}
         onCommentSubmit={handleCommentSubmit}
         liked={isLiked}
         bookmarked={isSaved}
+        currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
+      />
+    </div>
+  );
+}
+
+// Q&A 상세 Drawer 컨텐츠 컴포넌트
+function QnaDetailDrawerContent({
+  questionData,
+}: {
+  questionData: QuestionListItem;
+}) {
+  const { data: user } = useCurrentUser();
+
+  // 답변 데이터 변환 (questionData.answers가 있으면 사용, 없으면 빈 배열)
+  const transformedAnswers = (questionData as any).answers?.map((answer: any) => ({
+    id: answer.id,
+    userId: answer.user_id,
+    userName: answer.author_name,
+    userImage: answer.author_image_url,
+    userHeadline: answer.author_headline,
+    content: answer.description || '',
+    createdAt: answer.createdat || '',
+    likeCount: answer.like_count || 0,
+    dislikeCount: 0,
+    isAccepted: answer.is_accepted || false,
+    liked: answer.is_liked || false,
+    disliked: false,
+  })) || [];
+
+  return (
+    <div className="p-6">
+      <QnaDetail
+        qnaId={questionData.id.toString()}
+        title={questionData.title}
+        description={(questionData as any).description || questionData.title}
+        createdAt={questionData.createdat}
+        updatedAt={questionData.updatedat}
+        hashTagNames=""
+        viewCount={0}
+        likeCount={questionData.like_count || 0}
+        dislikeCount={0}
+        status={questionData.status}
+        isPublic={questionData.ispublic}
+        answers={transformedAnswers}
+        onLike={() => {}}
+        onDislike={() => {}}
+        onAnswerLike={() => {}}
+        onAnswerDislike={() => {}}
+        onAnswerSubmit={() => {}}
+        onAcceptAnswer={() => {}}
         currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
       />
     </div>
@@ -224,6 +253,8 @@ function CommunityPageContent() {
 
   // URL 파라미터에서 탭 읽기 (기본값: 'feed')
   const currentTab = (searchParams.get('tab') as 'feed' | 'qna' | 'following') || 'feed';
+  const postIdFromUrl = searchParams.get('post');
+  const qnaIdFromUrl = searchParams.get('qna');
 
   const [selectedInterests, setSelectedInterests] = React.useState<string[]>([]);
   const [contentFilter, setContentFilter] = React.useState<'feed' | 'qna' | 'following'>(currentTab);
@@ -234,8 +265,6 @@ function CommunityPageContent() {
   const [likedPosts, setLikedPosts] = React.useState<Record<number, boolean>>({});
   // 북마크 상태 관리 (postId -> saved 상태)
   const [savedPosts, setSavedPosts] = React.useState<Record<number, boolean>>({});
-  // 리포스트 상태 관리 (postId -> reposted 상태)
-  const [repostedPosts, setRepostedPosts] = React.useState<Record<number, boolean>>({});
   // Q&A 좋아요 상태 관리
   const [questionLikes, setQuestionLikes] = React.useState<Record<number, { liked: boolean; disliked: boolean }>>({});
 
@@ -297,8 +326,6 @@ function CommunityPageContent() {
   const unlikePost = useUnlikePost();
   const savePost = useSavePost();
   const unsavePost = useUnsavePost();
-  const repostPost = useRepostPost();
-  const unrepostPost = useUnrepostPost();
   const likeQuestion = useLikeQuestion();
   const unlikeQuestion = useUnlikeQuestion();
   const followUser = useFollowUser();
@@ -309,39 +336,45 @@ function CommunityPageContent() {
     setContentFilter(currentTab);
   }, [currentTab]);
 
-  // API 응답에서 초기 좋아요/북마크/리포스트 상태 설정
+  // URL 파라미터로 drawer 열기
+  React.useEffect(() => {
+    if (postIdFromUrl) {
+      setSelectedContent({ type: 'post', id: postIdFromUrl });
+      setDrawerOpen(true);
+    } else if (qnaIdFromUrl) {
+      // QnA의 경우 questionData가 필요하므로 별도 처리 필요
+      setSelectedContent({ type: 'qna', id: qnaIdFromUrl });
+      setDrawerOpen(true);
+    }
+  }, [postIdFromUrl, qnaIdFromUrl]);
+
+  // API 응답에서 초기 좋아요/북마크 상태 설정
   React.useEffect(() => {
     if (postsData?.pages) {
       const initialLikedState: Record<number, boolean> = {};
       const initialSavedState: Record<number, boolean> = {};
-      const initialRepostedState: Record<number, boolean> = {};
       postsData.pages.forEach((page) => {
         (page as PaginatedPostResponse).results.forEach((post) => {
           initialLikedState[post.id] = post.is_liked;
           initialSavedState[post.id] = post.is_saved;
-          initialRepostedState[post.id] = post.is_reposted || false;
         });
       });
       setLikedPosts(prev => ({ ...prev, ...initialLikedState }));
       setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
-      setRepostedPosts(prev => ({ ...prev, ...initialRepostedState }));
     }
   }, [postsData]);
 
-  // Following posts에서도 초기 좋아요/북마크/리포스트 상태 설정
+  // Following posts에서도 초기 좋아요/북마크 상태 설정
   React.useEffect(() => {
     if (followingPostsData?.results) {
       const initialLikedState: Record<number, boolean> = {};
       const initialSavedState: Record<number, boolean> = {};
-      const initialRepostedState: Record<number, boolean> = {};
       followingPostsData.results.forEach((post) => {
         initialLikedState[post.id] = post.is_liked;
         initialSavedState[post.id] = post.is_saved;
-        initialRepostedState[post.id] = post.is_reposted || false;
       });
       setLikedPosts(prev => ({ ...prev, ...initialLikedState }));
       setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
-      setRepostedPosts(prev => ({ ...prev, ...initialRepostedState }));
     }
   }, [followingPostsData]);
 
@@ -364,16 +397,47 @@ function CommunityPageContent() {
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
     setDrawerOpen(true);
+    // URL 업데이트 (히스토리에 추가)
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('post', postId);
+    params.delete('qna');
+    router.push(`/community?${params.toString()}`, { scroll: false });
   };
 
-  const handleOpenQna = (qnaId: string, questionData: QuestionListItem) => {
+  const handleOpenQna = async (qnaId: string, questionData: QuestionListItem) => {
+    // 먼저 drawer를 열고 로딩 상태로 표시
     setSelectedContent({ type: 'qna', id: qnaId, questionData });
     setDrawerOpen(true);
+
+    // URL 업데이트 (히스토리에 추가)
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('qna', qnaId);
+    params.delete('post');
+    router.push(`/community?${params.toString()}`, { scroll: false });
+
+    // 상세 API 호출해서 description과 answers 가져오기
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/questions/${qnaId}/`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const detailData = await response.json();
+        setSelectedContent({ type: 'qna', id: qnaId, questionData: detailData });
+      }
+    } catch (err) {
+      console.error('Failed to fetch question detail:', err);
+    }
   };
 
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
     setTimeout(() => setSelectedContent(null), 300);
+    // URL에서 post/qna 파라미터 제거
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('post');
+    params.delete('qna');
+    const queryString = params.toString();
+    router.push(queryString ? `/community?${queryString}` : '/community', { scroll: false });
   };
 
   // 좋아요 핸들러 (Optimistic Update)
@@ -453,47 +517,6 @@ function CommunityPageContent() {
             [postId]: false
           }));
           toast.error('북마크에 실패했습니다');
-        }
-      });
-    }
-  };
-
-  // 리포스트 핸들러 (Optimistic Update)
-  const handleRepostPost = (postId: number) => {
-    if (!user) {
-      openLoginModal();
-      return;
-    }
-
-    const isCurrentlyReposted = repostedPosts[postId] || false;
-
-    // Optimistic update
-    setRepostedPosts(prev => ({
-      ...prev,
-      [postId]: !isCurrentlyReposted
-    }));
-
-    // API 호출
-    if (isCurrentlyReposted) {
-      unrepostPost.mutate(postId, {
-        onError: () => {
-          // 실패 시 롤백
-          setRepostedPosts(prev => ({
-            ...prev,
-            [postId]: true
-          }));
-          toast.error('리포스트 취소에 실패했습니다');
-        }
-      });
-    } else {
-      repostPost.mutate(postId, {
-        onError: () => {
-          // 실패 시 롤백
-          setRepostedPosts(prev => ({
-            ...prev,
-            [postId]: false
-          }));
-          toast.error('리포스트에 실패했습니다');
         }
       });
     }
@@ -776,9 +799,13 @@ function CommunityPageContent() {
             </div>
           )}
 
-          {/* Unified 2-Column Grid */}
+          {/* Masonry 2-Column Layout */}
           {filteredContent.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Masonry
+              breakpointCols={{ default: 2, 768: 1 }}
+              className="flex -ml-6 w-auto"
+              columnClassName="pl-6 bg-clip-padding"
+            >
               {filteredContent.map((item, idx) => {
                 if (item.type === 'feed') {
                   const post = item.data;
@@ -800,7 +827,7 @@ function CommunityPageContent() {
                   };
 
                   return (
-                    <div key={`feed-${post.id}`}>
+                    <div key={`feed-${post.id}`} className="mb-6">
                       <CommunityFeedCard
                         userProfile={userProfile}
                         content={post.description}
@@ -809,43 +836,34 @@ function CommunityPageContent() {
                         stats={{
                           likeCount: post.like_count || 0,
                           replyCount: post.comment_count || 0,
-                          repostCount: post.repost_count || 0,
                           viewCount: post.view_count || 0,
                         }}
                         imageUrls={[]} // Not available in list view
                         onClick={() => handleOpenPost(post.id.toString(), userProfile)}
                         onLike={() => handleLikePost(post.id)}
-                        onReply={() => console.log('Reply')}
-                        onRepost={() => handleRepostPost(post.id)}
                         onShare={() => handleShare(post.id.toString())}
                         onBookmark={() => handleBookmarkPost(post.id)}
-                        onMore={() => console.log('More')}
                         liked={likedPosts[post.id] || false}
-                        reposted={repostedPosts[post.id] || false}
                         bookmarked={savedPosts[post.id] || false}
                       />
                     </div>
                   );
                 } else if (item.type === 'qna') {
                   const question = item.data;
-                  // Map author_name to author object for QnaCard component
+                  // Map author fields to author object for QnaCard component
                   const author = {
                     id: question.user_id,
                     name: question.author_name,
                     email: '',
-                    image_url: null,
-                    headline: null,
+                    image_url: (question as any).author_image_url || null,
+                    headline: (question as any).author_headline || null,
                   };
-                  // 질문 미리보기 텍스트 (최대 100자)
-                  const truncatedDescription = question.title.length > 100
-                    ? question.title.substring(0, 100) + '...'
-                    : question.title;
 
                   return (
-                    <div key={`qna-${question.id}`}>
+                    <div key={`qna-${question.id}`} className="mb-6">
                       <QnaCard
                         title={question.title}
-                        description={truncatedDescription}
+                        description={(question as any).description || question.title}
                         author={author}
                         createdAt={question.createdat}
                         updatedAt={question.updatedat}
@@ -869,7 +887,7 @@ function CommunityPageContent() {
                 }
                 return null;
               })}
-            </div>
+            </Masonry>
           )}
 
           {/* Load More */}
@@ -887,12 +905,16 @@ function CommunityPageContent() {
       <aside className="lg:col-span-3">
         <div className="space-y-4 pt-16">
           {/* Top Posts (인기글 - 주간/월간) */}
-          <TopPostsPanel maxItems={10} />
+          <TopPostsPanel
+            maxItems={10}
+            onPostClick={(postId) => handleOpenPost(postId)}
+          />
 
           {/* Recommended Posts (추천 포스트) */}
           <RecommendedPostsPanel
             posts={recommendedPosts}
             maxItems={5}
+            onPostClick={(postId) => handleOpenPost(postId)}
           />
 
           {/* Recommended Followers (추천 팔로워) */}
@@ -962,31 +984,16 @@ function CommunityPageContent() {
             {/* Drawer Content */}
             <div className="flex-1 overflow-y-auto">
               {selectedContent.type === 'post' && (
-                <PostDetailDrawerContent postId={selectedContent.id} />
+                <PostDetailDrawerContent
+                  postId={selectedContent.id}
+                  isLiked={likedPosts[Number(selectedContent.id)] || false}
+                  isSaved={savedPosts[Number(selectedContent.id)] || false}
+                  onLike={() => handleLikePost(Number(selectedContent.id))}
+                  onBookmark={() => handleBookmarkPost(Number(selectedContent.id))}
+                />
               )}
               {selectedContent.type === 'qna' && selectedContent.questionData && (
-                <div className="h-full overflow-y-auto p-6">
-                  <QnaDetail
-                    qnaId={selectedContent.questionData.id.toString()}
-                    title={selectedContent.questionData.title}
-                    description={selectedContent.questionData.title}
-                    createdAt={selectedContent.questionData.createdat}
-                    updatedAt={selectedContent.questionData.updatedat}
-                    hashTagNames=""
-                    viewCount={0}
-                    likeCount={0}
-                    dislikeCount={0}
-                    status={selectedContent.questionData.status}
-                    isPublic={selectedContent.questionData.ispublic}
-                    answers={[]}
-                    onLike={() => console.log('Like question')}
-                    onDislike={() => console.log('Dislike question')}
-                    onAnswerLike={(answerId) => console.log('Like answer', answerId)}
-                    onAnswerDislike={(answerId) => console.log('Dislike answer', answerId)}
-                    onAnswerSubmit={(content) => console.log('Submit answer', content)}
-                    onAcceptAnswer={(answerId) => console.log('Accept answer', answerId)}
-                  />
-                </div>
+                <QnaDetailDrawerContent questionData={selectedContent.questionData} />
               )}
             </div>
           </div>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatRelativeTime } from '@/lib/utils/date';
 import {
   ThumbsUp,
   ThumbsDown,
@@ -126,11 +127,6 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
               ))}
             </div>
             <div className="flex items-center gap-2">
-              {isPublic === 0 && (
-                <Badge tone="warning" className="text-xs">
-                  비공개
-                </Badge>
-              )}
               {hasAnswer ? (
                 <Badge tone="success" className="text-xs">
                   답변 {answers.length}
@@ -158,7 +154,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
             <div className="flex items-center gap-4 text-sm text-slate-500">
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4" />
-                <span>{createdAt}</span>
+                <span>{formatRelativeTime(createdAt)}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Eye className="h-4 w-4" />
@@ -355,19 +351,19 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                         )}
                       </button>
                       <span className="text-xs text-slate-500">
-                        {acceptedAnswer.createdAt}
+                        {formatRelativeTime(acceptedAnswer.createdAt)}
                       </span>
                     </div>
                   </div>
 
                   {/* AI 공유 내용 렌더링 */}
-                  {acceptedAnswer.content.includes('> AI 답변:') ? (
+                  {acceptedAnswer.content?.includes('> AI 답변:') ? (
                     <div className="space-y-2 mb-2">
                       {/* AI 대화 박스 */}
                       <div className="bg-white rounded-xl p-3 border border-slate-200">
                         <div className="space-y-2">
                           {/* 사용자 질문 (있는 경우) */}
-                          {acceptedAnswer.content.includes('> 사용자 질문:') && (
+                          {acceptedAnswer.content?.includes('> 사용자 질문:') && (
                             <div className="flex items-start gap-2 justify-end">
                               <div className="bg-slate-700 rounded-lg p-2 max-w-[85%]">
                                 <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
@@ -388,7 +384,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                                 <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
                                   {(() => {
                                     const parts = acceptedAnswer.content.split('\n\n');
-                                    const hasQuestion = acceptedAnswer.content.includes('> 사용자 질문:');
+                                    const hasQuestion = acceptedAnswer.content?.includes('> 사용자 질문:');
                                     const answerPart = hasQuestion ? parts[1] : parts[0];
                                     return answerPart?.replace('> AI 답변:\n> ', '').replace(/\n> /g, '\n') || '';
                                   })()}
@@ -402,7 +398,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                       {/* 사용자 코멘트 */}
                       {(() => {
                         const parts = acceptedAnswer.content.split('\n\n');
-                        const hasQuestion = acceptedAnswer.content.includes('> 사용자 질문:');
+                        const hasQuestion = acceptedAnswer.content?.includes('> 사용자 질문:');
                         const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
                         return userComment ? (
                           <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
@@ -506,19 +502,19 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                             </button>
                           )}
                           <span className="text-xs text-slate-500">
-                            {answer.createdAt}
+                            {formatRelativeTime(answer.createdAt)}
                           </span>
                         </div>
                       </div>
 
                       {/* AI 공유 내용 렌더링 */}
-                      {answer.content.includes('> AI 답변:') ? (
+                      {answer.content?.includes('> AI 답변:') ? (
                         <div className="space-y-2 mb-2">
                           {/* AI 대화 박스 */}
                           <div className="bg-white rounded-xl p-3 border border-slate-200">
                             <div className="space-y-2">
                               {/* 사용자 질문 (있는 경우) */}
-                              {answer.content.includes('> 사용자 질문:') && (
+                              {answer.content?.includes('> 사용자 질문:') && (
                                 <div className="flex items-start gap-2 justify-end">
                                   <div className="bg-slate-700 rounded-lg p-2 max-w-[85%]">
                                     <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
@@ -539,7 +535,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                                     <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
                                       {(() => {
                                         const parts = answer.content.split('\n\n');
-                                        const hasQuestion = answer.content.includes('> 사용자 질문:');
+                                        const hasQuestion = answer.content?.includes('> 사용자 질문:');
                                         const answerPart = hasQuestion ? parts[1] : parts[0];
                                         return answerPart?.replace('> AI 답변:\n> ', '').replace(/\n> /g, '\n') || '';
                                       })()}
@@ -553,7 +549,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                           {/* 사용자 코멘트 */}
                           {(() => {
                             const parts = answer.content.split('\n\n');
-                            const hasQuestion = answer.content.includes('> 사용자 질문:');
+                            const hasQuestion = answer.content?.includes('> 사용자 질문:');
                             const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
                             return userComment ? (
                               <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">

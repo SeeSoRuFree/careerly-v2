@@ -12,12 +12,15 @@ import {
   getFollowers,
   getFollowing,
   getMySavedPosts,
+  getMyPosts,
+  getMyQuestions,
   getRecommendedFollowers,
 } from '../../services/user.service';
 import type { RecommendedFollower } from '../../services/user.service';
 import { getCurrentUser } from '../../services/auth.service';
 import type { User } from '../../types/rest.types';
 import type { PaginatedPostResponse } from '../../types/posts.types';
+import type { PaginatedQuestionResponse } from '../../types/questions.types';
 
 /**
  * 사용자 쿼리 키
@@ -33,6 +36,8 @@ export const userKeys = {
   followers: (userId: string) => [...userKeys.detail(userId), 'followers'] as const,
   following: (userId: string) => [...userKeys.detail(userId), 'following'] as const,
   savedPosts: (page?: number) => [...userKeys.all, 'savedPosts', page] as const,
+  myPosts: (userId: number, page?: number) => [...userKeys.all, 'myPosts', userId, page] as const,
+  myQuestions: (userId: number, page?: number) => [...userKeys.all, 'myQuestions', userId, page] as const,
   recommended: (limit?: number) => [...userKeys.all, 'recommended', { limit }] as const,
 };
 
@@ -141,13 +146,73 @@ export function useMySavedPosts(page?: number) {
 }
 
 /**
- * 무한 스크롤용 훅
+ * 무한 스크롤용 북마크 훅
  */
 export function useInfiniteMySavedPosts() {
   return useInfiniteQuery<PaginatedPostResponse, Error>({
     queryKey: [...userKeys.all, 'savedPosts', 'infinite'],
     queryFn: ({ pageParam = 1 }) => getMySavedPosts(pageParam as number),
     initialPageParam: 1,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.next) {
+        const url = new URL(lastPage.next);
+        return Number(url.searchParams.get('page'));
+      }
+      return undefined;
+    },
+  });
+}
+
+/**
+ * 내가 작성한 게시글 목록 훅
+ */
+export function useMyPosts(userId: number | undefined, page?: number) {
+  return useQuery<PaginatedPostResponse, Error>({
+    queryKey: userKeys.myPosts(userId!, page),
+    queryFn: () => getMyPosts(userId!, page),
+    enabled: !!userId,
+  });
+}
+
+/**
+ * 무한 스크롤용 내 게시글 훅
+ */
+export function useInfiniteMyPosts(userId: number | undefined) {
+  return useInfiniteQuery<PaginatedPostResponse, Error>({
+    queryKey: [...userKeys.all, 'myPosts', userId, 'infinite'],
+    queryFn: ({ pageParam = 1 }) => getMyPosts(userId!, pageParam as number),
+    initialPageParam: 1,
+    enabled: !!userId,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.next) {
+        const url = new URL(lastPage.next);
+        return Number(url.searchParams.get('page'));
+      }
+      return undefined;
+    },
+  });
+}
+
+/**
+ * 내가 작성한 질문 목록 훅
+ */
+export function useMyQuestions(userId: number | undefined, page?: number) {
+  return useQuery<PaginatedQuestionResponse, Error>({
+    queryKey: userKeys.myQuestions(userId!, page),
+    queryFn: () => getMyQuestions(userId!, page),
+    enabled: !!userId,
+  });
+}
+
+/**
+ * 무한 스크롤용 내 질문 훅
+ */
+export function useInfiniteMyQuestions(userId: number | undefined) {
+  return useInfiniteQuery<PaginatedQuestionResponse, Error>({
+    queryKey: [...userKeys.all, 'myQuestions', userId, 'infinite'],
+    queryFn: ({ pageParam = 1 }) => getMyQuestions(userId!, pageParam as number),
+    initialPageParam: 1,
+    enabled: !!userId,
     getNextPageParam: (lastPage) => {
       if (lastPage.next) {
         const url = new URL(lastPage.next);
