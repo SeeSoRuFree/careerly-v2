@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Chip } from '@/components/ui/chip';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CommunityFeedCard } from '@/components/ui/community-feed-card';
+import { QnaCard } from '@/components/ui/qna-card';
 import {
   Briefcase,
   GraduationCap,
@@ -14,10 +15,18 @@ import {
   HelpCircle,
   UserPlus,
   UserMinus,
-  Zap,
+  Loader2,
   Link as LinkIcon,
 } from 'lucide-react';
-import { useProfileByUserId } from '@/lib/api';
+import {
+  useProfileByUserId,
+  usePosts,
+  useQuestions,
+  useFollowStatus,
+  useFollowUser,
+  useUnfollowUser,
+  useCurrentUser,
+} from '@/lib/api';
 
 function ProfileSkeleton() {
   return (
@@ -38,15 +47,38 @@ function ProfileSkeleton() {
 
 export default function UserProfilePage({ params }: { params: { userId: string } }) {
   const router = useRouter();
-  const [isFollowing, setIsFollowing] = useState(false);
 
   // API 데이터 가져오기
   const userId = parseInt(params.userId, 10);
   const { data: profile, isLoading, error } = useProfileByUserId(userId);
+  const { data: currentUser } = useCurrentUser();
+
+  // 해당 사용자의 게시글/질문 가져오기
+  const { data: postsData, isLoading: isLoadingPosts } = usePosts({ user_id: userId });
+  const { data: questionsData, isLoading: isLoadingQuestions } = useQuestions({ user_id: userId });
+
+  // 팔로우 상태 조회 (로그인한 경우에만, 자기 자신이 아닐 때만)
+  const isOwnProfile = currentUser?.id === userId;
+  const { data: followStatus, isLoading: isLoadingFollowStatus } = useFollowStatus(
+    isOwnProfile ? undefined : userId
+  );
+
+  // 팔로우/언팔로우 mutations
+  const followMutation = useFollowUser();
+  const unfollowMutation = useUnfollowUser();
+
+  const isFollowing = followStatus?.is_following ?? false;
+  const isFollowedBy = followStatus?.is_followed_by ?? false;
+  const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
 
   const handleFollowToggle = () => {
-    setIsFollowing(!isFollowing);
-    // TODO: API 호출 추가
+    if (isFollowLoading) return;
+
+    if (isFollowing) {
+      unfollowMutation.mutate(userId);
+    } else {
+      followMutation.mutate(userId);
+    }
   };
 
   const formatDate = (dateStr: string | null) => {
@@ -122,18 +154,28 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                     </Badge>
                   )}
                 </div>
-                <Button
-                  variant={isFollowing ? 'outline' : 'coral'}
-                  onClick={handleFollowToggle}
-                  className="gap-2"
-                >
-                  {isFollowing ? (
-                    <UserMinus className="h-4 w-4" />
-                  ) : (
-                    <UserPlus className="h-4 w-4" />
-                  )}
-                  {isFollowing ? '팔로잉' : '팔로우'}
-                </Button>
+                {!isOwnProfile && (
+                  <div className="flex flex-col items-end gap-1">
+                    <Button
+                      variant={isFollowing ? 'outline' : 'coral'}
+                      onClick={handleFollowToggle}
+                      disabled={isFollowLoading || isLoadingFollowStatus}
+                      className="gap-2"
+                    >
+                      {isFollowLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : isFollowing ? (
+                        <UserMinus className="h-4 w-4" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      {isFollowing ? '팔로잉' : '팔로우'}
+                    </Button>
+                    {isFollowedBy && !isFollowing && (
+                      <span className="text-xs text-slate-500">나를 팔로우 중</span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -259,11 +301,47 @@ export default function UserProfilePage({ params }: { params: { userId: string }
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-slate-600" />
               게시글
+              {postsData?.count !== undefined && postsData.count > 0 && (
+                <Badge tone="default" className="ml-1">{postsData.count}</Badge>
+              )}
             </h2>
-            <div className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">작성한 게시글이 없습니다.</p>
-            </div>
+            {isLoadingPosts ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              </div>
+            ) : !postsData?.results || postsData.results.length === 0 ? (
+              <div className="text-center py-8">
+                <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500">작성한 게시글이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {postsData.results.map((post) => {
+                  const userProfile = {
+                    id: profile?.user_id || userId,
+                    name: profile?.name || post.author?.name || '',
+                    image_url: profile?.image_url || post.author?.image_url || '',
+                    headline: profile?.headline || post.author?.headline || '',
+                  };
+                  return (
+                    <CommunityFeedCard
+                      key={post.id}
+                      userProfile={userProfile}
+                      content={post.description}
+                      createdAt={post.createdat}
+                      stats={{
+                        likeCount: post.like_count || 0,
+                        replyCount: post.comment_count || 0,
+                        viewCount: post.view_count || 0,
+                      }}
+                      onClick={() => router.push(`/community?post=${post.id}`)}
+                      liked={post.is_liked}
+                      bookmarked={post.is_saved}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Q&A */}
@@ -271,11 +349,38 @@ export default function UserProfilePage({ params }: { params: { userId: string }
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <HelpCircle className="h-4 w-4 text-slate-600" />
               Q&A
+              {questionsData?.count !== undefined && questionsData.count > 0 && (
+                <Badge tone="default" className="ml-1">{questionsData.count}</Badge>
+              )}
             </h2>
-            <div className="text-center py-8">
-              <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-500">작성한 질문이 없습니다.</p>
-            </div>
+            {isLoadingQuestions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              </div>
+            ) : !questionsData?.results || questionsData.results.length === 0 ? (
+              <div className="text-center py-8">
+                <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500">작성한 질문이 없습니다.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {questionsData.results.map((question) => (
+                  <QnaCard
+                    key={question.id}
+                    qnaId={question.id}
+                    title={question.title}
+                    description=""
+                    createdAt={question.createdat}
+                    answerCount={question.answer_count || 0}
+                    likeCount={question.like_count || 0}
+                    viewCount={0}
+                    status={question.status}
+                    liked={question.is_liked}
+                    onClick={() => router.push(`/community?qna=${question.id}`)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

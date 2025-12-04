@@ -15,8 +15,9 @@ import {
   getMyPosts,
   getMyQuestions,
   getRecommendedFollowers,
+  checkFollowStatus,
 } from '../../services/user.service';
-import type { RecommendedFollower } from '../../services/user.service';
+import type { RecommendedFollower, FollowStatus } from '../../services/user.service';
 import { getCurrentUser } from '../../services/auth.service';
 import type { User } from '../../types/rest.types';
 import type { PaginatedPostResponse } from '../../types/posts.types';
@@ -35,6 +36,7 @@ export const userKeys = {
   search: (query: string) => [...userKeys.all, 'search', query] as const,
   followers: (userId: string) => [...userKeys.detail(userId), 'followers'] as const,
   following: (userId: string) => [...userKeys.detail(userId), 'following'] as const,
+  followStatus: (userId: number) => [...userKeys.all, 'followStatus', userId] as const,
   savedPosts: (page?: number) => [...userKeys.all, 'savedPosts', page] as const,
   myPosts: (userId: number, page?: number) => [...userKeys.all, 'myPosts', userId, page] as const,
   myQuestions: (userId: number, page?: number) => [...userKeys.all, 'myQuestions', userId, page] as const,
@@ -237,6 +239,23 @@ export function useRecommendedFollowers(
     queryFn: () => getRecommendedFollowers(limit),
     staleTime: 10 * 60 * 1000, // 10분
     gcTime: 30 * 60 * 1000, // 30분
+    ...options,
+  });
+}
+
+/**
+ * 팔로우 상태 조회 훅
+ * 특정 사용자를 팔로우하고 있는지, 해당 사용자가 나를 팔로우하는지 확인
+ */
+export function useFollowStatus(
+  userId: number | undefined,
+  options?: Omit<UseQueryOptions<FollowStatus, Error>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery<FollowStatus, Error>({
+    queryKey: userKeys.followStatus(userId!),
+    queryFn: () => checkFollowStatus(userId!),
+    enabled: !!userId,
+    staleTime: 1 * 60 * 1000, // 1분
     ...options,
   });
 }

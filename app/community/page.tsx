@@ -89,8 +89,8 @@ function PostDetailDrawerContent({
       id: comment.id,
       userId: comment.user_id,
       userName: comment.author_name,
-      userImage: undefined,
-      userHeadline: undefined,
+      userImage: comment.author_image_url,
+      userHeadline: comment.author_headline,
       content: comment.content,
       createdAt: new Date(comment.createdat).toLocaleDateString('ko-KR'),
       likeCount: comment.like_count || 0,
@@ -757,13 +757,15 @@ function CommunityPageContent() {
                   >
                     Q&A
                   </Chip>
-                  <Chip
-                    variant={contentFilter === 'following' ? 'selected' : 'default'}
-                    onClick={() => handleTabChange('following')}
-                  >
-                    <Users className="h-4 w-4" />
-                    팔로잉
-                  </Chip>
+                  {user && (
+                    <Chip
+                      variant={contentFilter === 'following' ? 'selected' : 'default'}
+                      onClick={() => handleTabChange('following')}
+                    >
+                      <Users className="h-4 w-4" />
+                      팔로잉
+                    </Chip>
+                  )}
                 </div>
                 <Button
                   variant="coral"
@@ -921,8 +923,8 @@ function CommunityPageContent() {
           <RecommendedFollowersPanel
             followers={recommendedFollowers}
             maxItems={5}
-            onFollow={(userId) => followUser.mutate(userId)}
-            onUnfollow={(userId) => unfollowUser.mutate(userId)}
+            onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
+            onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
           />
         </div>
       </aside>

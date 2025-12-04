@@ -67,15 +67,17 @@ export function useUploadAvatar(
  * 사용자 팔로우 mutation
  */
 export function useFollowUser(
-  options?: Omit<UseMutationOptions<void, Error, string>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
-    mutationFn: followUser,
+  return useMutation<void, Error, number>({
+    mutationFn: (userId) => followUser(String(userId)),
     onSuccess: (_, userId) => {
       // 팔로잉 목록 무효화
-      queryClient.invalidateQueries({ queryKey: userKeys.following(userId) });
+      queryClient.invalidateQueries({ queryKey: userKeys.following(String(userId)) });
+      // 팔로우 상태 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
 
       toast.success('팔로우했습니다.');
     },
@@ -90,15 +92,17 @@ export function useFollowUser(
  * 사용자 언팔로우 mutation
  */
 export function useUnfollowUser(
-  options?: Omit<UseMutationOptions<void, Error, string>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, string>({
-    mutationFn: unfollowUser,
+  return useMutation<void, Error, number>({
+    mutationFn: (userId) => unfollowUser(String(userId)),
     onSuccess: (_, userId) => {
       // 팔로잉 목록 무효화
-      queryClient.invalidateQueries({ queryKey: userKeys.following(userId) });
+      queryClient.invalidateQueries({ queryKey: userKeys.following(String(userId)) });
+      // 팔로우 상태 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
 
       toast.success('언팔로우했습니다.');
     },

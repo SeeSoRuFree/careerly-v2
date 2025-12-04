@@ -12,6 +12,8 @@ export interface Comment {
   depth: number;
   user_id: number;
   author_name: string;
+  author_image_url?: string;
+  author_headline?: string;
   content: string;
   ispostwriter: number;
   isdeleted: number;

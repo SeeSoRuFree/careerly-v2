@@ -171,6 +171,26 @@ export async function getMyQuestions(userId: number, page?: number): Promise<Pag
 }
 
 /**
+ * 팔로우 상태 응답 타입
+ */
+export interface FollowStatus {
+  is_following: boolean;
+  is_followed_by: boolean;
+}
+
+/**
+ * 팔로우 상태 확인
+ */
+export async function checkFollowStatus(userId: number): Promise<FollowStatus> {
+  try {
+    const response = await authClient.get<FollowStatus>(`/api/v1/users/${userId}/follow-status/`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * 추천 팔로워 타입
  */
 export interface RecommendedFollower {

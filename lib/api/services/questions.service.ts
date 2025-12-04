@@ -15,11 +15,18 @@ import type {
 } from '../types/questions.types';
 
 /**
+ * 질문 목록 조회 파라미터
+ */
+export interface GetQuestionsParams {
+  page?: number;
+  user_id?: number;
+}
+
+/**
  * 질문 목록 조회
  */
-export async function getQuestions(page?: number): Promise<PaginatedQuestionResponse> {
+export async function getQuestions(params?: GetQuestionsParams): Promise<PaginatedQuestionResponse> {
   try {
-    const params = page ? { page } : {};
     const response = await publicClient.get<PaginatedQuestionResponse>('/api/v1/questions/', { params });
     return response.data;
   } catch (error) {

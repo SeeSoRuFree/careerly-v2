@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
+import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
@@ -9,6 +10,12 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock, ChevronDown } from 'lucide-react';
+
+const linkifyOptions = {
+  className: 'text-coral-500 hover:text-coral-600 underline',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+};
 
 export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   qnaId: number;
@@ -143,8 +150,10 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         {/* Description */}
         <div className="mb-2">
           <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
-            {displayText}
-            {!isExpanded && isTruncatable && '...'}
+            <Linkify options={linkifyOptions}>
+              {displayText}
+              {!isExpanded && isTruncatable && '...'}
+            </Linkify>
           </p>
 
           {/* More/Less Button */}

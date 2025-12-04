@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,12 @@ import {
   X,
 } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils/date';
+
+const linkifyOptions = {
+  className: 'text-coral-500 hover:text-coral-600 underline',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+};
 
 export interface Comment {
   id: number;
@@ -190,7 +197,9 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
               />
             ) : (
               <p className="text-slate-900 leading-relaxed whitespace-pre-wrap">
-                {content}
+                <Linkify options={linkifyOptions}>
+                  {content}
+                </Linkify>
               </p>
             )}
           </div>
@@ -446,14 +455,18 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                           const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
                           return userComment ? (
                             <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                              {userComment}
+                              <Linkify options={linkifyOptions}>
+                                {userComment}
+                              </Linkify>
                             </p>
                           ) : null;
                         })()}
                       </div>
                     ) : (
                       <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {comment.content}
+                        <Linkify options={linkifyOptions}>
+                          {comment.content}
+                        </Linkify>
                       </p>
                     )}
                   </div>

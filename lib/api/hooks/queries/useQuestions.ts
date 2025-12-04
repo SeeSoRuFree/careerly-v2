@@ -12,6 +12,7 @@ import {
   getAnswers,
   getAnswer,
 } from '../../services/questions.service';
+import type { GetQuestionsParams } from '../../services/questions.service';
 import type {
   Question,
   Answer,
@@ -25,7 +26,7 @@ import type {
 export const questionKeys = {
   all: ['question'] as const,
   lists: () => [...questionKeys.all, 'list'] as const,
-  list: (page?: number) => [...questionKeys.lists(), { page }] as const,
+  list: (params?: GetQuestionsParams) => [...questionKeys.lists(), params] as const,
   details: () => [...questionKeys.all, 'detail'] as const,
   detail: (id: number) => [...questionKeys.details(), id] as const,
   answers: (questionId: number) => [...questionKeys.detail(questionId), 'answers'] as const,
@@ -48,12 +49,12 @@ export const answerKeys = {
  * 질문 목록 조회 훅
  */
 export function useQuestions(
-  { page }: { page?: number } = {},
+  params?: GetQuestionsParams,
   options?: Omit<UseQueryOptions<PaginatedQuestionResponse, Error>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery<PaginatedQuestionResponse, Error>({
-    queryKey: questionKeys.list(page),
-    queryFn: () => getQuestions(page),
+    queryKey: questionKeys.list(params),
+    queryFn: () => getQuestions(params),
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
     ...options,
@@ -66,7 +67,7 @@ export function useQuestions(
 export function useInfiniteQuestions() {
   return useInfiniteQuery({
     queryKey: questionKeys.lists(),
-    queryFn: ({ pageParam = 1 }) => getQuestions(pageParam as number),
+    queryFn: ({ pageParam = 1 }) => getQuestions({ page: pageParam as number }),
     getNextPageParam: (lastPage: PaginatedQuestionResponse, allPages: PaginatedQuestionResponse[]) => {
       // next가 있으면 다음 페이지 번호 반환
       if (lastPage.next) {

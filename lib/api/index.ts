@@ -60,8 +60,9 @@ export {
   getFollowing,
   getMySavedPosts,
   getRecommendedFollowers,
+  checkFollowStatus,
 } from './services/user.service';
-export type { RecommendedFollower } from './services/user.service';
+export type { RecommendedFollower, FollowStatus } from './services/user.service';
 
 // Discover Service
 export {
@@ -131,6 +132,7 @@ export {
   deleteAnswer,
   acceptAnswer,
 } from './services/questions.service';
+export type { GetQuestionsParams } from './services/questions.service';
 
 // Contents Service (Somoon)
 export { getDailyContents } from './services/contents.service';
@@ -191,6 +193,7 @@ export {
   useSearchUsers,
   useFollowers,
   useFollowing,
+  useFollowStatus,
   useMySavedPosts,
   useInfiniteMySavedPosts,
   useMyPosts,

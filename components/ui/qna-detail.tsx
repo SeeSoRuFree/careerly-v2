@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,12 @@ import {
   X,
   Share2,
 } from 'lucide-react';
+
+const linkifyOptions = {
+  className: 'text-coral-500 hover:text-coral-600 underline',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+};
 
 export interface Answer {
   id: number;
@@ -146,7 +153,9 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
 
           {/* Description */}
           <div className="text-slate-700 leading-relaxed whitespace-pre-wrap mb-4">
-            {description}
+            <Linkify options={linkifyOptions}>
+              {description}
+            </Linkify>
           </div>
 
           {/* Meta Info */}
@@ -402,14 +411,18 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                         const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
                         return userComment ? (
                           <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                            {userComment}
+                            <Linkify options={linkifyOptions}>
+                              {userComment}
+                            </Linkify>
                           </p>
                         ) : null;
                       })()}
                     </div>
                   ) : (
                     <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                      {acceptedAnswer.content}
+                      <Linkify options={linkifyOptions}>
+                        {acceptedAnswer.content}
+                      </Linkify>
                     </p>
                   )}
                 </div>
@@ -553,14 +566,18 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                             const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
                             return userComment ? (
                               <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                {userComment}
+                                <Linkify options={linkifyOptions}>
+                                  {userComment}
+                                </Linkify>
                               </p>
                             ) : null;
                           })()}
                         </div>
                       ) : (
                         <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                          {answer.content}
+                          <Linkify options={linkifyOptions}>
+                            {answer.content}
+                          </Linkify>
                         </p>
                       )}
                     </div>

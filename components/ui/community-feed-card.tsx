@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { useState } from 'react';
+import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ActionBar } from '@/components/ui/action-bar';
@@ -10,6 +11,12 @@ import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown } from 'lucide-react';
+
+const linkifyOptions = {
+  className: 'text-coral-500 hover:text-coral-600 underline',
+  target: '_blank',
+  rel: 'noopener noreferrer',
+};
 
 export interface UserProfile {
   id: number;
@@ -185,8 +192,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             </div>
           ) : (
             <p className="text-slate-900 text-sm leading-relaxed whitespace-pre-wrap break-words">
-              {displayText}
-              {!isExpanded && isTruncatable && '...'}
+              <Linkify options={linkifyOptions}>
+                {displayText}
+                {!isExpanded && isTruncatable && '...'}
+              </Linkify>
             </p>
           )}
 
