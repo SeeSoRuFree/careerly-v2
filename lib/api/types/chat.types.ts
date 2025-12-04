@@ -118,12 +118,22 @@ export interface ChatComparisonResult {
 /**
  * SSE 이벤트 타입
  */
-export type SSEEventType = 'status' | 'token' | 'sources' | 'complete' | 'error';
+export type SSEEventType = 'status' | 'token' | 'sources' | 'complete' | 'error' | 'agent_progress';
 
 /**
  * SSE Status 이벤트 step 타입
  */
-export type SSEStatusStep = 'intent' | 'searching' | 'generating';
+export type SSEStatusStep = 'intent' | 'routing' | 'searching' | 'generating';
+
+/**
+ * Agent Progress Event Type
+ */
+export type AgentProgressType = 'start' | 'complete';
+
+/**
+ * Agent Progress Status
+ */
+export type AgentProgressStatus = 'running' | 'success' | 'failed' | 'timeout';
 
 /**
  * SSE Status 이벤트 데이터
@@ -179,6 +189,22 @@ export interface SSEErrorEvent {
 }
 
 /**
+ * SSE Agent Progress 이벤트 데이터
+ */
+export interface SSEAgentProgressEvent {
+  type: AgentProgressType;
+  agent_type: string;
+  agent_name: string;
+  agent_description?: string;
+  icon?: string;
+  color?: string;
+  status: AgentProgressStatus;
+  execution_time_ms?: number;
+  error?: string | null;
+  is_fallback?: boolean;
+}
+
+/**
  * 스트리밍 콜백 인터페이스
  */
 export interface StreamCallbacks {
@@ -187,4 +213,5 @@ export interface StreamCallbacks {
   onSources?: (sources: string[], count: number) => void;
   onComplete?: (metadata: SSECompleteEvent) => void;
   onError?: (error: string, code?: string) => void;
+  onAgentProgress?: (data: SSEAgentProgressEvent) => void;
 }

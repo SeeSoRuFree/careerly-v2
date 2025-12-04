@@ -2,9 +2,9 @@
 
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react';
-import { Loader2, Search, Sparkles, Database, Globe, FileText, CheckCircle2, LogIn } from 'lucide-react';
+import { Loader2, Search, Sparkles, Database, Globe, FileText, CheckCircle2, LogIn, User, Wrench, Brain, Cpu, XCircle, Clock } from 'lucide-react';
 import { streamChatMessage } from '@/lib/api/services/chat.service';
-import type { SSEStatusStep, SSECompleteEvent, ChatCitation } from '@/lib/api';
+import type { SSEStatusStep, SSECompleteEvent, ChatCitation, SSEAgentProgressEvent, AgentProgressStatus } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/hooks/useStore';
 
@@ -21,9 +21,27 @@ import { SearchResultItem } from '@/components/ui/search-result-item';
 // 상태 step에 따른 아이콘 매핑
 const STATUS_ICONS: Record<SSEStatusStep, React.ReactNode> = {
   intent: <Sparkles className="h-4 w-4" />,
+  routing: <Brain className="h-4 w-4" />,
   searching: <Search className="h-4 w-4" />,
   generating: <Sparkles className="h-4 w-4" />,
 };
+
+// 에이전트 카드 최소 표시 시간 (ms)
+const AGENT_MIN_DISPLAY_TIME = 2500;
+
+// 에이전트 아이콘 매핑
+const AGENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  database: Database,
+  'file-text': FileText,
+  globe: Globe,
+  user: User,
+  wrench: Wrench,
+  brain: Brain,
+  cpu: Cpu,
+};
+
+// 기본 아이콘
+const DEFAULT_AGENT_ICON = Cpu;
 
 // 상태 히스토리 아이템 타입
 interface StatusHistoryItem {
@@ -33,114 +51,209 @@ interface StatusHistoryItem {
   timestamp: number;
 }
 
-// 에이전트 활동 표시 컴포넌트 Props
-interface AgentActivityProps {
-  statusHistory: StatusHistoryItem[];
-  currentStatus: { step: SSEStatusStep; message: string } | null;
-  sources: string[];
-  isStreaming: boolean;
-  isGenerating: boolean;
+// 에이전트 진행 상태 타입
+interface AgentProgressItem {
+  agent_type: string;
+  agent_name: string;
+  agent_description?: string;
+  icon: string;
+  color: string;
+  status: AgentProgressStatus;
+  execution_time_ms?: number;
+  error?: string | null;
+  is_fallback?: boolean;
+  started_at: number;
+  completed_at?: number;
 }
 
-function AgentActivityIndicator({ statusHistory = [], currentStatus, sources = [], isStreaming, isGenerating }: AgentActivityProps) {
-  if (!isStreaming && statusHistory.length === 0) return null;
+// 에이전트 진행 상태 패널 Props
+interface AgentProgressPanelProps {
+  agents: Map<string, AgentProgressItem>;
+  isStreaming: boolean;
+}
 
-  // URL에서 도메인 추출
-  const extractDomain = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname.replace('www.', '');
-    } catch {
-      return url;
-    }
+// 개별 에이전트 카드 컴포넌트
+function AgentCard({ agent }: { agent: AgentProgressItem }) {
+  const IconComponent = AGENT_ICONS[agent.icon] || DEFAULT_AGENT_ICON;
+  const isRunning = agent.status === 'running';
+  const isSuccess = agent.status === 'success';
+  const isFailed = agent.status === 'failed' || agent.status === 'timeout';
+
+  // 실행 시간 포맷팅
+  const formatExecutionTime = (ms?: number) => {
+    if (!ms) return null;
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}초`;
   };
 
   return (
-    <div className="mb-6 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
-      {/* 상태 히스토리 - 누적식으로 표시 */}
-      <div className="space-y-2">
-        {statusHistory.map((item, index) => {
-          const isLast = index === statusHistory.length - 1;
-          const isCurrent = isLast && isStreaming && !isGenerating;
+    <div
+      className={cn(
+        'rounded-lg border p-4 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2',
+        isRunning && 'border-2 shadow-md',
+        isSuccess && 'border-slate-200 bg-slate-50/50',
+        isFailed && 'border-red-200 bg-red-50/50',
+        isRunning && 'border-teal-300 bg-gradient-to-br from-teal-50 to-white shadow-teal-100'
+      )}
+      style={{
+        borderColor: isRunning && agent.color ? agent.color : undefined,
+      }}
+    >
+      <div className="flex items-start gap-3">
+        {/* 아이콘 영역 */}
+        <div
+          className={cn(
+            'flex items-center justify-center w-10 h-10 rounded-lg flex-shrink-0 transition-all',
+            isRunning && 'animate-pulse',
+            isSuccess && 'bg-teal-100',
+            isFailed && 'bg-red-100',
+            isRunning && 'bg-gradient-to-br from-white to-teal-50 shadow-sm'
+          )}
+          style={{
+            backgroundColor: isRunning && agent.color ? `${agent.color}15` : undefined,
+          }}
+        >
+          {isRunning && (
+            <Loader2
+              className="h-5 w-5 animate-spin"
+              style={{ color: agent.color || '#0D9488' }}
+            />
+          )}
+          {isSuccess && <CheckCircle2 className="h-5 w-5 text-teal-600" />}
+          {isFailed && <XCircle className="h-5 w-5 text-red-600" />}
+        </div>
 
-          return (
-            <div
-              key={item.id}
+        {/* 내용 영역 */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div
+                className={cn(
+                  'h-4 w-4 flex-shrink-0',
+                  isSuccess && 'text-slate-500',
+                  isFailed && 'text-red-500'
+                )}
+                style={{ color: isRunning && agent.color ? agent.color : undefined }}
+              >
+                <IconComponent className="w-full h-full" />
+              </div>
+              <h4
+                className={cn(
+                  'text-sm font-semibold truncate',
+                  isSuccess && 'text-slate-700',
+                  isFailed && 'text-red-700',
+                  isRunning && 'text-teal-900'
+                )}
+              >
+                {agent.agent_name}
+              </h4>
+              {agent.is_fallback && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 flex-shrink-0">
+                  대체
+                </span>
+              )}
+            </div>
+
+            {/* 상태 표시 */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {isSuccess && agent.execution_time_ms && (
+                <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatExecutionTime(agent.execution_time_ms)}
+                </span>
+              )}
+              {isRunning && (
+                <div className="flex items-center gap-1">
+                  <span className="inline-block w-1 h-1 rounded-full bg-teal-500 animate-pulse" />
+                  <span className="inline-block w-1 h-1 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '150ms' }} />
+                  <span className="inline-block w-1 h-1 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '300ms' }} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 설명 */}
+          {agent.agent_description && (
+            <p
               className={cn(
-                "flex items-center gap-3 py-2 px-3 rounded-lg transition-all",
-                isCurrent ? "bg-teal-50 border border-teal-200" : "bg-slate-50"
+                'text-xs mt-1.5',
+                isSuccess && 'text-slate-500',
+                isFailed && 'text-red-600',
+                isRunning && 'text-teal-700'
               )}
             >
-              {/* 아이콘 */}
-              <div className={cn(
-                "flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0",
-                isCurrent ? "bg-teal-100 text-teal-600" : "bg-slate-200 text-slate-500"
-              )}>
-                {isCurrent ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 text-teal-500" />
-                )}
-              </div>
-
-              {/* 메시지 */}
-              <p className={cn(
-                "text-sm flex-1",
-                isCurrent ? "text-teal-700 font-medium" : "text-slate-600"
-              )}>
-                {item.message}
-              </p>
-
-              {/* 시간 표시 (완료된 항목만) */}
-              {!isCurrent && (
-                <span className="text-xs text-slate-400 flex-shrink-0">완료</span>
-              )}
-            </div>
-          );
-        })}
-
-        {/* 답변 생성 중 표시 */}
-        {isGenerating && (
-          <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-teal-50 border border-teal-200">
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-teal-100 text-teal-600 flex-shrink-0">
-              <Loader2 className="h-4 w-4 animate-spin" />
-            </div>
-            <p className="text-sm text-teal-700 font-medium flex-1">
-              답변을 작성하고 있어요
+              {agent.agent_description}
             </p>
-            <div className="flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" />
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '150ms' }} />
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-500 animate-pulse" style={{ animationDelay: '300ms' }} />
+          )}
+
+          {/* 에러 메시지 */}
+          {isFailed && agent.error && (
+            <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1">
+              <XCircle className="h-3 w-3" />
+              {agent.error}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 에이전트 진행 상태 패널
+function AgentProgressPanel({ agents, isStreaming }: AgentProgressPanelProps) {
+  const agentList = Array.from(agents.values());
+
+  if (agentList.length === 0) return null;
+
+  const runningCount = agentList.filter(a => a.status === 'running').length;
+  const successCount = agentList.filter(a => a.status === 'success').length;
+  const failedCount = agentList.filter(a => a.status === 'failed' || a.status === 'timeout').length;
+
+  return (
+    <div
+      className="mb-6 rounded-xl border border-teal-200 bg-gradient-to-br from-white to-teal-50/30 shadow-sm overflow-hidden"
+      role="region"
+      aria-live="polite"
+      aria-label="AI 에이전트 진행 상태"
+    >
+      {/* 헤더 */}
+      <div className="px-4 py-3 border-b border-teal-100 bg-gradient-to-r from-teal-50 to-white">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100">
+              <Brain className="h-4 w-4 text-teal-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-teal-900">
+                AI 에이전트가 정보를 수집하고 있어요
+              </h3>
+              <p className="text-xs text-teal-600">
+                {runningCount > 0 && `${runningCount}개 실행 중`}
+                {runningCount > 0 && successCount > 0 && ' · '}
+                {successCount > 0 && `${successCount}개 완료`}
+                {failedCount > 0 && ` · ${failedCount}개 실패`}
+              </p>
             </div>
           </div>
-        )}
+
+          {/* 전체 진행률 */}
+          {isStreaming && (
+            <div className="flex items-center gap-2">
+              <div className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 실시간 소스 표시 */}
-      {sources.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-slate-100">
-          <p className="text-xs font-medium text-slate-500 mb-2">
-            발견된 출처 ({sources.length}개)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {sources.map((source, index) => (
-              <a
-                key={index}
-                href={source}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs bg-white border border-slate-200 rounded-full hover:border-teal-300 hover:bg-teal-50 transition-colors"
-              >
-                <Globe className="h-3 w-3 text-slate-400" />
-                <span className="text-slate-600 max-w-[150px] truncate">
-                  {extractDomain(source)}
-                </span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* 에이전트 카드 목록 */}
+      <div className="p-4 space-y-3">
+        {agentList.map((agent) => (
+          <AgentCard key={agent.agent_type} agent={agent} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -187,6 +300,9 @@ function SearchContent() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
 
+  // Agent Progress State
+  const [agentProgress, setAgentProgress] = useState<Map<string, AgentProgressItem>>(new Map());
+
   // 완료된 답변 저장
   const [completedAnswer, setCompletedAnswer] = useState<string>('');
   const [completedSources, setCompletedSources] = useState<string[]>([]);
@@ -198,6 +314,8 @@ function SearchContent() {
   const currentQueryRef = useRef<string | null>(null);
   // isStreaming을 ref로도 추적 (useCallback 의존성 문제 해결)
   const isStreamingRef = useRef(false);
+  // 에이전트 완료 지연을 위한 타이머 ref
+  const agentCompletionTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // 스트리밍 시작 함수
   const startStreaming = useCallback((queryText: string, existingSessionId?: string | null) => {
@@ -213,6 +331,10 @@ function SearchContent() {
     cleanupRef.current?.();
     currentQueryRef.current = trimmedQuery;
 
+    // 에이전트 완료 타이머 클리어
+    agentCompletionTimersRef.current.forEach((timer) => clearTimeout(timer));
+    agentCompletionTimersRef.current.clear();
+
     // 상태 초기화
     isStreamingRef.current = true;
     setIsStreaming(true);
@@ -224,6 +346,7 @@ function SearchContent() {
     setCompletedAnswer('');
     setCompletedSources([]);
     setCompletedMetadata(null);
+    setAgentProgress(new Map());
 
     // 스트림 시작
     const cleanup = streamChatMessage(queryText.trim(), existingSessionId ?? null, {
@@ -296,6 +419,71 @@ function SearchContent() {
         cleanupRef.current = null;
         currentQueryRef.current = null;
       },
+      onAgentProgress: (data: SSEAgentProgressEvent) => {
+        if (data.type === 'start') {
+          // 에이전트 시작
+          setAgentProgress((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(data.agent_type, {
+              agent_type: data.agent_type,
+              agent_name: data.agent_name,
+              agent_description: data.agent_description,
+              icon: data.icon || 'cpu',
+              color: data.color || '#0D9488',
+              status: data.status,
+              is_fallback: data.is_fallback || false,
+              started_at: Date.now(),
+            });
+            return newMap;
+          });
+        } else if (data.type === 'complete') {
+          // 에이전트 완료 - 최소 표시 시간 적용
+          setAgentProgress((prev) => {
+            const existing = prev.get(data.agent_type);
+            if (!existing) return prev;
+
+            const elapsedTime = Date.now() - existing.started_at;
+            const remainingTime = AGENT_MIN_DISPLAY_TIME - elapsedTime;
+
+            // 완료 상태 업데이트 함수
+            const updateCompletion = () => {
+              setAgentProgress((current) => {
+                const currentAgent = current.get(data.agent_type);
+                if (!currentAgent) return current;
+                const updatedMap = new Map(current);
+                updatedMap.set(data.agent_type, {
+                  ...currentAgent,
+                  status: data.status,
+                  execution_time_ms: data.execution_time_ms,
+                  error: data.error,
+                  completed_at: Date.now(),
+                });
+                return updatedMap;
+              });
+              agentCompletionTimersRef.current.delete(data.agent_type);
+            };
+
+            if (remainingTime > 0) {
+              // 최소 표시 시간까지 지연
+              const timer = setTimeout(updateCompletion, remainingTime);
+              agentCompletionTimersRef.current.set(data.agent_type, timer);
+            } else {
+              // 즉시 완료 처리
+              const newMap = new Map(prev);
+              newMap.set(data.agent_type, {
+                ...existing,
+                status: data.status,
+                execution_time_ms: data.execution_time_ms,
+                error: data.error,
+                completed_at: Date.now(),
+              });
+              return newMap;
+            }
+
+            return prev;
+          });
+        }
+      },
     });
 
     cleanupRef.current = cleanup;
@@ -309,6 +497,9 @@ function SearchContent() {
 
     return () => {
       cleanupRef.current?.();
+      // 에이전트 완료 타이머 클리어
+      agentCompletionTimersRef.current.forEach((timer) => clearTimeout(timer));
+      agentCompletionTimersRef.current.clear();
       // cleanup 시 상태 초기화 (React Strict Mode 대응)
       currentQueryRef.current = null;
       isStreamingRef.current = false;
@@ -418,13 +609,10 @@ function SearchContent() {
           </div>
         </div>
 
-        {/* 에이전트 활동 표시 */}
-        <AgentActivityIndicator
-          statusHistory={statusHistory}
-          currentStatus={streamStatus}
-          sources={displaySources}
+        {/* 에이전트 진행 상태 표시 */}
+        <AgentProgressPanel
+          agents={agentProgress}
           isStreaming={isStreaming}
-          isGenerating={streamingContent.length > 0}
         />
 
         {/* 에러 표시 */}

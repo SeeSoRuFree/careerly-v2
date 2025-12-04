@@ -19,6 +19,7 @@ import type {
   SSESourcesEvent,
   SSECompleteEvent,
   SSEErrorEvent,
+  SSEAgentProgressEvent,
 } from '../types/chat.types';
 
 /**
@@ -275,6 +276,11 @@ export function streamChatMessage(
                 case 'error': {
                   const errorData = data as SSEErrorEvent;
                   callbacks.onError?.(errorData.error, errorData.code);
+                  break;
+                }
+                case 'agent_progress': {
+                  const agentProgressData = data as SSEAgentProgressEvent;
+                  callbacks.onAgentProgress?.(agentProgressData);
                   break;
                 }
                 default:

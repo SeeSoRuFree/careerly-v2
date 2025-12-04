@@ -387,6 +387,9 @@ export type {
   SSESourcesEvent,
   SSECompleteEvent,
   SSEErrorEvent,
+  SSEAgentProgressEvent,
+  AgentProgressType,
+  AgentProgressStatus,
   StreamCallbacks,
 
   // Posts Types
