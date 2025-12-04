@@ -152,6 +152,24 @@ export {
   deleteEducation,
 } from './services/profile.service';
 
+// Settings Service
+export {
+  getUserSettings,
+  updateUserSettings,
+  changePassword,
+  getInterests,
+  getUserInterests,
+  updateUserInterests,
+  requestDeleteAccount,
+} from './services/settings.service';
+export type {
+  UserSettings,
+  ChangePasswordRequest,
+  Interest,
+  DeleteAccountRequest,
+  DeleteAccountResponse,
+} from './services/settings.service';
+
 // ============================================================
 // React Query Hooks - Queries
 // ============================================================
@@ -244,6 +262,14 @@ export {
   useMyProfileDetail,
   profileKeys,
 } from './hooks/queries/useProfile';
+
+// Settings Queries
+export {
+  useUserSettings,
+  useInterests,
+  useUserInterests,
+  settingsKeys,
+} from './hooks/queries/useSettings';
 
 // ============================================================
 // React Query Hooks - Mutations
@@ -338,6 +364,14 @@ export {
   useUpdateEducation,
   useDeleteEducation,
 } from './hooks/mutations/useProfileMutations';
+
+// Settings Mutations
+export {
+  useUpdateUserSettings,
+  useChangePassword,
+  useUpdateUserInterests,
+  useRequestDeleteAccount,
+} from './hooks/mutations/useSettingsMutations';
 
 // ============================================================
 // Types
