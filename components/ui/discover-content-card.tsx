@@ -129,6 +129,15 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
       }
     };
 
+    // Card click handler - only trigger onCardClick if no external href
+    const handleCardClick = () => {
+      if (href) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      } else if (onCardClick) {
+        onCardClick();
+      }
+    };
+
     // Horizontal layout
     if (layout === 'horizontal') {
       return (
@@ -138,16 +147,16 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
             'group relative overflow-hidden transition-all duration-300',
             'hover:translate-y-[-2px]',
             'flex flex-row gap-3',
-            onCardClick && 'cursor-pointer',
+            (href || onCardClick) && 'cursor-pointer',
             className
           )}
-          onClick={onCardClick}
+          onClick={handleCardClick}
           {...props}
         >
-          {/* Thumbnail */}
-          <div className="relative overflow-hidden rounded-lg shrink-0 w-80">
-            {thumbnailUrl ? (
-              usePlainImg ? (
+          {/* Thumbnail - 이미지가 있을 때만 표시 */}
+          {thumbnailUrl && (
+            <div className="relative overflow-hidden rounded-lg shrink-0 w-80">
+              {usePlainImg ? (
                 <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
                   <img
                     src={thumbnailUrl}
@@ -167,37 +176,17 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
                   ratio="16:9"
                   badge={badge}
                 />
-              )
-            ) : (
-              <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-                <div className="text-slate-400 text-center">
-                  <ImageIcon className="mx-auto h-12 w-12 mb-2" />
-                  <p className="text-xs">이미지 없음</p>
-                </div>
-                {badge && (
-                  <div className="absolute top-2 right-2">
-                    <Badge tone={badgeTone}>{badge}</Badge>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Content */}
           <div className="flex flex-col flex-1 space-y-3">
 
             {/* Title */}
-            {href ? (
-              <h3 className="text-lg font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
-                <Link href={href} variant="subtle" className="hover:text-coral-500">
-                  {title}
-                </Link>
-              </h3>
-            ) : (
-              <h3 className="text-lg font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
-                {title}
-              </h3>
-            )}
+            <h3 className="text-lg font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
+              {title}
+            </h3>
 
             {/* Summary */}
             {summary && (
@@ -257,16 +246,16 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
           'group relative overflow-hidden transition-all duration-300',
           'hover:translate-y-[-2px]',
           'flex flex-col',
-          onCardClick && 'cursor-pointer',
+          (href || onCardClick) && 'cursor-pointer',
           className
         )}
-        onClick={onCardClick}
+        onClick={handleCardClick}
         {...props}
       >
-        {/* Thumbnail */}
-        <div className="relative mb-3 overflow-hidden rounded-lg">
-          {thumbnailUrl ? (
-            usePlainImg ? (
+        {/* Thumbnail - 이미지가 있을 때만 표시 */}
+        {thumbnailUrl && (
+          <div className="relative mb-3 overflow-hidden rounded-lg">
+            {usePlainImg ? (
               <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
                 <img
                   src={thumbnailUrl}
@@ -286,37 +275,17 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
                 ratio="16:9"
                 badge={badge}
               />
-            )
-          ) : (
-            <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
-              <div className="text-slate-400 text-center">
-                <ImageIcon className="mx-auto h-12 w-12 mb-2" />
-                <p className="text-xs">이미지 없음</p>
-              </div>
-              {badge && (
-                <div className="absolute top-2 right-2">
-                  <Badge tone={badgeTone}>{badge}</Badge>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Content - No card wrapper */}
         <div className="flex flex-col flex-1 space-y-3">
 
           {/* Title */}
-          {href ? (
-            <h3 className="text-base font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
-              <Link href={href} variant="subtle" className="hover:text-coral-500">
-                {title}
-              </Link>
-            </h3>
-          ) : (
-            <h3 className="text-base font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
-              {title}
-            </h3>
-          )}
+          <h3 className="text-base font-semibold text-slate-900 line-clamp-2 group-hover:text-coral-500 transition-colors leading-snug">
+            {title}
+          </h3>
 
           {/* Summary */}
           {summary && (

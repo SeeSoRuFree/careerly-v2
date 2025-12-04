@@ -17,6 +17,14 @@ import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-inpu
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
 
+// 검색 결과 아이템 타입 (SearchResultItem에서 사용 - href 필요)
+interface SearchResult {
+  id: string;
+  title: string;
+  href: string;
+  faviconUrl?: string;
+}
+
 // 상태 step에 따른 아이콘과 메시지 매핑
 const STATUS_CONFIG: Record<SSEStatusStep, {
   icon: React.ReactNode;
@@ -409,9 +417,16 @@ function SearchContent() {
   const displayAnswer = streamingContent || completedAnswer;
   const displaySources = streamingSources.length > 0 ? streamingSources : completedSources;
 
-  // Citations 변환
+  // Citations 변환 (CitationSourceList용 - href 없음)
   const citationSources: CitationSource[] = displaySources.map((url, index) => ({
     id: `citation-${index + 1}`,
+    title: extractTitleFromUrl(url),
+    faviconUrl: undefined,
+  }));
+
+  // 검색 결과 변환 (SearchResultItem용 - href 필요)
+  const searchResults: SearchResult[] = displaySources.map((url, index) => ({
+    id: `result-${index + 1}`,
     title: extractTitleFromUrl(url),
     href: url,
     faviconUrl: undefined,
@@ -528,15 +543,15 @@ function SearchContent() {
           {viewMode === 'sources' && !isStreaming && completedAnswer && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-slate-900">
-                검색 결과 ({citationSources.length}개)
+                검색 결과 ({searchResults.length}개)
               </h2>
-              {citationSources.map((source) => (
+              {searchResults.map((result) => (
                 <SearchResultItem
-                  key={source.id}
-                  title={source.title}
+                  key={result.id}
+                  title={result.title}
                   snippet=""
-                  href={source.href}
-                  faviconUrl={source.faviconUrl}
+                  href={result.href}
+                  faviconUrl={result.faviconUrl}
                 />
               ))}
             </div>

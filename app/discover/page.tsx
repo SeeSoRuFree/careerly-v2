@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { DiscoverContentCard, DiscoverContentCardProps } from '@/components/ui/discover-content-card';
 import { DiscoverFeedSection } from '@/components/ui/discover-feed-section';
+import { DiscoverCategoryTabs } from '@/components/ui/discover-category-tabs';
 import { Chip } from '@/components/ui/chip';
 import { cn } from '@/lib/utils';
 import { JobMarketTrendCard } from '@/components/ui/job-market-trend-card';
@@ -24,6 +25,7 @@ import { MarketWidget } from '@/components/widgets/implementations/StockWidget/M
 import { AITrendWidget } from '@/components/widgets/implementations/AITrendWidget/AITrendWidget';
 
 type ContentType = 'all' | 'jobs' | 'blogs' | 'books' | 'courses';
+type CategoryType = 'recommended' | 'trending' | 'latest' | 'following';
 type LayoutType = 'grid' | 'list';
 
 // 위젯 설정
@@ -104,6 +106,7 @@ const widgetConfigs = {
 
 export default function DiscoverPage() {
   const [contentType, setContentType] = React.useState<ContentType>('all');
+  const [category, setCategory] = React.useState<CategoryType>('recommended');
   const [layout, setLayout] = React.useState<LayoutType>('grid');
 
   // Drawer state
@@ -257,8 +260,40 @@ export default function DiscoverPage() {
     const allJobs = (jobsData?.pages as SomoonPaginatedResponse<SomoonJobItem>[] | undefined)?.flatMap(page => page.results) || [];
     if (baseContentCards.length === 0 && allJobs.length === 0) return [];
 
-    const contents = baseContentCards; // Already filtered by contentType
-    const jobs = allJobs.map(transformJobToCard);
+    let contents = baseContentCards; // Already filtered by contentType
+    let jobs = allJobs.map(transformJobToCard);
+
+    // Apply category filtering
+    const applyFilter = (items: DiscoverContentCardProps[]) => {
+      switch (category) {
+        case 'recommended':
+          // For recommended, show all items (no filter)
+          return items;
+        case 'trending':
+          // For trending, sort by views (though we don't have real view data, we'll sort by date as fallback)
+          return [...items].sort((a, b) => {
+            const viewsA = a.stats?.views || 0;
+            const viewsB = b.stats?.views || 0;
+            return viewsB - viewsA;
+          });
+        case 'latest':
+          // For latest, sort by date (newest first)
+          return [...items].sort((a, b) => {
+            const dateA = new Date(a.postedAt || 0).getTime();
+            const dateB = new Date(b.postedAt || 0).getTime();
+            return dateB - dateA;
+          });
+        case 'following':
+          // For following, filter items from followed sources (we don't have this data, so show empty for now)
+          // In a real scenario, you would check if the source/author is followed
+          return [];
+        default:
+          return items;
+      }
+    };
+
+    contents = applyFilter(contents);
+    jobs = applyFilter(jobs);
 
     const merged: DiscoverContentCardProps[] = [];
     let contentIndex = 0;
@@ -278,7 +313,7 @@ export default function DiscoverPage() {
     }
 
     return merged;
-  }, [baseContentCards, jobsData, transformJobToCard]);
+  }, [baseContentCards, jobsData, transformJobToCard, category]);
 
   // Handle card click to open drawer
   const handleCardClick = (card: any) => {
@@ -348,6 +383,13 @@ export default function DiscoverPage() {
             </div>
           </div>
 
+          {/* Category Tabs */}
+          <DiscoverCategoryTabs
+            activeId={category}
+            onChange={(id) => setCategory(id as CategoryType)}
+            showCounts={false}
+          />
+
           {/* Content Type Filter */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-900">콘텐츠 타입</h3>
@@ -407,7 +449,11 @@ export default function DiscoverPage() {
           {/* Empty State */}
           {!(isLoading || jobsLoading) && contentCardsWithHandler.length === 0 && (
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-8 text-center">
-              <p className="text-slate-600">표시할 콘텐츠가 없습니다.</p>
+              <p className="text-slate-600">
+                {category === 'following'
+                  ? '팔로우한 사용자의 콘텐츠가 없습니다. 관심있는 사용자를 팔로우해보세요.'
+                  : '표시할 콘텐츠가 없습니다.'}
+              </p>
             </div>
           )}
 

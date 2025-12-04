@@ -43,6 +43,7 @@ export default function NewPostPage() {
   const router = useRouter();
   const [title, setTitle] = React.useState('');
   const [showTitle, setShowTitle] = React.useState(false);
+  const [isSaved, setIsSaved] = React.useState(false);
   const createPostMutation = useCreatePost();
   const uploadImageMutation = useUploadPostImage();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -100,6 +101,8 @@ export default function NewPostPage() {
     if (!silent) {
       toast.success('임시저장되었습니다');
     }
+
+    setIsSaved(true);
   }, [title, editor]);
 
   const loadDraft = React.useCallback((): DraftData | null => {
@@ -117,6 +120,26 @@ export default function NewPostPage() {
   const clearDraft = React.useCallback(() => {
     localStorage.removeItem(DRAFT_KEY);
   }, []);
+
+  // Track content changes to reset isSaved state
+  React.useEffect(() => {
+    if (!editor) return;
+
+    const handleUpdate = () => {
+      setIsSaved(false);
+    };
+
+    editor.on('update', handleUpdate);
+
+    return () => {
+      editor.off('update', handleUpdate);
+    };
+  }, [editor]);
+
+  // Track title changes to reset isSaved state
+  React.useEffect(() => {
+    setIsSaved(false);
+  }, [title]);
 
   // Auto-save every 30 seconds
   React.useEffect(() => {
@@ -148,10 +171,18 @@ export default function NewPostPage() {
     }
   }, [editor, loadDraft]);
 
-  const canSubmit = editor?.getText().trim().length ?? 0 > 0;
+  const canSubmit = (editor?.getText().trim().length ?? 0) > 0;
 
   const handleCancel = () => {
     const editorText = editor?.getText().trim() || '';
+
+    // If saved, navigate without warning
+    if (isSaved) {
+      router.push('/community');
+      return;
+    }
+
+    // If has content and not saved, show warning
     if (title.trim().length > 0 || editorText.length > 0) {
       if (confirm('작성 중인 내용이 있습니다. 정말 나가시겠습니까?')) {
         router.push('/community');

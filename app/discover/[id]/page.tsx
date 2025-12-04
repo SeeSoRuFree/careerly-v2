@@ -18,7 +18,7 @@ function transformToContentDetail(feedData: DiscoverFeed): DiscoverContentDetail
     contentId: feedData.id,
     title: feedData.title,
     summary: feedData.description,
-    thumbnailUrl: feedData.imageUrl,
+    thumbnailUrl: feedData.image_url,
     sources: [
       {
         name: feedData.author.name,

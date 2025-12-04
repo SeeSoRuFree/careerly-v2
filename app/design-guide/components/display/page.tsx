@@ -35,9 +35,9 @@ export default function DisplayComponentsPage() {
   const [answerError, setAnswerError] = React.useState('');
 
   const citationSources: CitationSource[] = [
-    { id: '1', title: 'React Documentation', faviconUrl: 'https://react.dev/favicon.ico', href: 'https://react.dev' },
-    { id: '2', title: 'MDN Web Docs', href: 'https://developer.mozilla.org' },
-    { id: '3', title: 'Stack Overflow', href: 'https://stackoverflow.com' },
+    { id: '1', title: 'React Documentation', faviconUrl: 'https://react.dev/favicon.ico' },
+    { id: '2', title: 'MDN Web Docs' },
+    { id: '3', title: 'Stack Overflow' },
   ];
 
   const relatedQueries: RelatedQuery[] = [
@@ -662,11 +662,9 @@ export default function DisplayComponentsPage() {
                     <QuoteSourceLink
                       title="React Documentation"
                       faviconUrl="https://react.dev/favicon.ico"
-                      href="https://react.dev"
                     />
                     <QuoteSourceLink
                       title="MDN Web Docs"
-                      href="https://developer.mozilla.org"
                     />
                   </div>
                 </div>
@@ -675,7 +673,6 @@ export default function DisplayComponentsPage() {
                   <p className="text-sm font-semibold text-slate-700 mb-3">Without Icon</p>
                   <QuoteSourceLink
                     title="Stack Overflow"
-                    href="https://stackoverflow.com"
                     showIcon={false}
                   />
                 </div>
@@ -704,9 +701,9 @@ export default function DisplayComponentsPage() {
                   <CitationSourceList
                     sources={[
                       ...citationSources,
-                      { id: '4', title: 'GitHub', href: 'https://github.com' },
-                      { id: '5', title: 'Dev.to', href: 'https://dev.to' },
-                      { id: '6', title: 'Medium', href: 'https://medium.com' },
+                      { id: '4', title: 'GitHub' },
+                      { id: '5', title: 'Dev.to' },
+                      { id: '6', title: 'Medium' },
                     ]}
                   />
                 </div>

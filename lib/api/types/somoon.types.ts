@@ -167,6 +167,8 @@ export interface SomoonJobItem {
   analysis: SomoonAnalysis;
   /** 회사 정보 */
   company_info: SomoonCompanyInfo;
+  /** 팔로우한 기업 여부 (Careerly 백엔드에서 추가) */
+  is_followed_company?: boolean;
 }
 
 /**

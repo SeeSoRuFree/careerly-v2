@@ -65,7 +65,7 @@ export function useLogout(
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  return useMutation<void, Error, void>({
+  const mutation = useMutation<void, Error, void>({
     mutationFn: logoutService,
     onSettled: () => {
       // 성공/실패 관계없이 항상 로컬 상태 정리
@@ -79,6 +79,18 @@ export function useLogout(
     // onError는 제거 - 실패해도 조용히 로그아웃 처리
     ...options,
   });
+
+  // confirm 래퍼 함수
+  const logoutWithConfirm = () => {
+    if (window.confirm('정말 로그아웃 하시겠습니까?')) {
+      mutation.mutate();
+    }
+  };
+
+  return {
+    ...mutation,
+    logoutWithConfirm,
+  };
 }
 
 /**
