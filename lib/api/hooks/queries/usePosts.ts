@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';
 import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, getFollowingPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
 import type { TopPostsPeriod, GetPostsParams } from '../../services/posts.service';
 import type { Post, PostListItem, PaginatedPostResponse } from '../../types/posts.types';
@@ -78,11 +78,14 @@ export function usePost(
 /**
  * 게시물 무한 스크롤 훅
  */
-export function useInfinitePosts() {
-  return useInfiniteQuery({
-    queryKey: postsKeys.lists(),
-    queryFn: ({ pageParam = 1 }) => getPosts({ page: pageParam as number }),
-    getNextPageParam: (lastPage: PaginatedPostResponse, allPages: PaginatedPostResponse[]) => {
+export function useInfinitePosts(
+  params?: Omit<GetPostsParams, 'page'>,
+  options?: Omit<UseInfiniteQueryOptions<PaginatedPostResponse, Error, InfiniteData<PaginatedPostResponse>, readonly unknown[], number>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+) {
+  return useInfiniteQuery<PaginatedPostResponse, Error, InfiniteData<PaginatedPostResponse>, readonly unknown[], number>({
+    queryKey: [...postsKeys.lists(), params],
+    queryFn: ({ pageParam }) => getPosts({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
       // next가 있으면 다음 페이지 번호 반환
       if (lastPage.next) {
         return allPages.length + 1;
@@ -92,6 +95,7 @@ export function useInfinitePosts() {
     initialPageParam: 1,
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
+    ...options,
   });
 }
 

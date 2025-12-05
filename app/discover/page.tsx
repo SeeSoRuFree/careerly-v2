@@ -24,7 +24,7 @@ import { WeatherWidget } from '@/components/widgets/implementations/WeatherWidge
 import { MarketWidget } from '@/components/widgets/implementations/StockWidget/MarketWidget';
 import { AITrendWidget } from '@/components/widgets/implementations/AITrendWidget/AITrendWidget';
 
-type ContentType = 'all' | 'jobs' | 'blogs' | 'books' | 'courses';
+type ContentType = 'jobs' | 'blogs' | 'books' | 'courses';
 type CategoryType = 'recommended' | 'trending' | 'latest' | 'following';
 type LayoutType = 'grid' | 'list';
 
@@ -105,7 +105,7 @@ const widgetConfigs = {
 };
 
 export default function DiscoverPage() {
-  const [contentType, setContentType] = React.useState<ContentType>('all');
+  const [contentType, setContentType] = React.useState<ContentType>('jobs');
   const [category, setCategory] = React.useState<CategoryType>('recommended');
   const [layout, setLayout] = React.useState<LayoutType>('grid');
 
@@ -229,23 +229,21 @@ export default function DiscoverPage() {
     let cards = allContents.map(transformSomoonToCard);
 
     // Apply contentType filter
-    if (contentType !== 'all') {
-      cards = cards.filter(card => {
-        const category = card.badge?.toLowerCase() || '';
-        switch (contentType) {
-          case 'jobs':
-            return category.includes('job') || category.includes('채용');
-          case 'blogs':
-            return category.includes('blog') || category.includes('블로그');
-          case 'books':
-            return category.includes('book') || category.includes('도서');
-          case 'courses':
-            return category.includes('course') || category.includes('강의');
-          default:
-            return true;
-        }
-      });
-    }
+    cards = cards.filter(card => {
+      const category = card.badge?.toLowerCase() || '';
+      switch (contentType) {
+        case 'jobs':
+          return category.includes('job') || category.includes('채용');
+        case 'blogs':
+          return category.includes('blog') || category.includes('블로그');
+        case 'books':
+          return category.includes('book') || category.includes('도서');
+        case 'courses':
+          return category.includes('course') || category.includes('강의');
+        default:
+          return true;
+      }
+    });
 
     // Sort by timestamp (newest first)
     return cards.sort((a, b) => {
@@ -394,12 +392,6 @@ export default function DiscoverPage() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-900">콘텐츠 타입</h3>
             <div className="flex gap-2">
-              <Chip
-                variant={contentType === 'all' ? 'selected' : 'default'}
-                onClick={() => setContentType('all')}
-              >
-                전체
-              </Chip>
               <Chip
                 variant={contentType === 'jobs' ? 'selected' : 'default'}
                 onClick={() => setContentType('jobs')}

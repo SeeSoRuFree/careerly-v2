@@ -17,16 +17,33 @@ import {
   UserMinus,
   Loader2,
   Link as LinkIcon,
+  MoreVertical,
+  Flag,
+  Ban,
+  ShieldOff,
 } from 'lucide-react';
 import {
   useProfileByUserId,
-  usePosts,
-  useQuestions,
+  useInfinitePosts,
+  useInfiniteQuestions,
   useFollowStatus,
   useFollowUser,
   useUnfollowUser,
   useCurrentUser,
+  useReportContent,
+  useBlockUser,
+  useUnblockUser,
+  useIsUserBlocked,
+  CONTENT_TYPE,
 } from '@/lib/api';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { LoadMore } from '@/components/ui/load-more';
 
 function ProfileSkeleton() {
   return (
@@ -53,9 +70,22 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const { data: profile, isLoading, error } = useProfileByUserId(userId);
   const { data: currentUser } = useCurrentUser();
 
-  // 해당 사용자의 게시글/질문 가져오기
-  const { data: postsData, isLoading: isLoadingPosts } = usePosts({ user_id: userId });
-  const { data: questionsData, isLoading: isLoadingQuestions } = useQuestions({ user_id: userId });
+  // 해당 사용자의 게시글/질문 가져오기 (무한 스크롤)
+  const {
+    data: postsData,
+    isLoading: isLoadingPosts,
+    fetchNextPage: fetchNextPosts,
+    hasNextPage: hasNextPosts,
+    isFetchingNextPage: isFetchingNextPosts,
+  } = useInfinitePosts({ user_id: userId });
+
+  const {
+    data: questionsData,
+    isLoading: isLoadingQuestions,
+    fetchNextPage: fetchNextQuestions,
+    hasNextPage: hasNextQuestions,
+    isFetchingNextPage: isFetchingNextQuestions,
+  } = useInfiniteQuestions({ user_id: userId });
 
   // 팔로우 상태 조회 (로그인한 경우에만, 자기 자신이 아닐 때만)
   const isOwnProfile = currentUser?.id === userId;
@@ -67,9 +97,18 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
 
+  // 신고/차단 관련
+  const reportMutation = useReportContent();
+  const blockMutation = useBlockUser();
+  const unblockMutation = useUnblockUser();
+  const { data: isBlocked, isLoading: isLoadingBlockStatus } = useIsUserBlocked(
+    isOwnProfile ? 0 : userId
+  );
+
   const isFollowing = followStatus?.is_following ?? false;
   const isFollowedBy = followStatus?.is_followed_by ?? false;
   const isFollowLoading = followMutation.isPending || unfollowMutation.isPending;
+  const isBlockLoading = blockMutation.isPending || unblockMutation.isPending;
 
   const handleFollowToggle = () => {
     if (isFollowLoading) return;
@@ -78,6 +117,24 @@ export default function UserProfilePage({ params }: { params: { userId: string }
       unfollowMutation.mutate(userId);
     } else {
       followMutation.mutate(userId);
+    }
+  };
+
+  const handleReportProfile = () => {
+    if (!currentUser) {
+      // TODO: Show login modal
+      return;
+    }
+    reportMutation.mutate({ contentType: CONTENT_TYPE.PROFILE, contentId: userId });
+  };
+
+  const handleBlockToggle = () => {
+    if (isBlockLoading || !currentUser) return;
+
+    if (isBlocked) {
+      unblockMutation.mutate(userId);
+    } else {
+      blockMutation.mutate(userId);
     }
   };
 
@@ -138,13 +195,25 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                   <h1 className="text-2xl font-bold text-slate-900">{profile.name}</h1>
                   <p className="text-base text-slate-600 mt-2">{profile.headline || '직무 미설정'}</p>
 
-                  {/* 팔로워수, 게시글수 */}
+                  {/* 팔로워수, 팔로잉수, 게시글수 */}
                   <div className="flex items-center gap-4 mt-3 text-sm text-slate-600">
                     <div>
-                      <span className="font-semibold text-slate-900">0</span> 팔로워
+                      <span className="font-semibold text-slate-900">
+                        {profile.follower_count ?? 0}
+                      </span>{' '}
+                      팔로워
                     </div>
                     <div>
-                      <span className="font-semibold text-slate-900">0</span> 게시글
+                      <span className="font-semibold text-slate-900">
+                        {profile.following_count ?? 0}
+                      </span>{' '}
+                      팔로잉
+                    </div>
+                    <div>
+                      <span className="font-semibold text-slate-900">
+                        {postsData?.pages?.[0]?.count ?? 0}
+                      </span>{' '}
+                      게시글
                     </div>
                   </div>
 
@@ -155,25 +224,62 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                   )}
                 </div>
                 {!isOwnProfile && (
-                  <div className="flex flex-col items-end gap-1">
-                    <Button
-                      variant={isFollowing ? 'outline' : 'coral'}
-                      onClick={handleFollowToggle}
-                      disabled={isFollowLoading || isLoadingFollowStatus}
-                      className="gap-2"
-                    >
-                      {isFollowLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isFollowing ? (
-                        <UserMinus className="h-4 w-4" />
-                      ) : (
-                        <UserPlus className="h-4 w-4" />
+                  <div className="flex items-start gap-2">
+                    <div className="flex flex-col items-end gap-1">
+                      <Button
+                        variant={isFollowing ? 'outline' : 'coral'}
+                        onClick={handleFollowToggle}
+                        disabled={isFollowLoading || isLoadingFollowStatus}
+                        className="gap-2"
+                      >
+                        {isFollowLoading ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : isFollowing ? (
+                          <UserMinus className="h-4 w-4" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
+                        {isFollowing ? '팔로잉' : '팔로우'}
+                      </Button>
+                      {isFollowedBy && !isFollowing && (
+                        <span className="text-xs text-slate-500">나를 팔로우 중</span>
                       )}
-                      {isFollowing ? '팔로잉' : '팔로우'}
-                    </Button>
-                    {isFollowedBy && !isFollowing && (
-                      <span className="text-xs text-slate-500">나를 팔로우 중</span>
-                    )}
+                    </div>
+
+                    {/* Report/Block Menu */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10"
+                          aria-label="더보기"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleReportProfile} className="text-slate-700">
+                          <Flag className="h-4 w-4 mr-2" />
+                          프로필 신고하기
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={handleBlockToggle}
+                          disabled={isBlockLoading || isLoadingBlockStatus}
+                          className={isBlocked ? 'text-slate-700' : 'text-red-600'}
+                        >
+                          {isBlockLoading ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : isBlocked ? (
+                            <ShieldOff className="h-4 w-4 mr-2" />
+                          ) : (
+                            <Ban className="h-4 w-4 mr-2" />
+                          )}
+                          {isBlocked ? '차단 해제' : '이 사용자 차단하기'}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
               </div>
@@ -301,46 +407,57 @@ export default function UserProfilePage({ params }: { params: { userId: string }
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <MessageSquare className="h-4 w-4 text-slate-600" />
               게시글
-              {postsData?.count !== undefined && postsData.count > 0 && (
-                <Badge tone="default" className="ml-1">{postsData.count}</Badge>
+              {postsData?.pages?.[0]?.count !== undefined && postsData.pages[0].count > 0 && (
+                <Badge tone="default" className="ml-1">{postsData.pages[0].count}</Badge>
               )}
             </h2>
             {isLoadingPosts ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
               </div>
-            ) : !postsData?.results || postsData.results.length === 0 ? (
+            ) : !postsData?.pages || postsData.pages.flatMap(page => page.results).length === 0 ? (
               <div className="text-center py-8">
                 <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-500">작성한 게시글이 없습니다.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {postsData.results.map((post) => {
-                  const userProfile = {
-                    id: profile?.user_id || userId,
-                    name: profile?.name || post.author?.name || '',
-                    image_url: profile?.image_url || post.author?.image_url || '',
-                    headline: profile?.headline || post.author?.headline || '',
-                  };
-                  return (
-                    <CommunityFeedCard
-                      key={post.id}
-                      userProfile={userProfile}
-                      content={post.description}
-                      createdAt={post.createdat}
-                      stats={{
-                        likeCount: post.like_count || 0,
-                        replyCount: post.comment_count || 0,
-                        viewCount: post.view_count || 0,
-                      }}
-                      onClick={() => router.push(`/community?post=${post.id}`)}
-                      liked={post.is_liked}
-                      bookmarked={post.is_saved}
-                    />
-                  );
-                })}
-              </div>
+              <>
+                <div className="space-y-4">
+                  {postsData.pages.flatMap(page => page.results).map((post) => {
+                    const userProfile = {
+                      id: profile?.user_id || userId,
+                      name: profile?.name || post.author?.name || '',
+                      image_url: profile?.image_url || post.author?.image_url || '',
+                      headline: profile?.headline || post.author?.headline || '',
+                    };
+                    return (
+                      <CommunityFeedCard
+                        key={post.id}
+                        postId={post.id}
+                        authorId={post.author?.id || userId}
+                        userProfile={userProfile}
+                        content={post.description}
+                        createdAt={post.createdat}
+                        stats={{
+                          likeCount: post.like_count || 0,
+                          replyCount: post.comment_count || 0,
+                          viewCount: post.view_count || 0,
+                        }}
+                        onClick={() => router.push(`/community?post=${post.id}`)}
+                        liked={post.is_liked}
+                        bookmarked={post.is_saved}
+                      />
+                    );
+                  })}
+                </div>
+                <LoadMore
+                  hasMore={!!hasNextPosts}
+                  loading={isFetchingNextPosts}
+                  onLoadMore={fetchNextPosts}
+                  loadMoreText="게시글 더보기"
+                  endText="모든 게시글을 표시했습니다"
+                />
+              </>
             )}
           </div>
 
@@ -349,37 +466,46 @@ export default function UserProfilePage({ params }: { params: { userId: string }
             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
               <HelpCircle className="h-4 w-4 text-slate-600" />
               Q&A
-              {questionsData?.count !== undefined && questionsData.count > 0 && (
-                <Badge tone="default" className="ml-1">{questionsData.count}</Badge>
+              {questionsData?.pages?.[0]?.count !== undefined && questionsData.pages[0].count > 0 && (
+                <Badge tone="default" className="ml-1">{questionsData.pages[0].count}</Badge>
               )}
             </h2>
             {isLoadingQuestions ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
               </div>
-            ) : !questionsData?.results || questionsData.results.length === 0 ? (
+            ) : !questionsData?.pages || questionsData.pages.flatMap(page => page.results).length === 0 ? (
               <div className="text-center py-8">
                 <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                 <p className="text-slate-500">작성한 질문이 없습니다.</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {questionsData.results.map((question) => (
-                  <QnaCard
-                    key={question.id}
-                    qnaId={question.id}
-                    title={question.title}
-                    description=""
-                    createdAt={question.createdat}
-                    answerCount={question.answer_count || 0}
-                    likeCount={question.like_count || 0}
-                    viewCount={0}
-                    status={question.status}
-                    liked={question.is_liked}
-                    onClick={() => router.push(`/community?qna=${question.id}`)}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="space-y-4">
+                  {questionsData.pages.flatMap(page => page.results).map((question) => (
+                    <QnaCard
+                      key={question.id}
+                      qnaId={question.id}
+                      title={question.title}
+                      description=""
+                      createdAt={question.createdat}
+                      answerCount={question.answer_count || 0}
+                      likeCount={question.like_count || 0}
+                      viewCount={0}
+                      status={question.status}
+                      liked={question.is_liked}
+                      onClick={() => router.push(`/community?qna=${question.id}`)}
+                    />
+                  ))}
+                </div>
+                <LoadMore
+                  hasMore={!!hasNextQuestions}
+                  loading={isFetchingNextQuestions}
+                  onLoadMore={fetchNextQuestions}
+                  loadMoreText="질문 더보기"
+                  endText="모든 질문을 표시했습니다"
+                />
+              </>
             )}
           </div>
         </div>

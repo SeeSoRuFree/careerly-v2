@@ -74,10 +74,12 @@ export function useFollowUser(
   return useMutation<void, Error, number>({
     mutationFn: (userId) => followUser(String(userId)),
     onSuccess: (_, userId) => {
-      // 팔로잉 목록 무효화
-      queryClient.invalidateQueries({ queryKey: userKeys.following(String(userId)) });
       // 팔로우 상태 캐시 무효화
       queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
+      // 내 팔로잉 목록 무효화 (내가 팔로우하는 사람 목록)
+      queryClient.invalidateQueries({ queryKey: ['user', 'following'] });
+      // 해당 유저의 프로필 무효화 (팔로워 수 업데이트)
+      queryClient.invalidateQueries({ queryKey: ['profile', 'user', userId] });
 
       toast.success('팔로우했습니다.');
     },
@@ -99,10 +101,12 @@ export function useUnfollowUser(
   return useMutation<void, Error, number>({
     mutationFn: (userId) => unfollowUser(String(userId)),
     onSuccess: (_, userId) => {
-      // 팔로잉 목록 무효화
-      queryClient.invalidateQueries({ queryKey: userKeys.following(String(userId)) });
       // 팔로우 상태 캐시 무효화
       queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
+      // 내 팔로잉 목록 무효화 (내가 팔로우하는 사람 목록)
+      queryClient.invalidateQueries({ queryKey: ['user', 'following'] });
+      // 해당 유저의 프로필 무효화 (팔로워 수 업데이트)
+      queryClient.invalidateQueries({ queryKey: ['profile', 'user', userId] });
 
       toast.success('언팔로우했습니다.');
     },

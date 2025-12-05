@@ -282,7 +282,7 @@ export async function uploadPostImage(file: File): Promise<ImageUploadResponse> 
     formData.append('image', file);
 
     const response = await authClient.post<ImageUploadResponse>(
-      '/api/v1/posts/upload-image/',
+      '/api/v1/posts/images/',
       formData,
       {
         headers: {

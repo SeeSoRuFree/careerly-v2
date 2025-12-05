@@ -15,6 +15,7 @@ const buttonVariants = cva(
         ghost: "text-slate-700 hover:bg-slate-100",
         link: "text-slate-700 underline-offset-4 hover:underline hover:text-slate-800",
         coral: "bg-coral-500 text-white hover:bg-coral-600",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
       },
       size: {
         sm: "h-8 px-3 text-xs rounded",

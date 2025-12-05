@@ -66,6 +66,8 @@ export default function CommunityComponentsPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-3">텍스트 전용 피드</p>
                   <CommunityFeedCard
+                    postId={1}
+                    authorId={1}
                     userProfile={sampleUserProfile}
                     content="냉장 기술로 돈을 가장 크게 버는 회사는, 냉장 기술을 보유한 회사도 아니고 냉장고 회사도 아니고 코카콜라라고한다. 같은 것으로, 금으로 가장 돈을 많이 버는 회사는 금광 회사도 아니고 청바지 회사도 아니고 Nvidia나 애플같은데라는 사실."
                     createdAt="2025-09-12 04:48:02"
@@ -87,6 +89,8 @@ export default function CommunityComponentsPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-3">이미지 포함 피드</p>
                   <CommunityFeedCard
+                    postId={2}
+                    authorId={1}
                     userProfile={sampleUserProfile}
                     content="React 19의 새로운 기능들을 정리해봤습니다! 특히 Server Components와 Actions가 인상적이네요."
                     createdAt="3시간 전"
@@ -109,6 +113,8 @@ export default function CommunityComponentsPage() {
                 <div>
                   <p className="text-sm font-semibold text-slate-700 mb-3">다중 이미지 피드</p>
                   <CommunityFeedCard
+                    postId={3}
+                    authorId={1}
                     userProfile={sampleUserProfile}
                     content="오늘 다녀온 개발자 컨퍼런스 사진들 공유합니다!"
                     createdAt="5시간 전"

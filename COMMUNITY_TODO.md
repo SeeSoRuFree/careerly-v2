@@ -47,7 +47,6 @@
 | 15 | **답변 채택** | `POST /api/v1/answers/{id}/accept/` | HIGH |
 | 16 | **리포스트** | `POST /api/v1/posts/{id}/repost/` | MEDIUM |
 | 17 | **팔로잉 피드 필터** | `GET /api/v1/posts/?following=true` | MEDIUM |
-| 18 | **포스트 이미지 업로드** | `POST /api/v1/posts/upload-image/` | LOW |
 
 ---
 
@@ -55,10 +54,9 @@
 
 | 분류 | 항목 수 | 설명 |
 |------|---------|------|
-| ✅ 완료 (프론트만) | 9개 | UI 개선 + 기능 구현 + 하드코딩 제거 |
-| ⏳ 미완료 (프론트만) | 2개 | Q&A 미리보기/드로어 텍스트 |
-| ❌ 백엔드 필요 | 7개 | 새 API 엔드포인트 필요 |
-| **총계** | **18개** | |
+| ✅ 완료 (프론트만) | 11개 | UI 개선 + 기능 구현 + 하드코딩 제거 |
+| ❌ 백엔드 필요 | 6개 | 새 API 엔드포인트 필요 |
+| **총계** | **17개** | |
 
 ---
 
@@ -112,23 +110,30 @@ lib/api/services/
 
 ---
 
-## 📋 작업 현황 (2025-12-02)
+## 📋 작업 현황 (2025-12-05)
 
 | 상태 | 항목 수 |
 |------|---------|
-| ✅ 완료 | 9개 |
-| ❌ 백엔드 필요 | 7개 |
-| **총계** | **16개** |
+| ✅ 완료 | 11개 |
+| ❌ 백엔드 필요 | 6개 |
+| **총계** | **17개** |
 
 ### 완료된 주요 변경 파일
 - `components/ui/top-posts-panel.tsx` - 인기글 프로필 이미지 + 테두리
 - `app/community/page.tsx` - 피드 like_count, liked 상태, 카드 정렬, 공유, 팔로우
-- `app/community/new/post/page.tsx` - 임시저장
-- `components/ui/post-detail.tsx` - 댓글 아바타 currentUser
+- `app/community/new/post/page.tsx` - 임시저장, 이미지 업로드
+- `components/ui/post-detail.tsx` - 댓글 아바타 currentUser, HTML 콘텐츠 렌더링
 - `components/ui/qna-detail.tsx` - 답변 아바타 currentUser
 - `app/community/post/[postId]/page.tsx` - currentUser 전달
 - `app/community/qna/[qnaId]/page.tsx` - currentUser 전달
+- `lib/api/services/posts.service.ts` - 이미지 업로드 API 수정
+- `lib/api/types/posts.types.ts` - ImageUploadResponse, PostCreateRequest 타입 수정
+
+### 백엔드 변경 파일
+- `api/views/post.py` - descriptionhtml 저장 지원
+- `api/serializers/post.py` - descriptionhtml 필드 추가
+- `api/views/image_upload.py` - 이미지 업로드 엔드포인트 구현 완료
 
 ---
 
-> 마지막 업데이트: 2025-12-02
+> 마지막 업데이트: 2025-12-05

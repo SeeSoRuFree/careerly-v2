@@ -13,7 +13,7 @@ import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers
 import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare } from 'lucide-react';
+import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers } from '@/lib/api';
 import { toast } from 'sonner';
@@ -177,7 +177,7 @@ function PostDetailDrawerContent({
           replyCount: commentsData?.count || post.comment_count || 0,
           viewCount: post.view_count || 0,
         }}
-        imageUrls={[]}
+        imageUrls={post.images || []}
         comments={transformedComments}
         onLike={onLike}
         onShare={() => {
@@ -755,6 +755,7 @@ function CommunityPageContent() {
                     variant={contentFilter === 'qna' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('qna')}
                   >
+                    <HelpCircle className="h-4 w-4" />
                     Q&A
                   </Chip>
                   {user && (
@@ -831,6 +832,8 @@ function CommunityPageContent() {
                   return (
                     <div key={`feed-${post.id}`} className="mb-6">
                       <CommunityFeedCard
+                        postId={post.id}
+                        authorId={post.author?.id || post.userid}
                         userProfile={userProfile}
                         content={post.description}
                         createdAt={post.createdat}
@@ -839,7 +842,7 @@ function CommunityPageContent() {
                           replyCount: post.comment_count || 0,
                           viewCount: post.view_count || 0,
                         }}
-                        imageUrls={[]} // Not available in list view
+                        imageUrls={post.images || []}
                         onClick={() => handleOpenPost(post.id.toString(), userProfile)}
                         onLike={() => handleLikePost(post.id)}
                         onShare={() => handleShare(post.id.toString())}

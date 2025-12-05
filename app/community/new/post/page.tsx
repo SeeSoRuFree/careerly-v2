@@ -197,8 +197,9 @@ export default function NewPostPage() {
 
     try {
       await createPostMutation.mutateAsync({
-        title: title,
+        title: title || undefined,
         description: editor.getText(),
+        descriptionhtml: editor.getHTML(),
         posttype: 0, // Regular post
       });
 
@@ -240,16 +241,16 @@ export default function NewPostPage() {
       return;
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('이미지 크기는 5MB 이하여야 합니다');
+    // Validate file size (max 10MB to match backend limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('이미지 크기는 10MB 이하여야 합니다');
       return;
     }
 
     try {
       const result = await uploadImageMutation.mutateAsync(file);
-      if (result.url) {
-        editor?.chain().focus().setImage({ src: result.url }).run();
+      if (result.image_url) {
+        editor?.chain().focus().setImage({ src: result.image_url }).run();
       }
     } catch (error) {
       // Error toast is handled by the mutation hook

@@ -8,9 +8,19 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/lib/api';
+import { useStore } from '@/hooks/useStore';
+import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban } from 'lucide-react';
 
 const linkifyOptions = {
   className: 'text-coral-500 hover:text-coral-600 underline',
@@ -35,6 +45,8 @@ export interface PostStats {
 }
 
 export interface CommunityFeedCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  postId: number;
+  authorId: number;
   userProfile: UserProfile;
   content: string;
   contentHtml?: string;
@@ -55,6 +67,8 @@ export interface CommunityFeedCardProps extends React.HTMLAttributes<HTMLDivElem
 export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedCardProps>(
   (
     {
+      postId,
+      authorId,
       userProfile,
       content,
       contentHtml,
@@ -76,17 +90,49 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     ref
   ) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const [blockDialogOpen, setBlockDialogOpen] = useState(false);
     const MAX_LENGTH = 300;
 
-    // Optimistic Update를 위한 로컬 state
-    const [localLiked, setLocalLiked] = useState(liked);
-    const [localLikeCount, setLocalLikeCount] = useState(stats?.likeCount ?? 0);
+    // Auth & Report/Block hooks
+    const { data: currentUser } = useCurrentUser();
+    const reportMutation = useReportContent();
+    const blockMutation = useBlockUser();
 
-    // props가 변경되면 로컬 state도 업데이트
-    React.useEffect(() => {
-      setLocalLiked(liked);
-      setLocalLikeCount(stats?.likeCount ?? 0);
-    }, [liked, stats?.likeCount]);
+    const isOwnPost = currentUser?.id === authorId;
+
+    const handleReport = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!currentUser) {
+        useStore.getState().openLoginModal();
+        return;
+      }
+      setReportDialogOpen(true);
+    };
+
+    const handleReportConfirm = () => {
+      reportMutation.mutate(
+        { contentType: CONTENT_TYPE.POST, contentId: postId },
+        {
+          onSettled: () => setReportDialogOpen(false),
+        }
+      );
+    };
+
+    const handleBlock = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!currentUser) {
+        useStore.getState().openLoginModal();
+        return;
+      }
+      setBlockDialogOpen(true);
+    };
+
+    const handleBlockConfirm = () => {
+      blockMutation.mutate(authorId, {
+        onSettled: () => setBlockDialogOpen(false),
+      });
+    };
 
     // contentHtml이 있는 경우 텍스트로 변환하여 길이 체크
     const getPlainText = () => {
@@ -107,9 +153,9 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     if (onLike) {
       actions.push({
         id: 'like',
-        icon: <Heart className={cn('h-5 w-5', localLiked && 'fill-current text-coral-500')} />,
-        label: localLikeCount ? `${localLikeCount}` : '0',
-        pressed: localLiked,
+        icon: <Heart className={cn('h-5 w-5', liked && 'fill-current text-coral-500')} />,
+        label: stats?.likeCount ? `${stats.likeCount}` : '0',
+        pressed: liked,
       });
     }
 
@@ -124,9 +170,6 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     const handleAction = (actionId: string) => {
       switch (actionId) {
         case 'like':
-          // Optimistic Update
-          setLocalLiked(!localLiked);
-          setLocalLikeCount(prev => localLiked ? prev - 1 : prev + 1);
           onLike?.();
           break;
         case 'share':
@@ -176,6 +219,30 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
               )}
             </div>
           </Link>
+
+          {/* Report/Block Menu - Only show for others' posts */}
+          {!isOwnPost && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                onClick={(e) => e.stopPropagation()}
+                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                aria-label="더보기"
+              >
+                <MoreVertical className="h-4 w-4 text-slate-600" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={handleReport} className="text-slate-700">
+                  <Flag className="h-4 w-4 mr-2" />
+                  신고하기
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleBlock} className="text-red-600">
+                  <Ban className="h-4 w-4 mr-2" />
+                  이 사용자 차단하기
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Content */}
@@ -259,7 +326,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         )}
 
         {/* Stats Row */}
-        {stats && (stats.viewCount || localLikeCount || stats.replyCount) && (
+        {stats && (stats.viewCount || stats.likeCount || stats.replyCount) && (
           <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
@@ -271,10 +338,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
                 <span>{stats.viewCount.toLocaleString()} 조회</span>
               </div>
             )}
-            {localLikeCount > 0 && (
+            {stats.likeCount !== undefined && stats.likeCount > 0 && (
               <div className="flex items-center gap-1">
                 <Heart className="h-3.5 w-3.5" />
-                <span>{localLikeCount.toLocaleString()} 좋아요</span>
+                <span>{stats.likeCount.toLocaleString()} 좋아요</span>
               </div>
             )}
             {stats.replyCount !== undefined && stats.replyCount > 0 && (
@@ -308,6 +375,27 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             )}
           </div>
         )}
+
+        {/* Confirm Dialogs */}
+        <ConfirmDialog
+          isOpen={reportDialogOpen}
+          onClose={() => setReportDialogOpen(false)}
+          onConfirm={handleReportConfirm}
+          title="게시글 신고"
+          description="이 게시글을 신고하시겠습니까? 신고된 게시글은 검토 후 조치됩니다."
+          confirmText="신고하기"
+          isLoading={reportMutation.isPending}
+        />
+        <ConfirmDialog
+          isOpen={blockDialogOpen}
+          onClose={() => setBlockDialogOpen(false)}
+          onConfirm={handleBlockConfirm}
+          title="사용자 차단"
+          description="이 사용자를 차단하시겠습니까? 차단하면 해당 사용자의 게시글이 피드에 표시되지 않습니다."
+          confirmText="차단하기"
+          variant="danger"
+          isLoading={blockMutation.isPending}
+        />
       </Card>
     );
   }

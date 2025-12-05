@@ -1017,6 +1017,8 @@ function ProfilePageContent() {
                         return (
                           <CommunityFeedCard
                             key={post.id}
+                            postId={post.id}
+                            authorId={post.author?.id || currentUser?.id || 0}
                             userProfile={userProfile}
                             content={post.description}
                             createdAt={post.createdat}
@@ -1121,6 +1123,8 @@ function ProfilePageContent() {
                         return (
                           <CommunityFeedCard
                             key={post.id}
+                            postId={post.id}
+                            authorId={post.author?.id || post.userid}
                             userProfile={userProfile}
                             content={post.description}
                             createdAt={post.createdat}

@@ -60,14 +60,16 @@ export interface PostListItem {
   is_liked: boolean;
   is_saved: boolean;
   is_reposted: boolean;
+  images?: string[];
 }
 
 /**
  * 게시물 생성 요청
  */
 export interface PostCreateRequest {
-  title: string;
+  title?: string;
   description: string;
+  descriptionhtml?: string;
   posttype?: PostType;
   articleid?: number;
   images?: string[];
@@ -87,7 +89,9 @@ export interface PostUpdateRequest {
  * 이미지 업로드 응답
  */
 export interface ImageUploadResponse {
-  url: string;
+  success: boolean;
+  image_url: string;
+  image_id: number;
 }
 
 /**

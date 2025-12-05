@@ -86,7 +86,7 @@ export async function searchUsers(query: string): Promise<User[]> {
  */
 export async function followUser(userId: string): Promise<void> {
   try {
-    await authClient.post(`/users/${userId}/follow`);
+    await authClient.post(`/api/v1/users/${userId}/follow/`);
   } catch (error) {
     throw handleApiError(error);
   }
@@ -97,7 +97,7 @@ export async function followUser(userId: string): Promise<void> {
  */
 export async function unfollowUser(userId: string): Promise<void> {
   try {
-    await authClient.delete(`/users/${userId}/follow`);
+    await authClient.delete(`/api/v1/users/${userId}/follow/`);
   } catch (error) {
     throw handleApiError(error);
   }
@@ -108,7 +108,7 @@ export async function unfollowUser(userId: string): Promise<void> {
  */
 export async function getFollowers(userId: string): Promise<User[]> {
   try {
-    const response = await authClient.get<{ data: User[] }>(`/users/${userId}/followers`);
+    const response = await authClient.get<{ data: User[] }>(`/api/v1/users/${userId}/followers/`);
     return response.data.data;
   } catch (error) {
     throw handleApiError(error);
@@ -120,7 +120,7 @@ export async function getFollowers(userId: string): Promise<User[]> {
  */
 export async function getFollowing(userId: string): Promise<User[]> {
   try {
-    const response = await authClient.get<{ data: User[] }>(`/users/${userId}/following`);
+    const response = await authClient.get<{ data: User[] }>(`/api/v1/users/${userId}/following/`);
     return response.data.data;
   } catch (error) {
     throw handleApiError(error);

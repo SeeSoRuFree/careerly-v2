@@ -7,9 +7,19 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock, ChevronDown } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/lib/api';
+import { useStore } from '@/hooks/useStore';
+import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban } from 'lucide-react';
 
 const linkifyOptions = {
   className: 'text-coral-500 hover:text-coral-600 underline',
@@ -75,7 +85,50 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
     ref
   ) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [reportDialogOpen, setReportDialogOpen] = useState(false);
+    const [blockDialogOpen, setBlockDialogOpen] = useState(false);
     const MAX_LENGTH = 300;
+
+    // Auth & Report/Block hooks
+    const { data: currentUser } = useCurrentUser();
+    const reportMutation = useReportContent();
+    const blockMutation = useBlockUser();
+
+    const isOwnQuestion = author && currentUser?.id === author.id;
+
+    const handleReport = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!currentUser) {
+        useStore.getState().openLoginModal();
+        return;
+      }
+      setReportDialogOpen(true);
+    };
+
+    const handleReportConfirm = () => {
+      reportMutation.mutate(
+        { contentType: CONTENT_TYPE.QUESTION, contentId: qnaId },
+        {
+          onSettled: () => setReportDialogOpen(false),
+        }
+      );
+    };
+
+    const handleBlock = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!currentUser || !author) {
+        useStore.getState().openLoginModal();
+        return;
+      }
+      setBlockDialogOpen(true);
+    };
+
+    const handleBlockConfirm = () => {
+      if (!author) return;
+      blockMutation.mutate(author.id, {
+        onSettled: () => setBlockDialogOpen(false),
+      });
+    };
 
     const tags = hashTagNames ? hashTagNames.split(' ').filter(Boolean) : [];
     const hasAnswer = answerCount > 0;
@@ -127,6 +180,30 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
               <Badge tone="coral" className="text-xs">
                 미답변
               </Badge>
+            )}
+
+            {/* Report/Block Menu - Only show for others' questions */}
+            {author && !isOwnQuestion && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                  aria-label="더보기"
+                >
+                  <MoreVertical className="h-4 w-4 text-slate-600" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem onClick={handleReport} className="text-slate-700">
+                    <Flag className="h-4 w-4 mr-2" />
+                    신고하기
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleBlock} className="text-red-600">
+                    <Ban className="h-4 w-4 mr-2" />
+                    이 사용자 차단하기
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
@@ -236,6 +313,27 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
             </div>
           )}
         </div>
+
+        {/* Confirm Dialogs */}
+        <ConfirmDialog
+          isOpen={reportDialogOpen}
+          onClose={() => setReportDialogOpen(false)}
+          onConfirm={handleReportConfirm}
+          title="질문 신고"
+          description="이 질문을 신고하시겠습니까? 신고된 질문은 검토 후 조치됩니다."
+          confirmText="신고하기"
+          isLoading={reportMutation.isPending}
+        />
+        <ConfirmDialog
+          isOpen={blockDialogOpen}
+          onClose={() => setBlockDialogOpen(false)}
+          onConfirm={handleBlockConfirm}
+          title="사용자 차단"
+          description="이 사용자를 차단하시겠습니까? 차단하면 해당 사용자의 질문이 피드에 표시되지 않습니다."
+          confirmText="차단하기"
+          variant="danger"
+          isLoading={blockMutation.isPending}
+        />
       </Card>
     );
   }

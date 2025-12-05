@@ -54,6 +54,8 @@ export default function BookmarksPage() {
             {posts.map((post) => (
               <CommunityFeedCard
                 key={post.id}
+                postId={post.id}
+                authorId={post.author?.id || post.userid}
                 userProfile={{
                   id: post.author?.id || post.userid,
                   name: post.author?.name || '알 수 없음',

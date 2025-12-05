@@ -90,6 +90,7 @@ export interface QuestionUpdateRequest {
  * 답변 생성 요청
  */
 export interface AnswerCreateRequest {
+  question_id: number;
   description: string;
 }
 

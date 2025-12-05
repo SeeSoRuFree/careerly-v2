@@ -4,12 +4,13 @@
  */
 
 import { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { getMemoryToken, clearMemoryToken } from './token.client';
+import { getMemoryToken, setMemoryToken, clearMemoryToken } from './token.client';
 import { useStore } from '@/hooks/useStore';
 
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string) => void> = [];
 let refreshRejectSubscribers: Array<(error: Error) => void> = [];
+let sessionExpiredNotified = false;
 
 /**
  * 토큰 갱신 대기 중인 요청들을 등록
@@ -38,6 +39,13 @@ function onTokenRefreshFailed(error: Error): void {
   refreshRejectSubscribers.forEach((callback) => callback(error));
   refreshSubscribers = [];
   refreshRejectSubscribers = [];
+}
+
+/**
+ * 로그인 성공 시 세션 만료 플래그 리셋
+ */
+export function resetSessionExpired(): void {
+  sessionExpiredNotified = false;
 }
 
 /**
@@ -72,6 +80,11 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
       // 인증 관련 엔드포인트는 토큰 갱신 시도하지 않음 (무한 루프 방지)
       const url = originalRequest.url || '';
       if (url.includes('/auth/refresh') || url.includes('/auth/login') || url.includes('/auth/logout')) {
+        return Promise.reject(error);
+      }
+
+      // 이미 세션이 만료된 상태면 refresh 시도하지 않음
+      if (sessionExpiredNotified) {
         return Promise.reject(error);
       }
 
@@ -111,6 +124,9 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         const data = await response.json();
         const newToken = data.access;
 
+        // 메모리에 새 토큰 저장 (SSE 등에서 사용)
+        setMemoryToken(newToken);
+
         // 새 토큰으로 헤더 업데이트
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
@@ -131,12 +147,28 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
         const error = refreshError instanceof Error ? refreshError : new Error('Token refresh failed');
         onTokenRefreshFailed(error);
 
-        // POST/PUT/DELETE/PATCH 요청에서만 로그인 모달 열기 (액션 수행 시도)
-        // GET 요청은 단순 데이터 조회이므로 조용히 처리
-        const method = originalRequest.method?.toUpperCase();
-        const isActionRequest = method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+        // BE에 로그아웃 요청 (쿠키 정리) - 에러 무시
+        try {
+          const { API_CONFIG } = await import('../config');
+          await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/auth/logout/`, {
+            method: 'POST',
+            credentials: 'include',
+          });
+        } catch {
+          // 로그아웃 실패해도 무시
+        }
 
-        if (isActionRequest) {
+        // 세션 만료 알림 및 로그인 모달 (중복 방지)
+        if (!sessionExpiredNotified) {
+          sessionExpiredNotified = true;
+
+          // Sonner toast 동적 import
+          import('sonner').then(({ toast }) => {
+            toast.error('세션이 만료되었습니다. 다시 로그인해주세요.');
+          }).catch(() => {
+            // Toast 로드 실패해도 무시
+          });
+
           useStore.getState().openLoginModal();
         }
 

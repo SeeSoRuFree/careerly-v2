@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';
 import {
   getQuestions,
   getQuestion,
@@ -64,11 +64,14 @@ export function useQuestions(
 /**
  * 질문 무한 스크롤 훅
  */
-export function useInfiniteQuestions() {
-  return useInfiniteQuery({
-    queryKey: questionKeys.lists(),
-    queryFn: ({ pageParam = 1 }) => getQuestions({ page: pageParam as number }),
-    getNextPageParam: (lastPage: PaginatedQuestionResponse, allPages: PaginatedQuestionResponse[]) => {
+export function useInfiniteQuestions(
+  params?: Omit<GetQuestionsParams, 'page'>,
+  options?: Omit<UseInfiniteQueryOptions<PaginatedQuestionResponse, Error, InfiniteData<PaginatedQuestionResponse>, readonly unknown[], number>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+) {
+  return useInfiniteQuery<PaginatedQuestionResponse, Error, InfiniteData<PaginatedQuestionResponse>, readonly unknown[], number>({
+    queryKey: [...questionKeys.lists(), params],
+    queryFn: ({ pageParam }) => getQuestions({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
       // next가 있으면 다음 페이지 번호 반환
       if (lastPage.next) {
         return allPages.length + 1;
@@ -78,6 +81,7 @@ export function useInfiniteQuestions() {
     initialPageParam: 1,
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
+    ...options,
   });
 }
 

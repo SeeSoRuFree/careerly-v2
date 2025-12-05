@@ -172,6 +172,18 @@ export type {
   DeleteAccountResponse,
 } from './services/settings.service';
 
+// Report Service
+export { reportContent } from './services/report.service';
+export { CONTENT_TYPE } from './types/report.types';
+
+// Block Service
+export {
+  blockUser,
+  unblockUser,
+  isUserBlocked,
+  getBlockedUsers,
+} from './services/block.service';
+
 // ============================================================
 // React Query Hooks - Queries
 // ============================================================
@@ -278,6 +290,13 @@ export {
   settingsKeys,
 } from './hooks/queries/useSettings';
 
+// Block Queries
+export {
+  useIsUserBlocked,
+  useBlockedUsers,
+  blockKeys,
+} from './hooks/queries/useBlock';
+
 // ============================================================
 // React Query Hooks - Mutations
 // ============================================================
@@ -380,6 +399,15 @@ export {
   useRequestDeleteAccount,
 } from './hooks/mutations/useSettingsMutations';
 
+// Report Mutations
+export { useReportContent } from './hooks/mutations/useReportMutations';
+
+// Block Mutations
+export {
+  useBlockUser,
+  useUnblockUser,
+} from './hooks/mutations/useBlockMutations';
+
 // ============================================================
 // Types
 // ============================================================
@@ -469,6 +497,18 @@ export type {
   ProfileSkill,
   ProfileSite,
   CareerDuration,
+
+  // Report Types
+  ReportRequest,
+  ReportResponse,
+  ContentType,
+
+  // Block Types
+  BlockResponse,
+  UnblockResponse,
+  IsBlockedResponse,
+  BlockedUser,
+  PaginatedBlockedUsersResponse,
 } from './types';
 
 // Somoon Types

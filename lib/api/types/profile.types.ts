@@ -89,6 +89,8 @@ export interface ProfileDetail {
   skills: ProfileSkill[];
   sites: ProfileSite[];
   career_duration: CareerDuration | null;
+  follower_count?: number;
+  following_count?: number;
 }
 
 /**
