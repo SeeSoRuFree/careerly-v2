@@ -18,7 +18,18 @@ import {
   Clock,
   Send,
   X,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { formatRelativeTime } from '@/lib/utils/date';
 
 const linkifyOptions = {
@@ -57,6 +68,7 @@ export interface PostStats {
 
 export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   postId: string;
+  authorId?: number;
   userProfile: UserProfile;
   content: string;
   contentHtml?: string;
@@ -67,6 +79,8 @@ export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   onLike?: () => void;
   onShare?: () => void;
   onBookmark?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   onCommentLike?: (commentId: number) => void;
   onCommentSubmit?: (content: string) => void;
   liked?: boolean;
@@ -75,6 +89,7 @@ export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   sharedAiContent?: string;
   onClearSharedContent?: () => void;
   currentUser?: {
+    id?: number;
     name: string;
     image_url?: string;
   };
@@ -84,6 +99,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
   (
     {
       postId,
+      authorId,
       userProfile,
       content,
       contentHtml,
@@ -94,6 +110,8 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       onLike,
       onShare,
       onBookmark,
+      onEdit,
+      onDelete,
       onCommentLike,
       onCommentSubmit,
       liked = false,
@@ -108,6 +126,14 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
     ref
   ) => {
     const [commentInput, setCommentInput] = React.useState('');
+    const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+
+    const isOwnPost = currentUser?.id !== undefined && (authorId === currentUser.id || userProfile.id === currentUser.id);
+
+    const handleDeleteConfirm = () => {
+      onDelete?.();
+      setDeleteDialogOpen(false);
+    };
 
     React.useEffect(() => {
       if (sharedAiContent) {
@@ -166,27 +192,56 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           )}
 
           {/* Author Profile */}
-          <a
-            href={`/profile/${userProfile.id}`}
-            className="flex items-center gap-3 mb-4 hover:opacity-80 transition-opacity"
-          >
-            <Avatar className="h-10 w-10">
-              {userProfile.image_url && (
-                <AvatarImage src={userProfile.image_url} alt={userProfile.name} />
-              )}
-              <AvatarFallback className="text-sm font-medium">
-                {userProfile.name?.charAt(0) || '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-slate-900 truncate">{userProfile.name}</p>
-              {(userProfile.headline || userProfile.title) && (
-                <p className="text-sm text-slate-500 truncate">
-                  {userProfile.headline || userProfile.title}
-                </p>
-              )}
-            </div>
-          </a>
+          <div className="flex items-start justify-between mb-4">
+            <a
+              href={`/profile/${userProfile.id}`}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+            >
+              <Avatar className="h-10 w-10">
+                {userProfile.image_url && (
+                  <AvatarImage src={userProfile.image_url} alt={userProfile.name} />
+                )}
+                <AvatarFallback className="text-sm font-medium">
+                  {userProfile.name?.charAt(0) || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-900 truncate">{userProfile.name}</p>
+                {(userProfile.headline || userProfile.title) && (
+                  <p className="text-sm text-slate-500 truncate">
+                    {userProfile.headline || userProfile.title}
+                  </p>
+                )}
+              </div>
+            </a>
+
+            {/* Edit/Delete Menu for own posts */}
+            {isOwnPost && (onEdit || onDelete) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                  aria-label="더보기"
+                >
+                  <MoreVertical className="h-4 w-4 text-slate-600" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onEdit && (
+                    <DropdownMenuItem onClick={onEdit} className="text-slate-700">
+                      <Pencil className="h-4 w-4 mr-2" />
+                      수정하기
+                    </DropdownMenuItem>
+                  )}
+                  {onEdit && onDelete && <DropdownMenuSeparator />}
+                  {onDelete && (
+                    <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      삭제하기
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
           {/* Content */}
           <div className="mb-3">
@@ -476,6 +531,17 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="게시글 삭제"
+          description="이 게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다."
+          confirmText="삭제하기"
+          variant="danger"
+        />
       </div>
     );
   }

@@ -146,7 +146,7 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
           className={cn(
             'group relative overflow-hidden transition-all duration-300',
             'hover:translate-y-[-2px]',
-            'flex flex-row gap-3',
+            'flex flex-col sm:flex-row gap-3',
             (href || onCardClick) && 'cursor-pointer',
             className
           )}
@@ -155,7 +155,7 @@ export const DiscoverContentCard = React.forwardRef<HTMLDivElement, DiscoverCont
         >
           {/* Thumbnail - 이미지가 있을 때만 표시 */}
           {thumbnailUrl && (
-            <div className="relative overflow-hidden rounded-lg shrink-0 w-80">
+            <div className="relative overflow-hidden rounded-lg shrink-0 w-full sm:w-80">
               {usePlainImg ? (
                 <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
                   <img

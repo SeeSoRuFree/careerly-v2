@@ -15,7 +15,7 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers } from '@/lib/api';
+import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
@@ -46,12 +46,16 @@ function PostDetailDrawerContent({
   isSaved,
   onLike,
   onBookmark,
+  onEdit,
+  onDelete,
 }: {
   postId: string;
   isLiked: boolean;
   isSaved: boolean;
   onLike: () => void;
   onBookmark: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const { data: post, isLoading, error } = usePost(Number(postId));
   const { data: user } = useCurrentUser();
@@ -168,6 +172,7 @@ function PostDetailDrawerContent({
     <div className="p-4">
       <PostDetail
         postId={postId}
+        authorId={post.author?.id || post.userid}
         userProfile={userProfile}
         content={post.description}
         contentHtml={post.descriptionhtml}
@@ -186,11 +191,13 @@ function PostDetailDrawerContent({
           toast.success('링크가 복사되었습니다');
         }}
         onBookmark={onBookmark}
+        onEdit={onEdit}
+        onDelete={onDelete}
         onCommentLike={handleCommentLike}
         onCommentSubmit={handleCommentSubmit}
         liked={isLiked}
         bookmarked={isSaved}
-        currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
+        currentUser={user ? { id: user.id, name: user.name, image_url: user.image_url } : undefined}
       />
     </div>
   );
@@ -326,6 +333,7 @@ function CommunityPageContent() {
   const unlikePost = useUnlikePost();
   const savePost = useSavePost();
   const unsavePost = useUnsavePost();
+  const deletePost = useDeletePost();
   const likeQuestion = useLikeQuestion();
   const unlikeQuestion = useUnlikeQuestion();
   const followUser = useFollowUser();
@@ -608,6 +616,16 @@ function CommunityPageContent() {
     }
   };
 
+  // 수정 핸들러
+  const handleEditPost = (postId: number) => {
+    router.push(`/community/edit/post/${postId}`);
+  };
+
+  // 삭제 핸들러
+  const handleDeletePost = (postId: number) => {
+    deletePost.mutate(postId);
+  };
+
   const handleLoadMore = () => {
     if (contentFilter === 'feed') {
       if (hasNextPosts && !isFetchingNextPosts) {
@@ -728,22 +746,21 @@ function CommunityPageContent() {
   }, [recommendedFollowersData]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">
       {/* Main Content */}
-      <main className="lg:col-span-9">
+      <main className="lg:col-span-9 min-w-0">
         <div className="space-y-4">
           {/* Header Section */}
-          <div className="pt-16 pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="h-10 w-10 text-slate-700" />
-                  <h1 className="text-3xl font-bold text-slate-900">Community</h1>
-                </div>
+          <div className="pt-2 md:pt-16 pb-4">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              {/* 타이틀 - PC에서만 표시 (모바일은 AppLayout 헤더에 표시) */}
+              <div className="hidden md:flex items-center gap-3">
+                <MessageSquare className="h-10 w-10 text-slate-700" />
+                <h1 className="text-3xl font-bold text-slate-900">Community</h1>
               </div>
 
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between md:justify-end gap-3">
+                <div className="flex items-center gap-2 overflow-x-auto">
                   <Chip
                     variant={contentFilter === 'feed' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('feed')}
@@ -771,10 +788,10 @@ function CommunityPageContent() {
                 <Button
                   variant="coral"
                   onClick={handleWriteClick}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 shrink-0"
                 >
                   <PenSquare className="h-4 w-4" />
-                  글쓰기
+                  <span className="hidden sm:inline">글쓰기</span>
                 </Button>
               </div>
             </div>
@@ -802,39 +819,36 @@ function CommunityPageContent() {
             </div>
           )}
 
-          {/* Masonry 2-Column Layout */}
+          {/* Feed Layout */}
           {filteredContent.length > 0 && (
-            <Masonry
-              breakpointCols={{ default: 2, 768: 1 }}
-              className="flex -ml-6 w-auto"
-              columnClassName="pl-6 bg-clip-padding"
-            >
-              {filteredContent.map((item, idx) => {
-                if (item.type === 'feed') {
-                  const post = item.data;
-                  // Map API response to component props
-                  const userProfile: UserProfile = post.author ? {
-                    id: post.author.id,
-                    name: post.author.name,
-                    image_url: post.author.image_url || '',
-                    headline: post.author.headline || '',
-                    description: post.author.description || '',
-                    small_image_url: post.author.image_url || '',
-                  } : {
-                    id: post.userid,
-                    name: '알 수 없는 사용자',
-                    image_url: '',
-                    headline: '',
-                    description: '',
-                    small_image_url: '',
-                  };
-
-                  return (
-                    <div key={`feed-${post.id}`} className="mb-6">
+            <>
+              {/* 모바일: 첫 1개 피드 */}
+              <div className="lg:hidden space-y-4">
+                {filteredContent.slice(0, 1).map((item) => {
+                  if (item.type === 'feed') {
+                    const post = item.data;
+                    const userProfile: UserProfile = post.author ? {
+                      id: post.author.id,
+                      name: post.author.name,
+                      image_url: post.author.image_url || '',
+                      headline: post.author.headline || '',
+                      description: post.author.description || '',
+                      small_image_url: post.author.image_url || '',
+                    } : {
+                      id: post.userid,
+                      name: '알 수 없는 사용자',
+                      image_url: '',
+                      headline: '',
+                      description: '',
+                      small_image_url: '',
+                    };
+                    return (
                       <CommunityFeedCard
+                        key={`mobile-feed-${post.id}`}
                         postId={post.id}
                         authorId={post.author?.id || post.userid}
                         userProfile={userProfile}
+                        title={post.title ?? undefined}
                         content={post.description}
                         createdAt={post.createdat}
                         stats={{
@@ -847,25 +861,24 @@ function CommunityPageContent() {
                         onLike={() => handleLikePost(post.id)}
                         onShare={() => handleShare(post.id.toString())}
                         onBookmark={() => handleBookmarkPost(post.id)}
+                        onEdit={() => handleEditPost(post.id)}
+                        onDelete={() => handleDeletePost(post.id)}
                         liked={likedPosts[post.id] || false}
                         bookmarked={savedPosts[post.id] || false}
                       />
-                    </div>
-                  );
-                } else if (item.type === 'qna') {
-                  const question = item.data;
-                  // Map author fields to author object for QnaCard component
-                  const author = {
-                    id: question.user_id,
-                    name: question.author_name,
-                    email: '',
-                    image_url: (question as any).author_image_url || null,
-                    headline: (question as any).author_headline || null,
-                  };
-
-                  return (
-                    <div key={`qna-${question.id}`} className="mb-6">
+                    );
+                  } else if (item.type === 'qna') {
+                    const question = item.data;
+                    const author = {
+                      id: question.user_id,
+                      name: question.author_name,
+                      email: '',
+                      image_url: (question as any).author_image_url || null,
+                      headline: (question as any).author_headline || null,
+                    };
+                    return (
                       <QnaCard
+                        key={`mobile-qna-${question.id}`}
                         title={question.title}
                         description={(question as any).description || question.title}
                         author={author}
@@ -886,12 +899,221 @@ function CommunityPageContent() {
                         liked={questionLikes[question.id]?.liked || false}
                         disliked={questionLikes[question.id]?.disliked || false}
                       />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              {/* 모바일: 가로 스크롤 추천 섹션 */}
+              <div className="lg:hidden my-4">
+                <div className="border-t border-slate-200 mb-4" />
+                <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
+                <div className="flex gap-4 pb-2" style={{ width: 'max-content' }}>
+                  <div className="w-[320px] shrink-0">
+                    <TopPostsPanel
+                      maxItems={5}
+                      onPostClick={(postId) => handleOpenPost(postId)}
+                    />
+                  </div>
+                  {recommendedPosts.length > 0 && (
+                    <div className="w-[320px] shrink-0">
+                      <RecommendedPostsPanel
+                        posts={recommendedPosts}
+                        maxItems={5}
+                        onPostClick={(postId) => handleOpenPost(postId)}
+                      />
                     </div>
-                  );
-                }
-                return null;
-              })}
-            </Masonry>
+                  )}
+                  {recommendedFollowers.length > 0 && (
+                    <div className="w-[320px] shrink-0">
+                      <RecommendedFollowersPanel
+                        followers={recommendedFollowers}
+                        maxItems={5}
+                        onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
+                        onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
+                      />
+                    </div>
+                  )}
+                </div>
+                </div>
+                <div className="border-t border-slate-200 mt-4" />
+              </div>
+
+              {/* 모바일: 나머지 피드 */}
+              <div className="lg:hidden space-y-4">
+                {filteredContent.slice(1).map((item) => {
+                  if (item.type === 'feed') {
+                    const post = item.data;
+                    const userProfile: UserProfile = post.author ? {
+                      id: post.author.id,
+                      name: post.author.name,
+                      image_url: post.author.image_url || '',
+                      headline: post.author.headline || '',
+                      description: post.author.description || '',
+                      small_image_url: post.author.image_url || '',
+                    } : {
+                      id: post.userid,
+                      name: '알 수 없는 사용자',
+                      image_url: '',
+                      headline: '',
+                      description: '',
+                      small_image_url: '',
+                    };
+                    return (
+                      <CommunityFeedCard
+                        key={`mobile-rest-feed-${post.id}`}
+                        postId={post.id}
+                        authorId={post.author?.id || post.userid}
+                        userProfile={userProfile}
+                        title={post.title ?? undefined}
+                        content={post.description}
+                        createdAt={post.createdat}
+                        stats={{
+                          likeCount: post.like_count || 0,
+                          replyCount: post.comment_count || 0,
+                          viewCount: post.view_count || 0,
+                        }}
+                        imageUrls={post.images || []}
+                        onClick={() => handleOpenPost(post.id.toString(), userProfile)}
+                        onLike={() => handleLikePost(post.id)}
+                        onShare={() => handleShare(post.id.toString())}
+                        onBookmark={() => handleBookmarkPost(post.id)}
+                        onEdit={() => handleEditPost(post.id)}
+                        onDelete={() => handleDeletePost(post.id)}
+                        liked={likedPosts[post.id] || false}
+                        bookmarked={savedPosts[post.id] || false}
+                      />
+                    );
+                  } else if (item.type === 'qna') {
+                    const question = item.data;
+                    const author = {
+                      id: question.user_id,
+                      name: question.author_name,
+                      email: '',
+                      image_url: (question as any).author_image_url || null,
+                      headline: (question as any).author_headline || null,
+                    };
+                    return (
+                      <QnaCard
+                        key={`mobile-rest-qna-${question.id}`}
+                        title={question.title}
+                        description={(question as any).description || question.title}
+                        author={author}
+                        createdAt={question.createdat}
+                        updatedAt={question.updatedat}
+                        status={question.status}
+                        isPublic={question.ispublic}
+                        answerCount={question.answer_count || 0}
+                        commentCount={0}
+                        likeCount={question.like_count || 0}
+                        dislikeCount={0}
+                        viewCount={0}
+                        hashTagNames=""
+                        qnaId={question.id}
+                        onClick={() => handleOpenQna(question.id.toString(), question)}
+                        onLike={() => handleLikeQuestion(question.id)}
+                        onDislike={() => handleDislikeQuestion(question.id)}
+                        liked={questionLikes[question.id]?.liked || false}
+                        disliked={questionLikes[question.id]?.disliked || false}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+
+              {/* PC: 기존 Masonry 레이아웃 */}
+              <div className="hidden lg:block">
+                <Masonry
+                  breakpointCols={{ default: 2, 768: 1 }}
+                  className="flex -ml-6 w-auto"
+                  columnClassName="pl-6 bg-clip-padding"
+                >
+                  {filteredContent.map((item) => {
+                    if (item.type === 'feed') {
+                      const post = item.data;
+                      const userProfile: UserProfile = post.author ? {
+                        id: post.author.id,
+                        name: post.author.name,
+                        image_url: post.author.image_url || '',
+                        headline: post.author.headline || '',
+                        description: post.author.description || '',
+                        small_image_url: post.author.image_url || '',
+                      } : {
+                        id: post.userid,
+                        name: '알 수 없는 사용자',
+                        image_url: '',
+                        headline: '',
+                        description: '',
+                        small_image_url: '',
+                      };
+                      return (
+                        <div key={`feed-${post.id}`} className="mb-6">
+                          <CommunityFeedCard
+                            postId={post.id}
+                            authorId={post.author?.id || post.userid}
+                            userProfile={userProfile}
+                            title={post.title ?? undefined}
+                            content={post.description}
+                            createdAt={post.createdat}
+                            stats={{
+                              likeCount: post.like_count || 0,
+                              replyCount: post.comment_count || 0,
+                              viewCount: post.view_count || 0,
+                            }}
+                            imageUrls={post.images || []}
+                            onClick={() => handleOpenPost(post.id.toString(), userProfile)}
+                            onLike={() => handleLikePost(post.id)}
+                            onShare={() => handleShare(post.id.toString())}
+                            onBookmark={() => handleBookmarkPost(post.id)}
+                            onEdit={() => handleEditPost(post.id)}
+                            onDelete={() => handleDeletePost(post.id)}
+                            liked={likedPosts[post.id] || false}
+                            bookmarked={savedPosts[post.id] || false}
+                          />
+                        </div>
+                      );
+                    } else if (item.type === 'qna') {
+                      const question = item.data;
+                      const author = {
+                        id: question.user_id,
+                        name: question.author_name,
+                        email: '',
+                        image_url: (question as any).author_image_url || null,
+                        headline: (question as any).author_headline || null,
+                      };
+                      return (
+                        <div key={`qna-${question.id}`} className="mb-6">
+                          <QnaCard
+                            title={question.title}
+                            description={(question as any).description || question.title}
+                            author={author}
+                            createdAt={question.createdat}
+                            updatedAt={question.updatedat}
+                            status={question.status}
+                            isPublic={question.ispublic}
+                            answerCount={question.answer_count || 0}
+                            commentCount={0}
+                            likeCount={question.like_count || 0}
+                            dislikeCount={0}
+                            viewCount={0}
+                            hashTagNames=""
+                            qnaId={question.id}
+                            onClick={() => handleOpenQna(question.id.toString(), question)}
+                            onLike={() => handleLikeQuestion(question.id)}
+                            onDislike={() => handleDislikeQuestion(question.id)}
+                            liked={questionLikes[question.id]?.liked || false}
+                            disliked={questionLikes[question.id]?.disliked || false}
+                          />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </Masonry>
+              </div>
+            </>
           )}
 
           {/* Load More */}
@@ -905,8 +1127,8 @@ function CommunityPageContent() {
         </div>
       </main>
 
-      {/* Right Sidebar */}
-      <aside className="lg:col-span-3">
+      {/* Right Sidebar - 데스크톱에서만 표시 */}
+      <aside className="hidden lg:block lg:col-span-3">
         <div className="space-y-4 pt-16">
           {/* Top Posts (인기글 - 주간/월간) */}
           <TopPostsPanel
@@ -994,6 +1216,14 @@ function CommunityPageContent() {
                   isSaved={savedPosts[Number(selectedContent.id)] || false}
                   onLike={() => handleLikePost(Number(selectedContent.id))}
                   onBookmark={() => handleBookmarkPost(Number(selectedContent.id))}
+                  onEdit={() => {
+                    handleCloseDrawer();
+                    handleEditPost(Number(selectedContent.id));
+                  }}
+                  onDelete={() => {
+                    handleDeletePost(Number(selectedContent.id));
+                    handleCloseDrawer();
+                  }}
                 />
               )}
               {selectedContent.type === 'qna' && selectedContent.questionData && (

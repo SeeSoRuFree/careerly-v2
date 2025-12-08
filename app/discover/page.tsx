@@ -353,9 +353,10 @@ export default function DiscoverPage() {
       <main className="lg:col-span-8">
         <div className="space-y-6">
           {/* Header Section */}
-          <div className="pt-16 pb-8">
+          <div className="pt-2 md:pt-16 pb-4 md:pb-8">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              {/* 타이틀 - PC에서만 표시 (모바일은 AppLayout 헤더에 표시) */}
+              <div className="hidden md:flex items-center gap-3">
                 <Sparkles className="h-10 w-10 text-slate-700" />
                 <h1 className="text-3xl font-bold text-slate-900">Discover</h1>
               </div>

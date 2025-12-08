@@ -29,7 +29,7 @@ const QuoteSourceLink = React.forwardRef<HTMLSpanElement, QuoteSourceLinkProps>(
         ) : (
           <Globe className="h-4 w-4 text-slate-400" />
         )}
-        <span className="truncate max-w-[200px]">{title}</span>
+        <span className="truncate max-w-[150px] sm:max-w-[200px]">{title}</span>
       </span>
     );
   }

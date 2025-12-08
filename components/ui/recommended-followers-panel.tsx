@@ -22,6 +22,7 @@ export interface RecommendedFollowersPanelProps extends React.HTMLAttributes<HTM
   maxItems?: number;
   onFollow?: (userId: string) => void;
   onUnfollow?: (userId: string) => void;
+  compact?: boolean;
 }
 
 export const RecommendedFollowersPanel = React.forwardRef<HTMLDivElement, RecommendedFollowersPanelProps>(
@@ -32,6 +33,7 @@ export const RecommendedFollowersPanel = React.forwardRef<HTMLDivElement, Recomm
       maxItems = 5,
       onFollow,
       onUnfollow,
+      compact = false,
       className,
       ...props
     },
@@ -66,6 +68,47 @@ export const RecommendedFollowersPanel = React.forwardRef<HTMLDivElement, Recomm
         [userId]: !isCurrentlyFollowing,
       }));
     };
+
+    // compact 모드
+    if (compact) {
+      return (
+        <div ref={ref} className={className} {...props}>
+          {displayedFollowers.length > 0 ? (
+            <div className="space-y-2">
+              {displayedFollowers.map((follower) => {
+                const isFollowing = followingState[follower.id] || false;
+                return (
+                  <div key={follower.id} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Avatar className="h-6 w-6 shrink-0">
+                        <AvatarImage src={follower.image_url} alt={follower.name} />
+                        <AvatarFallback className="text-xs">{follower.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm text-slate-700 truncate">{follower.name}</span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={isFollowing ? 'outline' : 'solid'}
+                      onClick={(e) => handleFollowClick(follower.id, e)}
+                      className={cn(
+                        'h-6 px-2 text-xs shrink-0',
+                        isFollowing
+                          ? 'border-slate-300 text-slate-600'
+                          : 'bg-coral-500 hover:bg-coral-600 text-white'
+                      )}
+                    >
+                      {isFollowing ? '팔로잉' : '팔로우'}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">추천 팔로워가 없습니다</p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <Card ref={ref} className={cn('p-4', className)} {...props}>

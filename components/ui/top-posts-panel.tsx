@@ -11,6 +11,7 @@ import type { TopPostsPeriod } from '@/lib/api';
 export interface TopPostsPanelProps extends React.HTMLAttributes<HTMLDivElement> {
   maxItems?: number;
   onPostClick?: (postId: string) => void;
+  compact?: boolean;
 }
 
 const periodLabels: Record<'weekly' | 'monthly', string> = {
@@ -39,6 +40,7 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
     {
       maxItems = 10,
       onPostClick,
+      compact = false,
       className,
       ...props
     },
@@ -46,13 +48,52 @@ export const TopPostsPanel = React.forwardRef<HTMLDivElement, TopPostsPanelProps
   ) => {
     const [selectedPeriod, setSelectedPeriod] = React.useState<TopPostsPeriod>('weekly');
     const [isExpanded, setIsExpanded] = React.useState(false);
-    const initialCount = 5;
+    const initialCount = compact ? maxItems : 5;
 
     const {
       data: posts,
       isLoading,
       error,
     } = useTopPosts(selectedPeriod, maxItems);
+
+    // compact 모드에서는 Card 없이 렌더링
+    if (compact) {
+      return (
+        <div ref={ref} className={className} {...props}>
+          {isLoading && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+            </div>
+          )}
+          {!isLoading && posts && posts.length > 0 && (
+            <div className="space-y-2">
+              {posts.slice(0, maxItems).map((post, index) => {
+                const rank = index + 1;
+                const title = post.title || post.description.substring(0, 30) + '...';
+                return (
+                  <button
+                    key={post.id}
+                    onClick={() => onPostClick?.(post.id.toString())}
+                    className="flex items-center gap-2 w-full text-left hover:bg-slate-50 rounded p-1 -mx-1"
+                  >
+                    <span className={cn(
+                      'w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0',
+                      getRankStyle(rank)
+                    )}>
+                      {rank}
+                    </span>
+                    <span className="text-sm text-slate-700 line-clamp-1">{title}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {!isLoading && (!posts || posts.length === 0) && (
+            <p className="text-xs text-slate-500">인기글이 없습니다</p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <Card ref={ref} className={cn('p-4', className)} {...props}>

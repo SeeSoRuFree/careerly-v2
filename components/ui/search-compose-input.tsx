@@ -114,9 +114,9 @@ const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeIn
           />
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between px-4 pb-3 gap-2">
-            {/* Left Actions */}
-            <div className="flex items-center gap-1">
+          <div className="flex items-center justify-end px-4 pb-3 gap-2">
+            {/* Left Actions - 미구현 기능 주석처리 */}
+            {/* <div className="flex items-center gap-1">
               <IconButton
                 variant="ghost"
                 size="sm"
@@ -157,7 +157,7 @@ const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeIn
               >
                 <Lightbulb className="h-5 w-5" />
               </IconButton>
-            </div>
+            </div> */}
 
             {/* Right Actions */}
             <div className="flex items-center gap-2">
@@ -167,7 +167,8 @@ const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeIn
                 </div>
               ) : (
                 <>
-                  <IconButton
+                  {/* 미구현 기능 주석처리 */}
+                  {/* <IconButton
                     variant="ghost"
                     size="sm"
                     onClick={() => console.log('Globe')}
@@ -196,19 +197,17 @@ const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeIn
                     className="text-slate-400 hover:text-slate-600"
                   >
                     <Paperclip className="h-5 w-5" />
+                  </IconButton> */}
+                  <IconButton
+                    variant="solid"
+                    size="md"
+                    onClick={handleSubmit}
+                    disabled={!internalValue.trim()}
+                    aria-label="검색 실행"
+                    className="bg-slate-700 hover:bg-slate-800 text-white"
+                  >
+                    <Send className="h-5 w-5" />
                   </IconButton>
-                  {actions.voice && (
-                    <IconButton
-                      variant="solid"
-                      size="md"
-                      onClick={handleSubmit}
-                      disabled={!internalValue.trim()}
-                      aria-label="검색 실행"
-                      className="bg-slate-700 hover:bg-slate-800 text-white ml-1"
-                    >
-                      <Send className="h-5 w-5" />
-                    </IconButton>
-                  )}
                 </>
               )}
             </div>

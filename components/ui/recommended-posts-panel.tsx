@@ -22,6 +22,7 @@ export interface RecommendedPostsPanelProps extends React.HTMLAttributes<HTMLDiv
   title?: string;
   maxItems?: number;
   onPostClick?: (postId: string) => void;
+  compact?: boolean;
 }
 
 export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, RecommendedPostsPanelProps>(
@@ -31,12 +32,36 @@ export const RecommendedPostsPanel = React.forwardRef<HTMLDivElement, Recommende
       title = '추천 포스트',
       maxItems = 5,
       onPostClick,
+      compact = false,
       className,
       ...props
     },
     ref
   ) => {
     const displayedPosts = posts.slice(0, maxItems);
+
+    // compact 모드
+    if (compact) {
+      return (
+        <div ref={ref} className={className} {...props}>
+          {displayedPosts.length > 0 ? (
+            <div className="space-y-2">
+              {displayedPosts.map((post) => (
+                <button
+                  key={post.id}
+                  onClick={() => onPostClick?.(post.id)}
+                  className="flex items-start gap-2 w-full text-left hover:bg-slate-50 rounded p-1 -mx-1"
+                >
+                  <span className="text-sm text-slate-700 line-clamp-2">{post.title}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">추천 포스트가 없습니다</p>
+          )}
+        </div>
+      );
+    }
 
     return (
       <Card ref={ref} className={cn('p-4', className)} {...props}>

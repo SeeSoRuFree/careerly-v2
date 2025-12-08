@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
-import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
 
 const linkifyOptions = {
   className: 'text-coral-500 hover:text-coral-600 underline',
@@ -48,6 +48,7 @@ export interface CommunityFeedCardProps extends React.HTMLAttributes<HTMLDivElem
   postId: number;
   authorId: number;
   userProfile: UserProfile;
+  title?: string;
   content: string;
   contentHtml?: string;
   createdAt: string;
@@ -58,6 +59,8 @@ export interface CommunityFeedCardProps extends React.HTMLAttributes<HTMLDivElem
   onLike?: () => void;
   onShare?: () => void;
   onBookmark?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   liked?: boolean;
   bookmarked?: boolean;
   feedType?: string;
@@ -70,6 +73,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       postId,
       authorId,
       userProfile,
+      title,
       content,
       contentHtml,
       createdAt,
@@ -80,6 +84,8 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       onLike,
       onShare,
       onBookmark,
+      onEdit,
+      onDelete,
       liked = false,
       bookmarked = false,
       feedType,
@@ -90,9 +96,12 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     ref
   ) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isTruncated, setIsTruncated] = useState(false);
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-    const MAX_LENGTH = 300;
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const MAX_HEIGHT = 96; // 약 4줄 높이 (line-height: 1.625 * font-size: 14px * 4줄)
 
     // Auth & Report/Block hooks
     const { data: currentUser } = useCurrentUser();
@@ -134,19 +143,38 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       });
     };
 
-    // contentHtml이 있는 경우 텍스트로 변환하여 길이 체크
-    const getPlainText = () => {
-      if (contentHtml) {
-        const div = document.createElement('div');
-        div.innerHTML = contentHtml;
-        return div.textContent || div.innerText || '';
-      }
-      return content;
+    const handleEdit = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onEdit?.();
     };
 
-    const plainText = getPlainText();
-    const isTruncatable = plainText.length > MAX_LENGTH;
-    const displayText = !isExpanded && isTruncatable ? plainText.substring(0, MAX_LENGTH) : plainText;
+    const handleDelete = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = () => {
+      onDelete?.();
+      setDeleteDialogOpen(false);
+    };
+
+    // title이 있으면 content에서 title 부분 제거
+    const displayContent = React.useMemo(() => {
+      if (!title || !content) return content;
+      // content가 title로 시작하면 제거
+      if (content.startsWith(title)) {
+        return content.slice(title.length).replace(/^[\n\s]+/, ''); // 앞쪽 줄바꿈/공백 제거
+      }
+      return content;
+    }, [title, content]);
+
+    // 높이 기반 truncate 체크
+    useEffect(() => {
+      const el = contentRef.current;
+      if (el) {
+        setIsTruncated(el.scrollHeight > MAX_HEIGHT);
+      }
+    }, [displayContent, contentHtml]);
 
     const actions = [];
 
@@ -220,54 +248,86 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             </div>
           </Link>
 
-          {/* Report/Block Menu - Only show for others' posts */}
-          {!isOwnPost && (
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                onClick={(e) => e.stopPropagation()}
-                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
-                aria-label="더보기"
-              >
-                <MoreVertical className="h-4 w-4 text-slate-600" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuItem onClick={handleReport} className="text-slate-700">
-                  <Flag className="h-4 w-4 mr-2" />
-                  신고하기
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleBlock} className="text-red-600">
-                  <Ban className="h-4 w-4 mr-2" />
-                  이 사용자 차단하기
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          {/* More Menu - Edit/Delete for own posts, Report/Block for others */}
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              onClick={(e) => e.stopPropagation()}
+              className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+              aria-label="더보기"
+            >
+              <MoreVertical className="h-4 w-4 text-slate-600" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              {isOwnPost ? (
+                <>
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); handleEdit(e as unknown as React.MouseEvent); }}
+                    className="text-slate-700"
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    수정하기
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); handleDelete(e as unknown as React.MouseEvent); }}
+                    className="text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    삭제하기
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); handleReport(e as unknown as React.MouseEvent); }}
+                    className="text-slate-700"
+                  >
+                    <Flag className="h-4 w-4 mr-2" />
+                    신고하기
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); handleBlock(e as unknown as React.MouseEvent); }}
+                    className="text-red-600"
+                  >
+                    <Ban className="h-4 w-4 mr-2" />
+                    이 사용자 차단하기
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+
+        {/* Title */}
+        {title && (
+          <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">
+            {title}
+          </h3>
+        )}
 
         {/* Content */}
         <div className="mb-2">
-          {contentHtml ? (
-            <div className="text-slate-900 text-sm leading-relaxed prose prose-sm max-w-none break-words whitespace-pre-wrap">
-              {isExpanded ? (
-                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
-              ) : isTruncatable ? (
-                <div dangerouslySetInnerHTML={{ __html: contentHtml.substring(0, MAX_LENGTH) }} />
-              ) : (
-                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
-              )}
-            </div>
-          ) : (
-            <p className="text-slate-900 text-sm leading-relaxed whitespace-pre-wrap break-words">
+          <div
+            ref={contentRef}
+            className={cn(
+              'text-slate-900 text-sm leading-relaxed break-words whitespace-pre-wrap',
+              contentHtml && 'prose prose-sm max-w-none',
+              !isExpanded && 'overflow-hidden'
+            )}
+            style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
+          >
+            {contentHtml ? (
+              <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+            ) : (
               <Linkify options={linkifyOptions}>
-                {displayText}
-                {!isExpanded && isTruncatable && '...'}
+                {displayContent}
               </Linkify>
-            </p>
-          )}
+            )}
+          </div>
 
           {/* More/Less Button */}
-          {isTruncatable && (
+          {isTruncated && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -395,6 +455,15 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
           confirmText="차단하기"
           variant="danger"
           isLoading={blockMutation.isPending}
+        />
+        <ConfirmDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="게시글 삭제"
+          description="이 게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다."
+          confirmText="삭제하기"
+          variant="danger"
         />
       </Card>
     );

@@ -141,7 +141,7 @@ export default function NewPostPage() {
     setIsSaved(false);
   }, [title]);
 
-  // Auto-save every 30 seconds
+  // Auto-save every 3 seconds
   React.useEffect(() => {
     if (!editor) return;
 
@@ -150,7 +150,7 @@ export default function NewPostPage() {
       if (title || editorText) {
         saveDraft(true); // Silent save
       }
-    }, 30000); // 30 seconds
+    }, 3000); // 3 seconds
 
     return () => clearInterval(interval);
   }, [title, editor, saveDraft]);
@@ -171,7 +171,7 @@ export default function NewPostPage() {
     }
   }, [editor, loadDraft]);
 
-  const canSubmit = (editor?.getText().trim().length ?? 0) > 0;
+  const MIN_CONTENT_LENGTH = 20;
 
   const handleCancel = () => {
     const editorText = editor?.getText().trim() || '';
@@ -193,7 +193,13 @@ export default function NewPostPage() {
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !editor) return;
+    if (!editor) return;
+
+    const contentLength = editor.getText().trim().length;
+    if (contentLength < MIN_CONTENT_LENGTH) {
+      toast.error(`내용을 ${MIN_CONTENT_LENGTH}자 이상 입력해주세요. (현재 ${contentLength}자)`);
+      return;
+    }
 
     try {
       await createPostMutation.mutateAsync({
@@ -280,7 +286,7 @@ export default function NewPostPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top Navigation Bar - Full Width, Seamless */}
-      <header className="w-full bg-slate-50 sticky top-0 z-50 pt-4 pb-2">
+      <header className="w-full bg-slate-50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handleCancel} className="-ml-2 hover:bg-slate-200">
@@ -292,7 +298,7 @@ export default function NewPostPage() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-slate-500 hidden sm:flex hover:bg-slate-200"
+              className="text-slate-500 hover:bg-slate-200"
               onClick={() => saveDraft(false)}
             >
               임시저장
@@ -301,7 +307,7 @@ export default function NewPostPage() {
               variant="coral"
               size="sm"
               onClick={handleSubmit}
-              disabled={!canSubmit || createPostMutation.isPending}
+              disabled={createPostMutation.isPending}
               className="px-6 font-semibold"
             >
               {createPostMutation.isPending ? '게시 중...' : '등록'}

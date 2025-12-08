@@ -35,7 +35,7 @@ const ModelSelectControl = React.forwardRef<HTMLDivElement, ModelSelectControlPr
       <div ref={ref} className={cn('flex items-center gap-2', className)}>
         <span className="text-sm text-slate-600 font-medium">{label}:</span>
         <Select value={model} onValueChange={onSelectModel}>
-          <SelectTrigger className="w-[180px] h-9 text-sm">
+          <SelectTrigger className="w-full sm:w-[180px] h-9 text-sm">
             <SelectValue>
               {selectedModel?.name || 'Select model'}
             </SelectValue>

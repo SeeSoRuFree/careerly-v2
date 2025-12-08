@@ -26,8 +26,8 @@ const signupSchema = z
       .min(1, '비밀번호를 입력해주세요.')
       .min(8, '비밀번호는 최소 8자 이상이어야 합니다.')
       .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        '비밀번호는 영문 대소문자와 숫자를 포함해야 합니다.'
+        /^(?=.*[a-zA-Z])(?=.*\d)/,
+        '비밀번호는 영문과 숫자를 포함해야 합니다.'
       ),
     password_confirm: z.string().min(1, '비밀번호 확인을 입력해주세요.'),
   })
@@ -95,17 +95,19 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
   return (
     <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/50 z-[100] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
           className={cn(
-            'fixed left-[50%] top-[50%] z-50 w-full max-w-md translate-x-[-50%] translate-y-[-50%]',
-            'bg-white rounded-lg shadow-xl',
-            'max-h-[90vh] overflow-y-auto',
+            'fixed z-[100] bg-white shadow-xl overflow-y-auto',
+            // 모바일: 전체화면
+            'inset-0 rounded-none',
+            // 데스크톱: 중앙 모달
+            'md:inset-auto md:left-[50%] md:top-[50%] md:w-full md:max-w-md md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:max-h-[90vh]',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-            'data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]',
-            'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]'
+            'md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95',
+            'md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%]',
+            'md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]'
           )}
         >
           {/* Header */}
@@ -209,7 +211,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
                 <Input
                   id="signup-password"
                   type="password"
-                  placeholder="8자 이상 (영문 대소문자, 숫자 포함)"
+                  placeholder="8자 이상 (영문, 숫자 포함)"
                   {...register('password')}
                   disabled={isLoading}
                 />

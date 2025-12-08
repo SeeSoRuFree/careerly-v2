@@ -21,17 +21,18 @@ export default function HomePage() {
     router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
 
-  const suggestions = [
-    { icon: Sparkles, label: '양육' },
-    { icon: Wrench, label: '문제 해결' },
-    { icon: Sparkles, label: '당황감 101' },
-    { icon: Scissors, label: '분석하다' },
-    { icon: Send, label: '지역' },
-  ];
+  // 미구현 기능 - suggestion chips 주석처리
+  // const suggestions = [
+  //   { icon: Sparkles, label: '양육' },
+  //   { icon: Wrench, label: '문제 해결' },
+  //   { icon: Sparkles, label: '당황감 101' },
+  //   { icon: Scissors, label: '분석하다' },
+  //   { icon: Send, label: '지역' },
+  // ];
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4">
-      <div className="w-full max-w-3xl space-y-12">
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-2 md:px-4">
+      <div className="w-full max-w-3xl space-y-8 md:space-y-12">
         {/* Logo */}
         <div className="flex justify-center">
           <Image
@@ -40,6 +41,7 @@ export default function HomePage() {
             width={200}
             height={60}
             priority
+            className="w-[140px] md:w-[200px] h-auto"
           />
         </div>
 
@@ -62,8 +64,8 @@ export default function HomePage() {
             onModelSelectClick={() => console.log('Model select')}
           />
 
-          {/* Suggestion Chips */}
-          <div className="flex flex-wrap justify-center gap-3">
+          {/* Suggestion Chips - 미구현 기능 주석처리 */}
+          {/* <div className="flex flex-wrap justify-center gap-3">
             {suggestions.map((item, index) => (
               <Chip
                 key={index}
@@ -75,7 +77,7 @@ export default function HomePage() {
                 {item.label}
               </Chip>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

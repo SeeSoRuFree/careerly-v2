@@ -158,17 +158,14 @@ export function setupAuthInterceptor(axiosInstance: AxiosInstance): void {
           // 로그아웃 실패해도 무시
         }
 
-        // 세션 만료 알림 및 로그인 모달 (중복 방지)
-        if (!sessionExpiredNotified) {
+        // 세션 만료 시 로그인 모달 (중복 방지, 토스트 없이)
+        // 단, 비로그인 전용 페이지에서는 모달 표시하지 않음
+        const publicOnlyPaths = ['/forgot-password', '/signup', '/login'];
+        const isPublicOnlyPage = typeof window !== 'undefined' &&
+          publicOnlyPaths.some(path => window.location.pathname.startsWith(path));
+
+        if (!sessionExpiredNotified && !isPublicOnlyPage) {
           sessionExpiredNotified = true;
-
-          // Sonner toast 동적 import
-          import('sonner').then(({ toast }) => {
-            toast.error('세션이 만료되었습니다. 다시 로그인해주세요.');
-          }).catch(() => {
-            // Toast 로드 실패해도 무시
-          });
-
           useStore.getState().openLoginModal();
         }
 

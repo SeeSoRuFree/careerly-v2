@@ -49,8 +49,15 @@ function SettingItem({ icon, title, description, onClick, rightElement, danger }
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { data: user } = useCurrentUser();
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const { logoutWithConfirm } = useLogout();
+
+  // 비로그인 상태면 메인으로 리다이렉트
+  React.useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/');
+    }
+  }, [user, isUserLoading, router]);
 
   // 사용자 설정 조회 및 업데이트
   const { data: settings } = useUserSettings();
@@ -85,7 +92,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="w-full bg-slate-50 sticky top-0 z-50 pt-4 pb-2">
+      <header className="w-full bg-slate-50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-slate-200">

@@ -46,7 +46,7 @@ const SortControl = React.forwardRef<HTMLDivElement, SortControlProps>(
     }
 
     return (
-      <div ref={ref} className={cn('w-full max-w-[200px]', className)}>
+      <div ref={ref} className={cn('w-full sm:max-w-[200px]', className)}>
         <Select value={value} onValueChange={(v) => onChange(v as SortValue)}>
           <SelectTrigger>
             <SelectValue placeholder="정렬 선택" />

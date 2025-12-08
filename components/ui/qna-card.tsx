@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -85,9 +85,11 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
     ref
   ) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isTruncated, setIsTruncated] = useState(false);
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-    const MAX_LENGTH = 300;
+    const contentRef = useRef<HTMLParagraphElement>(null);
+    const MAX_HEIGHT = 96; // 약 4줄 높이 (line-height: 1.625 * font-size: 14px * 4줄)
 
     // Auth & Report/Block hooks
     const { data: currentUser } = useCurrentUser();
@@ -130,13 +132,16 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
       });
     };
 
+    // 높이 기반 truncate 체크
+    useEffect(() => {
+      const el = contentRef.current;
+      if (el) {
+        setIsTruncated(el.scrollHeight > MAX_HEIGHT);
+      }
+    }, [description]);
+
     const tags = hashTagNames ? hashTagNames.split(' ').filter(Boolean) : [];
     const hasAnswer = answerCount > 0;
-
-    const isTruncatable = description.length > MAX_LENGTH;
-    const displayText = !isExpanded && isTruncatable
-      ? description.substring(0, MAX_LENGTH)
-      : description;
 
     return (
       <Card
@@ -193,12 +198,18 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
                   <MoreVertical className="h-4 w-4 text-slate-600" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem onClick={handleReport} className="text-slate-700">
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); handleReport(e as unknown as React.MouseEvent); }}
+                    className="text-slate-700"
+                  >
                     <Flag className="h-4 w-4 mr-2" />
                     신고하기
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleBlock} className="text-red-600">
+                  <DropdownMenuItem
+                    onSelect={(e) => { e.preventDefault(); handleBlock(e as unknown as React.MouseEvent); }}
+                    className="text-red-600"
+                  >
                     <Ban className="h-4 w-4 mr-2" />
                     이 사용자 차단하기
                   </DropdownMenuItem>
@@ -226,15 +237,21 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
 
         {/* Description */}
         <div className="mb-2">
-          <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words">
+          <p
+            ref={contentRef}
+            className={cn(
+              'text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words',
+              !isExpanded && 'overflow-hidden'
+            )}
+            style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
+          >
             <Linkify options={linkifyOptions}>
-              {displayText}
-              {!isExpanded && isTruncatable && '...'}
+              {description}
             </Linkify>
           </p>
 
           {/* More/Less Button */}
-          {isTruncatable && (
+          {isTruncated && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
