@@ -118,3 +118,12 @@ export interface PaginatedAnswerResponse {
   previous: string | null;
   results: Answer[];
 }
+
+/**
+ * Q&A 이미지 업로드 응답
+ */
+export interface QuestionImageUploadResponse {
+  success: boolean;
+  image_url: string;
+  s3_url: string;
+}

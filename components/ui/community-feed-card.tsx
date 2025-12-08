@@ -249,7 +249,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
           </Link>
 
           {/* More Menu - Edit/Delete for own posts, Report/Block for others */}
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger
               onClick={(e) => e.stopPropagation()}
               className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
@@ -386,7 +386,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         )}
 
         {/* Stats Row */}
-        {stats && (stats.viewCount || stats.likeCount || stats.replyCount) && (
+        {stats && (stats.viewCount !== undefined || stats.likeCount || stats.replyCount) && (
           <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />

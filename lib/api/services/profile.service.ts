@@ -12,6 +12,9 @@ import type {
   ProfileUpdateRequest,
   CareerRequest,
   EducationRequest,
+  Career,
+  Education,
+  ProfileImageUploadResponse,
 } from '../types/profile.types';
 
 /**
@@ -64,11 +67,35 @@ export async function updateMyProfile(data: ProfileUpdateRequest): Promise<Profi
 }
 
 /**
+ * 프로필 이미지 업로드 (인증 필요)
+ * 이미지를 S3에 업로드하고 프로필에 바로 적용
+ */
+export async function uploadProfileImage(file: File): Promise<ProfileImageUploadResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await authClient.post<ProfileImageUploadResponse>(
+      '/api/v1/users/me/image/',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * 경력 추가 (인증 필요)
  */
-export async function addCareer(data: CareerRequest): Promise<ProfileDetail> {
+export async function addCareer(data: CareerRequest): Promise<Career> {
   try {
-    const response = await authClient.post<ProfileDetail>('/api/v1/users/me/careers/', data);
+    const response = await authClient.post<Career>('/api/v1/users/me/careers/', data);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -78,9 +105,9 @@ export async function addCareer(data: CareerRequest): Promise<ProfileDetail> {
 /**
  * 경력 수정 (인증 필요)
  */
-export async function updateCareer(careerId: number, data: CareerRequest): Promise<ProfileDetail> {
+export async function updateCareer(careerId: number, data: CareerRequest): Promise<Career> {
   try {
-    const response = await authClient.patch<ProfileDetail>(`/api/v1/users/me/careers/${careerId}/`, data);
+    const response = await authClient.patch<Career>(`/api/v1/users/me/careers/${careerId}/`, data);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -101,9 +128,9 @@ export async function deleteCareer(careerId: number): Promise<void> {
 /**
  * 학력 추가 (인증 필요)
  */
-export async function addEducation(data: EducationRequest): Promise<ProfileDetail> {
+export async function addEducation(data: EducationRequest): Promise<Education> {
   try {
-    const response = await authClient.post<ProfileDetail>('/api/v1/users/me/educations/', data);
+    const response = await authClient.post<Education>('/api/v1/users/me/educations/', data);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -113,9 +140,9 @@ export async function addEducation(data: EducationRequest): Promise<ProfileDetai
 /**
  * 학력 수정 (인증 필요)
  */
-export async function updateEducation(educationId: number, data: EducationRequest): Promise<ProfileDetail> {
+export async function updateEducation(educationId: number, data: EducationRequest): Promise<Education> {
   try {
-    const response = await authClient.patch<ProfileDetail>(`/api/v1/users/me/educations/${educationId}/`, data);
+    const response = await authClient.patch<Education>(`/api/v1/users/me/educations/${educationId}/`, data);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -128,6 +155,67 @@ export async function updateEducation(educationId: number, data: EducationReques
 export async function deleteEducation(educationId: number): Promise<void> {
   try {
     await authClient.delete(`/api/v1/users/me/educations/${educationId}/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 스킬 검색 타입
+ */
+export interface Skill {
+  id: number;
+  name: string;
+  category: string;
+  second_category: string | null;
+}
+
+/**
+ * 스킬 일괄 교체 요청 타입
+ */
+export interface ReplaceSkillsRequest {
+  skills: Array<{
+    skill_id: number;
+    display_sequence: number;
+  }>;
+}
+
+/**
+ * 스킬 일괄 교체 응답 타입
+ */
+export interface ReplaceSkillsResponse {
+  message: string;
+  skills: Array<{
+    id: number;
+    skill_id: number;
+    name: string;
+    category: string;
+    second_category: string | null;
+    display_sequence: number;
+  }>;
+}
+
+/**
+ * 스킬 검색 (공개 API)
+ */
+export async function searchSkills(query: string, limit: number = 20): Promise<Skill[]> {
+  try {
+    const response = await publicClient.get<Skill[]>('/api/v1/skills/', {
+      params: { query, limit }
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 프로필 스킬 일괄 교체 (인증 필요)
+ */
+export async function replaceProfileSkills(data: ReplaceSkillsRequest): Promise<ReplaceSkillsResponse> {
+  try {
+    const response = await authClient.put<ReplaceSkillsResponse>('/api/v1/users/me/skills/', data);
+    return response.data;
   } catch (error) {
     throw handleApiError(error);
   }

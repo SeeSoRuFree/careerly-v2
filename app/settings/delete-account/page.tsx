@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useLogout, useRequestDeleteAccount } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog, AlertDialog } from '@/components/ui/confirm-dialog';
 
 const DELETE_REASONS = [
   { value: 'not_using', label: '더 이상 사용하지 않음' },
@@ -24,24 +25,30 @@ export default function DeleteAccountPage() {
   const [reason, setReason] = useState<string>('');
   const [feedback, setFeedback] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  const { logoutWithConfirm } = useLogout();
+  const logout = useLogout();
   const requestDelete = useRequestDeleteAccount();
 
   const handleSubmit = async () => {
     if (!agreed) return;
 
-    const confirmed = window.confirm(
-      '정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'
-    );
+    if (!reason) {
+      setShowAlertDialog(true);
+      return;
+    }
 
-    if (!confirmed) return;
+    setShowConfirmDialog(true);
+  };
 
+  const handleConfirmDelete = () => {
+    setShowConfirmDialog(false);
     requestDelete.mutate(
       { reason, feedback },
       {
         onSuccess: () => {
-          logoutWithConfirm();
+          logout.mutate();
         },
       }
     );
@@ -61,7 +68,7 @@ export default function DeleteAccountPage() {
             >
               <ChevronLeft className="h-6 w-6 text-slate-900" />
             </Button>
-            <span className="font-semibold text-slate-900">계정 삭제 요청</span>
+            <span className="font-semibold text-slate-900">계정 탈퇴</span>
           </div>
         </div>
       </header>
@@ -73,9 +80,9 @@ export default function DeleteAccountPage() {
           <div className="flex gap-3">
             <AlertTriangle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
             <div>
-              <h2 className="font-semibold text-red-700 mb-2">계정 삭제 안내</h2>
+              <h2 className="font-semibold text-red-700 mb-2">계정 탈퇴 안내</h2>
               <p className="text-sm text-red-600 mb-3">
-                계정을 삭제하면 다음 데이터가 모두 삭제되며 복구할 수 없습니다:
+                계정을 탈퇴하면 다음 데이터가 모두 삭제되며 복구할 수 없습니다:
               </p>
               <ul className="text-sm text-red-600 space-y-1.5">
                 <li className="flex items-start">
@@ -101,7 +108,9 @@ export default function DeleteAccountPage() {
 
         {/* Delete Reason Section */}
         <section>
-          <h3 className="font-medium text-slate-900 mb-4">삭제 사유 (선택)</h3>
+          <h3 className="font-medium text-slate-900 mb-4">
+            탈퇴 사유 <span className="text-red-500">*</span>
+          </h3>
           <RadioGroup value={reason} onValueChange={setReason}>
             <div className="space-y-3">
               {DELETE_REASONS.map(r => (
@@ -143,7 +152,7 @@ export default function DeleteAccountPage() {
             htmlFor="agree"
             className="text-sm text-slate-700 cursor-pointer font-normal leading-relaxed"
           >
-            위 내용을 확인했으며, 계정 삭제에 동의합니다.
+            위 내용을 확인했으며, 계정 탈퇴에 동의합니다.
           </Label>
         </div>
 
@@ -152,23 +161,43 @@ export default function DeleteAccountPage() {
           variant="coral"
           className={cn(
             "w-full h-12 font-semibold",
-            agreed && !requestDelete.isPending && "hover:opacity-90"
+            agreed && reason && !requestDelete.isPending && "hover:opacity-90"
           )}
-          disabled={!agreed || requestDelete.isPending}
+          disabled={!agreed || !reason || requestDelete.isPending}
           onClick={handleSubmit}
         >
-          {requestDelete.isPending ? '처리 중...' : '계정 삭제 요청하기'}
+          {requestDelete.isPending ? '처리 중...' : '계정 탈퇴하기'}
         </Button>
 
         {/* Additional Info */}
         <div className="text-center">
           <p className="text-xs text-slate-500">
-            계정 삭제 요청 후 관리자 검토가 진행되며,
-            <br />
-            처리 완료 시 이메일로 안내드립니다.
+            탈퇴 완료 후 자동으로 로그아웃됩니다.
           </p>
         </div>
       </main>
+
+      {/* Alert Dialog - 탈퇴 사유 미선택 */}
+      <AlertDialog
+        isOpen={showAlertDialog}
+        onClose={() => setShowAlertDialog(false)}
+        title="알림"
+        description="탈퇴 사유를 선택해주세요."
+        variant="warning"
+      />
+
+      {/* Confirm Dialog - 탈퇴 확인 */}
+      <ConfirmDialog
+        isOpen={showConfirmDialog}
+        onClose={() => setShowConfirmDialog(false)}
+        onConfirm={handleConfirmDelete}
+        title="계정 탈퇴"
+        description="정말로 계정을 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+        confirmText="탈퇴하기"
+        cancelText="취소"
+        variant="danger"
+        isLoading={requestDelete.isPending}
+      />
     </div>
   );
 }

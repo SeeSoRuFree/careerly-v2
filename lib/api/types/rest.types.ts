@@ -120,6 +120,8 @@ export interface User {
   image_url?: string;
   headline?: string;
   description?: string;
+  has_password: boolean;
+  social_accounts: ('kakao' | 'apple')[];
   created_at: string;
   updated_at: string;
 }

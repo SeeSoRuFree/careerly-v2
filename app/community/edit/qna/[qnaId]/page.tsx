@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -21,7 +21,7 @@ import {
   Globe,
   Lock
 } from 'lucide-react';
-import { useCurrentUser, useCreateQuestion, useUploadPostImage } from '@/lib/api';
+import { useCurrentUser, useQuestion, useUpdateQuestion, useUploadPostImage } from '@/lib/api';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -30,20 +30,17 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useStore } from '@/hooks/useStore';
 import { toast } from 'sonner';
 
-const DRAFT_KEY = 'careerly_draft_qna';
-
-interface DraftData {
-  title: string;
-  content: string;
-  savedAt: string;
-}
-
-export default function NewQnaPage() {
+export default function EditQnaPage() {
   const router = useRouter();
+  const params = useParams();
+  const qnaId = Number(params.qnaId);
+
   const [title, setTitle] = React.useState('');
-  const [isSaved, setIsSaved] = React.useState(false);
   const [isPublic, setIsPublic] = React.useState(true);
-  const createQuestionMutation = useCreateQuestion();
+  const [isInitialized, setIsInitialized] = React.useState(false);
+
+  const { data: question, isLoading: isQuestionLoading } = useQuestion(qnaId);
+  const updateQuestionMutation = useUpdateQuestion();
   const uploadImageMutation = useUploadPostImage();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -51,17 +48,9 @@ export default function NewQnaPage() {
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
   const { openLoginModal } = useStore();
 
-  // Redirect to community and show login modal if not authenticated
-  React.useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/community?tab=qna');
-      openLoginModal();
-    }
-  }, [user, isUserLoading, router, openLoginModal]);
-
   // Tiptap editor setup
   const editor = useEditor({
-    immediatelyRender: false, // SSR support for Next.js
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Link.configure({
@@ -86,104 +75,36 @@ export default function NewQnaPage() {
     },
   });
 
-  // Draft functions
-  const saveDraft = React.useCallback((silent = false) => {
-    if (!editor) return;
-
-    const draft: DraftData = {
-      title,
-      content: editor.getHTML(),
-      savedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-
-    if (!silent) {
-      toast.success('임시저장되었습니다');
+  // Redirect to community and show login modal if not authenticated
+  React.useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/community?tab=qna');
+      openLoginModal();
     }
+  }, [user, isUserLoading, router, openLoginModal]);
 
-    setIsSaved(true);
-  }, [title, editor]);
-
-  const loadDraft = React.useCallback((): DraftData | null => {
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      console.error('Failed to load draft:', error);
+  // Check if user owns this question
+  React.useEffect(() => {
+    if (question && user && question.userid !== user.id) {
+      toast.error('본인의 질문만 수정할 수 있습니다.');
+      router.push('/community?tab=qna');
     }
-    return null;
-  }, []);
+  }, [question, user, router]);
 
-  const clearDraft = React.useCallback(() => {
-    localStorage.removeItem(DRAFT_KEY);
-  }, []);
-
-  // Track content changes to reset isSaved state
+  // Initialize form with question data
   React.useEffect(() => {
-    if (!editor) return;
-
-    const handleUpdate = () => {
-      setIsSaved(false);
-    };
-
-    editor.on('update', handleUpdate);
-
-    return () => {
-      editor.off('update', handleUpdate);
-    };
-  }, [editor]);
-
-  // Track title changes to reset isSaved state
-  React.useEffect(() => {
-    setIsSaved(false);
-  }, [title]);
-
-  // Auto-save every 3 seconds
-  React.useEffect(() => {
-    if (!editor) return;
-
-    const interval = setInterval(() => {
-      const editorText = editor.getText().trim();
-      if (title || editorText) {
-        saveDraft(true); // Silent save
-      }
-    }, 3000); // 3 seconds
-
-    return () => clearInterval(interval);
-  }, [title, editor, saveDraft]);
-
-  // Load draft on mount (when editor is ready)
-  React.useEffect(() => {
-    if (!editor) return;
-
-    const draft = loadDraft();
-    if (draft && (draft.title || draft.content)) {
-      if (confirm('이전에 작성 중이던 질문이 있습니다. 불러오시겠습니까?')) {
-        setTitle(draft.title || '');
-        editor.commands.setContent(draft.content || '');
-      }
+    if (question && editor && !isInitialized) {
+      setTitle(question.title || '');
+      setIsPublic(question.ispublic === 1);
+      editor.commands.setContent(question.description || '');
+      setIsInitialized(true);
     }
-  }, [editor, loadDraft]);
+  }, [question, editor, isInitialized]);
 
   const MIN_CONTENT_LENGTH = 20;
 
   const handleCancel = () => {
-    const editorText = editor?.getText().trim() || '';
-
-    // If saved, navigate without warning
-    if (isSaved) {
-      router.push('/community?tab=qna');
-      return;
-    }
-
-    // If has content and not saved, show warning
-    if (title.trim().length > 0 || editorText.length > 0) {
-      if (confirm('작성 중인 내용이 있습니다. 정말 나가시겠습니까?')) {
-        router.push('/community?tab=qna');
-      }
-    } else {
+    if (confirm('수정을 취소하시겠습니까? 변경사항이 저장되지 않습니다.')) {
       router.push('/community?tab=qna');
     }
   };
@@ -204,20 +125,19 @@ export default function NewQnaPage() {
     }
 
     try {
-      await createQuestionMutation.mutateAsync({
-        title: title.trim(),
-        description: editor.getText(),
-        descriptionhtml: editor.getHTML(),
-        ispublic: isPublic ? 1 : 0,
+      await updateQuestionMutation.mutateAsync({
+        id: qnaId,
+        data: {
+          title: title.trim(),
+          description: editor.getText(),
+          ispublic: isPublic ? 1 : 0,
+        },
       });
 
-      // Clear draft on successful post
-      clearDraft();
-
-      // Success - redirect to community Q&A tab
+      toast.success('질문이 수정되었습니다.');
       router.push('/community?tab=qna');
     } catch (error) {
-      console.error('Failed to create question:', error);
+      console.error('Failed to update question:', error);
     }
   };
 
@@ -243,13 +163,11 @@ export default function NewQnaPage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error('이미지 파일만 업로드할 수 있습니다');
       return;
     }
 
-    // Validate file size (max 10MB to match backend limit)
     if (file.size > 10 * 1024 * 1024) {
       toast.error('이미지 크기는 10MB 이하여야 합니다');
       return;
@@ -261,18 +179,16 @@ export default function NewQnaPage() {
         editor?.chain().focus().setImage({ src: result.image_url }).run();
       }
     } catch (error) {
-      // Error toast is handled by the mutation hook
       console.error('Failed to upload image:', error);
     }
 
-    // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Show loading while checking authentication
-  if (isUserLoading) {
+  // Show loading while checking authentication or loading question
+  if (isUserLoading || isQuestionLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -287,32 +203,24 @@ export default function NewQnaPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top Navigation Bar - Full Width, Seamless */}
+      {/* Top Navigation Bar */}
       <header className="w-full bg-slate-50 sticky top-0 z-50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={handleCancel} className="-ml-2 hover:bg-slate-200">
               <ChevronLeft className="h-6 w-6 text-slate-900" />
             </Button>
-            <span className="font-semibold text-slate-900">질문하기</span>
+            <span className="font-semibold text-slate-900">질문 수정</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-slate-500 hover:bg-slate-200"
-              onClick={() => saveDraft(false)}
-            >
-              임시저장
-            </Button>
             <Button
               variant="coral"
               size="sm"
               onClick={handleSubmit}
-              disabled={createQuestionMutation.isPending}
+              disabled={updateQuestionMutation.isPending}
               className="px-6 font-semibold"
             >
-              {createQuestionMutation.isPending ? '등록 중...' : '등록'}
+              {updateQuestionMutation.isPending ? '저장 중...' : '저장'}
             </Button>
           </div>
         </div>
@@ -321,10 +229,9 @@ export default function NewQnaPage() {
       <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-12">
         {/* Main Editor Area */}
         <main className="lg:col-span-8 space-y-8">
-          {/* Editor - No Card */}
           <div className="min-h-[600px]">
             <div className="space-y-6">
-              {/* Title Input - Always visible and required for Q&A */}
+              {/* Title Input */}
               <div className="relative">
                 <Input
                   value={title}
@@ -458,14 +365,14 @@ export default function NewQnaPage() {
           </div>
 
           {/* Error Message */}
-          {createQuestionMutation.isError && (
+          {updateQuestionMutation.isError && (
             <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-red-900">질문 등록 실패</p>
+                <p className="font-medium text-red-900">질문 수정 실패</p>
                 <p className="text-sm text-red-700 mt-1">
-                  {createQuestionMutation.error instanceof Error
-                    ? createQuestionMutation.error.message
+                  {updateQuestionMutation.error instanceof Error
+                    ? updateQuestionMutation.error.message
                     : '알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'}
                 </p>
               </div>

@@ -44,15 +44,15 @@ export interface UserInterestsResponse {
 }
 
 /**
- * 계정 삭제 요청
+ * 계정 탈퇴 요청
  */
 export interface DeleteAccountRequest {
-  reason?: string;
+  reason: string;
   feedback?: string;
 }
 
 /**
- * 계정 삭제 응답
+ * 계정 탈퇴 응답
  */
 export interface DeleteAccountResponse {
   request_id: number;
@@ -102,8 +102,21 @@ export async function changePassword(data: ChangePasswordRequest): Promise<void>
  */
 export async function getInterests(): Promise<Interest[]> {
   try {
-    const response = await authClient.get<Interest[]>('/api/v1/interests/');
-    return response.data;
+    // v2 API 응답 타입
+    interface CategoryResponse {
+      id: number;
+      name: string;
+      enum: string;
+      is_engineering: boolean;
+    }
+
+    const response = await authClient.get<CategoryResponse[]>('/api/v1/categories/');
+    // v2 API 응답을 Interest 타입으로 변환
+    return response.data.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      isEngineering: cat.is_engineering,
+    }));
   } catch (error) {
     throw handleApiError(error);
   }
@@ -114,9 +127,26 @@ export async function getInterests(): Promise<Interest[]> {
  */
 export async function getUserInterests(): Promise<number[]> {
   try {
-    const response = await authClient.get<UserInterestsResponse>('/api/v1/users/me/interests/');
-    return response.data.category_ids;
-  } catch (error) {
+    // v2 API 응답 타입
+    interface V2UserInterestsResponse {
+      id: number;
+      user_id: number;
+      categories: Array<{
+        id: number;
+        name: string;
+        enum: string;
+        is_engineering: boolean;
+      }>;
+    }
+
+    const response = await authClient.get<V2UserInterestsResponse>('/api/v1/users/me/interests/');
+    // categories 배열에서 id만 추출
+    return response.data.categories.map((cat) => cat.id);
+  } catch (error: any) {
+    // 404인 경우 빈 배열 반환 (관심사 미설정 사용자)
+    if (error?.status === 404) {
+      return [];
+    }
     throw handleApiError(error);
   }
 }
@@ -126,14 +156,20 @@ export async function getUserInterests(): Promise<number[]> {
  */
 export async function updateUserInterests(categoryIds: number[]): Promise<void> {
   try {
+    // 먼저 PUT으로 업데이트 시도
     await authClient.put('/api/v1/users/me/interests/', { category_ids: categoryIds });
-  } catch (error) {
-    throw handleApiError(error);
+  } catch (error: any) {
+    // 404인 경우 (관심사가 없는 경우) POST로 생성
+    if (error?.status === 404) {
+      await authClient.post('/api/v1/users/me/interests/', { category_ids: categoryIds });
+    } else {
+      throw handleApiError(error);
+    }
   }
 }
 
 /**
- * 계정 삭제 요청
+ * 계정 탈퇴 요청
  */
 export async function requestDeleteAccount(data: DeleteAccountRequest): Promise<DeleteAccountResponse> {
   try {

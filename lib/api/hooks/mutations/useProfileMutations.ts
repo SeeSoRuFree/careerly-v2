@@ -7,20 +7,30 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   updateMyProfile,
+  uploadProfileImage,
   addCareer,
   updateCareer,
   deleteCareer,
   addEducation,
   updateEducation,
   deleteEducation,
+  replaceProfileSkills,
+} from '../../services/profile.service';
+import type {
+  ReplaceSkillsRequest,
+  ReplaceSkillsResponse,
 } from '../../services/profile.service';
 import { profileKeys } from '../queries/useProfile';
 import type {
   ProfileDetail,
   ProfileUpdateRequest,
+  ProfileImageUploadResponse,
   CareerRequest,
   EducationRequest,
+  Career,
+  Education,
 } from '../../types/profile.types';
+import { toast } from 'sonner';
 
 /**
  * 프로필 업데이트 훅
@@ -30,9 +40,28 @@ export function useUpdateMyProfile() {
 
   return useMutation<ProfileDetail, Error, ProfileUpdateRequest>({
     mutationFn: updateMyProfile,
-    onSuccess: (data) => {
-      queryClient.setQueryData(profileKeys.me(), data);
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
+    },
+  });
+}
+
+/**
+ * 프로필 이미지 업로드 훅
+ */
+export function useUploadProfileImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ProfileImageUploadResponse, Error, File>({
+    mutationFn: uploadProfileImage,
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      toast.success('프로필 이미지가 변경되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '이미지 업로드에 실패했습니다.');
     },
   });
 }
@@ -43,10 +72,10 @@ export function useUpdateMyProfile() {
 export function useAddCareer() {
   const queryClient = useQueryClient();
 
-  return useMutation<ProfileDetail, Error, CareerRequest>({
+  return useMutation<Career, Error, CareerRequest>({
     mutationFn: addCareer,
-    onSuccess: (data) => {
-      queryClient.setQueryData(profileKeys.me(), data);
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
@@ -58,10 +87,10 @@ export function useAddCareer() {
 export function useUpdateCareer() {
   const queryClient = useQueryClient();
 
-  return useMutation<ProfileDetail, Error, { careerId: number; data: CareerRequest }>({
+  return useMutation<Career, Error, { careerId: number; data: CareerRequest }>({
     mutationFn: ({ careerId, data }) => updateCareer(careerId, data),
-    onSuccess: (data) => {
-      queryClient.setQueryData(profileKeys.me(), data);
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
@@ -76,7 +105,8 @@ export function useDeleteCareer() {
   return useMutation<void, Error, number>({
     mutationFn: deleteCareer,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: profileKeys.me() });
+      // 모든 프로필 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
 }
@@ -87,10 +117,10 @@ export function useDeleteCareer() {
 export function useAddEducation() {
   const queryClient = useQueryClient();
 
-  return useMutation<ProfileDetail, Error, EducationRequest>({
+  return useMutation<Education, Error, EducationRequest>({
     mutationFn: addEducation,
-    onSuccess: (data) => {
-      queryClient.setQueryData(profileKeys.me(), data);
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
@@ -102,10 +132,10 @@ export function useAddEducation() {
 export function useUpdateEducation() {
   const queryClient = useQueryClient();
 
-  return useMutation<ProfileDetail, Error, { educationId: number; data: EducationRequest }>({
+  return useMutation<Education, Error, { educationId: number; data: EducationRequest }>({
     mutationFn: ({ educationId, data }) => updateEducation(educationId, data),
-    onSuccess: (data) => {
-      queryClient.setQueryData(profileKeys.me(), data);
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
@@ -120,7 +150,23 @@ export function useDeleteEducation() {
   return useMutation<void, Error, number>({
     mutationFn: deleteEducation,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: profileKeys.me() });
+      // 모든 프로필 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+    },
+  });
+}
+
+/**
+ * 스킬 일괄 교체 훅
+ */
+export function useReplaceProfileSkills() {
+  const queryClient = useQueryClient();
+
+  return useMutation<ReplaceSkillsResponse, Error, ReplaceSkillsRequest>({
+    mutationFn: replaceProfileSkills,
+    onSuccess: () => {
+      // 모든 프로필 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
     },
   });
 }

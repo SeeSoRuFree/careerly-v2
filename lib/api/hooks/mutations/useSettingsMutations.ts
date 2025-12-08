@@ -87,7 +87,7 @@ export function useUpdateUserInterests(
 }
 
 /**
- * 계정 삭제 요청 mutation
+ * 계정 탈퇴 mutation
  */
 export function useRequestDeleteAccount(
   options?: Omit<UseMutationOptions<DeleteAccountResponse, Error, DeleteAccountRequest>, 'mutationFn'>
@@ -95,10 +95,10 @@ export function useRequestDeleteAccount(
   return useMutation<DeleteAccountResponse, Error, DeleteAccountRequest>({
     mutationFn: requestDeleteAccount,
     onSuccess: () => {
-      toast.success('계정 삭제 요청이 접수되었습니다.');
+      toast.success('계정 탈퇴가 완료되었습니다.');
     },
     onError: (error) => {
-      toast.error(error.message || '계정 삭제 요청에 실패했습니다.');
+      toast.error(error.message || '계정 탈퇴에 실패했습니다.');
     },
     ...options,
   });

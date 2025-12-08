@@ -81,6 +81,7 @@ export interface PostCreateRequest {
 export interface PostUpdateRequest {
   title?: string;
   description?: string;
+  descriptionhtml?: string;
   posttype?: PostType;
   articleid?: number;
 }

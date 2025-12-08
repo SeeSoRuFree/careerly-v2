@@ -21,6 +21,8 @@ import {
   unlikeQuestion,
   likeAnswer,
   unlikeAnswer,
+  uploadQuestionImage,
+  uploadAnswerImage,
 } from '../../services/questions.service';
 import { questionKeys, answerKeys } from '../queries/useQuestions';
 import type {
@@ -30,6 +32,7 @@ import type {
   Answer,
   AnswerCreateRequest,
   AnswerUpdateRequest,
+  QuestionImageUploadResponse,
 } from '../../types/questions.types';
 
 /**
@@ -205,23 +208,24 @@ export function useCreateAnswer(
  */
 export function useUpdateAnswer(
   options?: Omit<
-    UseMutationOptions<Answer, Error, { id: number; data: AnswerUpdateRequest }>,
+    UseMutationOptions<Answer, Error, { id: number; questionId: number; data: AnswerUpdateRequest }>,
     'mutationFn'
   >
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<Answer, Error, { id: number; data: AnswerUpdateRequest }>({
+  return useMutation<Answer, Error, { id: number; questionId: number; data: AnswerUpdateRequest }>({
     mutationFn: ({ id, data }) => updateAnswer(id, data),
-    onSuccess: (data, { id }) => {
+    onSuccess: (data, { id, questionId }) => {
       // 답변 상세 캐시 업데이트
       queryClient.setQueryData(answerKeys.detail(id), data);
 
-      // 연결된 질문 상세 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.detail(data.question_id) });
+      // 연결된 질문 상세 무효화 (파라미터 또는 응답에서 가져옴)
+      const qId = questionId || data.question_id;
+      queryClient.invalidateQueries({ queryKey: questionKeys.detail(qId) });
 
       // 질문의 답변 목록 무효화
-      queryClient.invalidateQueries({ queryKey: questionKeys.answers(data.question_id) });
+      queryClient.invalidateQueries({ queryKey: questionKeys.answers(qId) });
 
       // 전체 답변 목록 무효화
       queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
@@ -432,6 +436,42 @@ export function useUnlikeAnswer(
     },
     onError: (error) => {
       toast.error(error.message || '좋아요 취소에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * Q&A 질문 이미지 업로드 mutation
+ */
+export function useUploadQuestionImage(
+  options?: Omit<UseMutationOptions<QuestionImageUploadResponse, Error, File>, 'mutationFn'>
+) {
+  return useMutation<QuestionImageUploadResponse, Error, File>({
+    mutationFn: uploadQuestionImage,
+    onSuccess: () => {
+      toast.success('이미지가 업로드되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '이미지 업로드에 실패했습니다.');
+    },
+    ...options,
+  });
+}
+
+/**
+ * Q&A 답변 이미지 업로드 mutation
+ */
+export function useUploadAnswerImage(
+  options?: Omit<UseMutationOptions<QuestionImageUploadResponse, Error, File>, 'mutationFn'>
+) {
+  return useMutation<QuestionImageUploadResponse, Error, File>({
+    mutationFn: uploadAnswerImage,
+    onSuccess: () => {
+      toast.success('이미지가 업로드되었습니다.');
+    },
+    onError: (error) => {
+      toast.error(error.message || '이미지 업로드에 실패했습니다.');
     },
     ...options,
   });

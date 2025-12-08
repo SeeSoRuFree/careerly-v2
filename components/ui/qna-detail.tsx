@@ -10,8 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import {
-  ThumbsUp,
-  ThumbsDown,
   Eye,
   Clock,
   MessageCircle,
@@ -19,7 +17,19 @@ import {
   CheckCircle2,
   X,
   Share2,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Check,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const linkifyOptions = {
   className: 'text-coral-500 hover:text-coral-600 underline',
@@ -35,11 +45,7 @@ export interface Answer {
   userHeadline?: string;
   content: string;
   createdAt: string;
-  likeCount: number;
-  dislikeCount: number;
   isAccepted?: boolean;
-  liked?: boolean;
-  disliked?: boolean;
 }
 
 export interface QnaDetailProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -50,22 +56,17 @@ export interface QnaDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   updatedAt?: string;
   hashTagNames?: string;
   viewCount: number;
-  likeCount?: number;
-  dislikeCount?: number;
   status?: number;
   isPublic?: number;
   answers?: Answer[];
-  onLike?: () => void;
-  onDislike?: () => void;
-  onAnswerLike?: (answerId: number) => void;
-  onAnswerDislike?: (answerId: number) => void;
   onAnswerSubmit?: (content: string) => void;
   onAcceptAnswer?: (answerId: number) => void;
-  liked?: boolean;
-  disliked?: boolean;
+  onAnswerEdit?: (answerId: number, content: string) => void;
+  onAnswerDelete?: (answerId: number) => void;
   sharedAiContent?: string;
   onClearSharedContent?: () => void;
   currentUser?: {
+    id?: number;
     name: string;
     image_url?: string;
   };
@@ -81,19 +82,13 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
       updatedAt,
       hashTagNames,
       viewCount,
-      likeCount = 0,
-      dislikeCount = 0,
       status = 0,
       isPublic = 1,
       answers = [],
-      onLike,
-      onDislike,
-      onAnswerLike,
-      onAnswerDislike,
       onAnswerSubmit,
       onAcceptAnswer,
-      liked = false,
-      disliked = false,
+      onAnswerEdit,
+      onAnswerDelete,
       sharedAiContent,
       onClearSharedContent,
       currentUser,
@@ -103,6 +98,41 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
     ref
   ) => {
     const [answerInput, setAnswerInput] = React.useState('');
+    const [editingAnswerId, setEditingAnswerId] = React.useState<number | null>(null);
+    const [editingAnswerContent, setEditingAnswerContent] = React.useState('');
+    const [deleteAnswerDialogOpen, setDeleteAnswerDialogOpen] = React.useState(false);
+    const [answerToDelete, setAnswerToDelete] = React.useState<number | null>(null);
+
+    const handleAnswerEditStart = (answer: Answer) => {
+      setEditingAnswerId(answer.id);
+      setEditingAnswerContent(answer.content);
+    };
+
+    const handleAnswerEditSave = () => {
+      if (editingAnswerId && editingAnswerContent.trim()) {
+        onAnswerEdit?.(editingAnswerId, editingAnswerContent.trim());
+        setEditingAnswerId(null);
+        setEditingAnswerContent('');
+      }
+    };
+
+    const handleAnswerEditCancel = () => {
+      setEditingAnswerId(null);
+      setEditingAnswerContent('');
+    };
+
+    const handleAnswerDeleteClick = (answerId: number) => {
+      setAnswerToDelete(answerId);
+      setDeleteAnswerDialogOpen(true);
+    };
+
+    const handleAnswerDeleteConfirm = () => {
+      if (answerToDelete) {
+        onAnswerDelete?.(answerToDelete);
+        setAnswerToDelete(null);
+        setDeleteAnswerDialogOpen(false);
+      }
+    };
 
     React.useEffect(() => {
       if (sharedAiContent) {
@@ -124,27 +154,16 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
       <div ref={ref} className={cn('space-y-2', className)} {...props}>
         {/* Question */}
         <Card className="border-0 bg-transparent shadow-none p-2">
-          {/* Header - Tags and Status */}
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
+          {/* Header - Tags */}
+          {tags.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap mb-3">
               {tags.map((tag, idx) => (
                 <Badge key={idx} tone="slate" className="text-xs">
                   #{tag}
                 </Badge>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              {hasAnswer ? (
-                <Badge tone="success" className="text-xs">
-                  답변 {answers.length}
-                </Badge>
-              ) : (
-                <Badge tone="coral" className="text-xs">
-                  미답변
-                </Badge>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-slate-900 mb-3 leading-tight">
@@ -169,49 +188,15 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                 <Eye className="h-4 w-4" />
                 <span>{viewCount.toLocaleString()} 조회</span>
               </div>
-              {answers.length > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>{answers.length} 답변</span>
-                </div>
-              )}
             </div>
 
-            {/* Like/Dislike Actions */}
-            {(onLike || onDislike) && (
-              <div className="flex items-center gap-2">
-                {onLike && (
-                  <button
-                    onClick={onLike}
-                    className={cn(
-                      'flex items-center gap-1 text-sm px-3 py-1.5 rounded transition-colors',
-                      liked
-                        ? 'text-coral-500 bg-coral-50'
-                        : 'text-slate-500 hover:text-coral-500 hover:bg-coral-50'
-                    )}
-                    aria-label="좋아요"
-                  >
-                    <ThumbsUp className="h-4 w-4" />
-                    {likeCount > 0 && <span>{likeCount}</span>}
-                  </button>
-                )}
-                {onDislike && (
-                  <button
-                    onClick={onDislike}
-                    className={cn(
-                      'flex items-center gap-1 text-sm px-3 py-1.5 rounded transition-colors',
-                      disliked
-                        ? 'text-slate-700 bg-slate-100'
-                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                    )}
-                    aria-label="싫어요"
-                  >
-                    <ThumbsDown className="h-4 w-4" />
-                    {dislikeCount > 0 && <span>{dislikeCount}</span>}
-                  </button>
-                )}
-              </div>
-            )}
+            {/* Answer Status Text */}
+            <span className={cn(
+              'text-sm font-medium',
+              hasAnswer ? 'text-green-600' : 'text-coral-500'
+            )}>
+              {hasAnswer ? `답변 ${answers.length}` : '미답변'}
+            </span>
           </div>
         </Card>
 
@@ -320,49 +305,9 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                         )}
                       </a>
                     </div>
-                    <div className="flex items-center gap-3 ml-2 flex-shrink-0">
-                      <button
-                        onClick={() => onAnswerLike?.(acceptedAnswer.id)}
-                        className={cn(
-                          'flex items-center gap-1 text-xs transition-colors',
-                          acceptedAnswer.liked
-                            ? 'text-coral-500'
-                            : 'text-slate-400 hover:text-coral-500'
-                        )}
-                      >
-                        <ThumbsUp
-                          className={cn(
-                            'h-3.5 w-3.5',
-                            acceptedAnswer.liked && 'fill-current'
-                          )}
-                        />
-                        {acceptedAnswer.likeCount > 0 && (
-                          <span>{acceptedAnswer.likeCount}</span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => onAnswerDislike?.(acceptedAnswer.id)}
-                        className={cn(
-                          'flex items-center gap-1 text-xs transition-colors',
-                          acceptedAnswer.disliked
-                            ? 'text-slate-600'
-                            : 'text-slate-400 hover:text-slate-600'
-                        )}
-                      >
-                        <ThumbsDown
-                          className={cn(
-                            'h-3.5 w-3.5',
-                            acceptedAnswer.disliked && 'fill-current'
-                          )}
-                        />
-                        {acceptedAnswer.dislikeCount > 0 && (
-                          <span>{acceptedAnswer.dislikeCount}</span>
-                        )}
-                      </button>
-                      <span className="text-xs text-slate-500">
-                        {formatRelativeTime(acceptedAnswer.createdAt)}
-                      </span>
-                    </div>
+                    <span className="text-xs text-slate-500 ml-2 flex-shrink-0">
+                      {formatRelativeTime(acceptedAnswer.createdAt)}
+                    </span>
                   </div>
 
                   {/* AI 공유 내용 렌더링 */}
@@ -440,153 +385,202 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
             <div className="divide-y divide-slate-200">
               {answers
                 .filter((a) => !a.isAccepted)
-                .map((answer) => (
-                  <div key={answer.id} className="p-2 pb-3 pt-3">
-                  <div className="flex items-start gap-2">
-                    <a
-                      href={`/profile/${answer.userId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="hover:opacity-80 transition-opacity flex-shrink-0"
-                    >
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={answer.userImage} alt={answer.userName} />
-                        <AvatarFallback>{answer.userName?.charAt(0) || '?'}</AvatarFallback>
-                      </Avatar>
-                    </a>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1">
-                        <div className="flex-1">
-                          <a
-                            href={`/profile/${answer.userId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="hover:opacity-80 transition-opacity"
-                          >
-                            <span className="font-semibold text-slate-900 text-sm">
-                              {answer.userName || '알 수 없음'}
-                            </span>
-                            {answer.userHeadline && (
-                              <p className="text-xs text-slate-600">
-                                {answer.userHeadline}
-                              </p>
-                            )}
-                          </a>
-                        </div>
-                        <div className="flex items-center gap-3 ml-2 flex-shrink-0">
-                          <button
-                            onClick={() => onAnswerLike?.(answer.id)}
-                            className={cn(
-                              'flex items-center gap-1 text-xs transition-colors',
-                              answer.liked
-                                ? 'text-coral-500'
-                                : 'text-slate-400 hover:text-coral-500'
-                            )}
-                          >
-                            <ThumbsUp
-                              className={cn(
-                                'h-3.5 w-3.5',
-                                answer.liked && 'fill-current'
-                              )}
-                            />
-                            {answer.likeCount > 0 && <span>{answer.likeCount}</span>}
-                          </button>
-                          <button
-                            onClick={() => onAnswerDislike?.(answer.id)}
-                            className={cn(
-                              'flex items-center gap-1 text-xs transition-colors',
-                              answer.disliked
-                                ? 'text-slate-600'
-                                : 'text-slate-400 hover:text-slate-600'
-                            )}
-                          >
-                            <ThumbsDown
-                              className={cn(
-                                'h-3.5 w-3.5',
-                                answer.disliked && 'fill-current'
-                              )}
-                            />
-                            {answer.dislikeCount > 0 && <span>{answer.dislikeCount}</span>}
-                          </button>
-                          {onAcceptAnswer && (
-                            <button
-                              onClick={() => onAcceptAnswer(answer.id)}
-                              className="flex items-center gap-1 text-xs text-slate-400 hover:text-green-500 transition-colors"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </button>
-                          )}
-                          <span className="text-xs text-slate-500">
-                            {formatRelativeTime(answer.createdAt)}
-                          </span>
-                        </div>
-                      </div>
+                .map((answer) => {
+                  const isOwnAnswer = currentUser?.id === answer.userId;
+                  const isEditing = editingAnswerId === answer.id;
 
-                      {/* AI 공유 내용 렌더링 */}
-                      {answer.content?.includes('> AI 답변:') ? (
-                        <div className="space-y-2 mb-2">
-                          {/* AI 대화 박스 */}
-                          <div className="bg-white rounded-xl p-3 border border-slate-200">
-                            <div className="space-y-2">
-                              {/* 사용자 질문 (있는 경우) */}
-                              {answer.content?.includes('> 사용자 질문:') && (
-                                <div className="flex items-start gap-2 justify-end">
-                                  <div className="bg-slate-700 rounded-lg p-2 max-w-[85%]">
-                                    <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
-                                      {answer.content.split('\n\n')[0].replace('> 사용자 질문:\n> ', '').replace(/\n> /g, '\n')}
-                                    </p>
-                                  </div>
-                                </div>
+                  return (
+                    <div key={answer.id} className="p-2 pb-3 pt-3">
+                      <div className="flex items-start gap-2">
+                        <a
+                          href={`/profile/${answer.userId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:opacity-80 transition-opacity flex-shrink-0"
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={answer.userImage} alt={answer.userName} />
+                            <AvatarFallback>{answer.userName?.charAt(0) || '?'}</AvatarFallback>
+                          </Avatar>
+                        </a>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1">
+                              <a
+                                href={`/profile/${answer.userId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:opacity-80 transition-opacity"
+                              >
+                                <span className="font-semibold text-slate-900 text-sm">
+                                  {answer.userName || '알 수 없음'}
+                                </span>
+                                {answer.userHeadline && (
+                                  <p className="text-xs text-slate-600">
+                                    {answer.userHeadline}
+                                  </p>
+                                )}
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                              {onAcceptAnswer && (
+                                <button
+                                  onClick={() => onAcceptAnswer(answer.id)}
+                                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-green-500 transition-colors"
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                </button>
                               )}
-
-                              {/* AI 답변 */}
-                              <div className="flex items-start gap-2">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-coral-50 flex-shrink-0 mt-0.5">
-                                  <span className="text-sm font-bold text-coral-600">C</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-coral-800 mb-1">AI 어시스턴트</p>
-                                  <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                                    <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                      {(() => {
-                                        const parts = answer.content.split('\n\n');
-                                        const hasQuestion = answer.content?.includes('> 사용자 질문:');
-                                        const answerPart = hasQuestion ? parts[1] : parts[0];
-                                        return answerPart?.replace('> AI 답변:\n> ', '').replace(/\n> /g, '\n') || '';
-                                      })()}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
+                              <span className="text-xs text-slate-500">
+                                {formatRelativeTime(answer.createdAt)}
+                              </span>
+                              {/* 본인 답변인 경우 수정/삭제 메뉴 */}
+                              {isOwnAnswer && (onAnswerEdit || onAnswerDelete) && !isEditing && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger
+                                    className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                                    aria-label="더보기"
+                                  >
+                                    <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {onAnswerEdit && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleAnswerEditStart(answer)}
+                                        className="text-slate-700"
+                                      >
+                                        <Pencil className="h-4 w-4 mr-2" />
+                                        수정하기
+                                      </DropdownMenuItem>
+                                    )}
+                                    {onAnswerEdit && onAnswerDelete && <DropdownMenuSeparator />}
+                                    {onAnswerDelete && (
+                                      <DropdownMenuItem
+                                        onClick={() => handleAnswerDeleteClick(answer.id)}
+                                        className="text-red-600"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        삭제하기
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </div>
                           </div>
 
-                          {/* 사용자 코멘트 */}
-                          {(() => {
-                            const parts = answer.content.split('\n\n');
-                            const hasQuestion = answer.content?.includes('> 사용자 질문:');
-                            const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
-                            return userComment ? (
-                              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                <Linkify options={linkifyOptions}>
-                                  {userComment}
-                                </Linkify>
-                              </p>
-                            ) : null;
-                          })()}
+                          {/* 수정 모드 */}
+                          {isEditing ? (
+                            <div className="space-y-2">
+                              <Input
+                                value={editingAnswerContent}
+                                onChange={(e) => setEditingAnswerContent(e.target.value)}
+                                className="text-sm"
+                                autoFocus
+                              />
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="solid"
+                                  onClick={handleAnswerEditSave}
+                                  disabled={!editingAnswerContent.trim()}
+                                >
+                                  <Check className="h-3.5 w-3.5 mr-1" />
+                                  저장
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleAnswerEditCancel}
+                                >
+                                  취소
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {/* AI 공유 내용 렌더링 */}
+                              {answer.content?.includes('> AI 답변:') ? (
+                                <div className="space-y-2 mb-2">
+                                  {/* AI 대화 박스 */}
+                                  <div className="bg-white rounded-xl p-3 border border-slate-200">
+                                    <div className="space-y-2">
+                                      {/* 사용자 질문 (있는 경우) */}
+                                      {answer.content?.includes('> 사용자 질문:') && (
+                                        <div className="flex items-start gap-2 justify-end">
+                                          <div className="bg-slate-700 rounded-lg p-2 max-w-[85%]">
+                                            <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
+                                              {answer.content.split('\n\n')[0].replace('> 사용자 질문:\n> ', '').replace(/\n> /g, '\n')}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* AI 답변 */}
+                                      <div className="flex items-start gap-2">
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-coral-50 flex-shrink-0 mt-0.5">
+                                          <span className="text-sm font-bold text-coral-600">C</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-xs font-medium text-coral-800 mb-1">AI 어시스턴트</p>
+                                          <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                              {(() => {
+                                                const parts = answer.content.split('\n\n');
+                                                const hasQuestion = answer.content?.includes('> 사용자 질문:');
+                                                const answerPart = hasQuestion ? parts[1] : parts[0];
+                                                return answerPart?.replace('> AI 답변:\n> ', '').replace(/\n> /g, '\n') || '';
+                                              })()}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* 사용자 코멘트 */}
+                                  {(() => {
+                                    const parts = answer.content.split('\n\n');
+                                    const hasQuestion = answer.content?.includes('> 사용자 질문:');
+                                    const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
+                                    return userComment ? (
+                                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                        <Linkify options={linkifyOptions}>
+                                          {userComment}
+                                        </Linkify>
+                                      </p>
+                                    ) : null;
+                                  })()}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                  <Linkify options={linkifyOptions}>
+                                    {answer.content}
+                                  </Linkify>
+                                </p>
+                              )}
+                            </>
+                          )}
                         </div>
-                      ) : (
-                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                          <Linkify options={linkifyOptions}>
-                            {answer.content}
-                          </Linkify>
-                        </p>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-                ))}
+                  );
+                })}
             </div>
           </div>
         )}
+
+        {/* Answer Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={deleteAnswerDialogOpen}
+          onClose={() => {
+            setDeleteAnswerDialogOpen(false);
+            setAnswerToDelete(null);
+          }}
+          onConfirm={handleAnswerDeleteConfirm}
+          title="답변 삭제"
+          description="이 답변을 삭제하시겠습니까? 삭제된 답변은 복구할 수 없습니다."
+          confirmText="삭제하기"
+          variant="danger"
+        />
       </div>
     );
   }

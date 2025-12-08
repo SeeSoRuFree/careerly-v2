@@ -159,13 +159,7 @@ export default function CommunityComponentsPage() {
                     hashTagNames="포트폴리오 취업"
                     answerCount={0}
                     commentCount={0}
-                    likeCount={0}
                     viewCount={17}
-                    href="#"
-                    liked={qnaLiked}
-                    disliked={qnaDisliked}
-                    onLike={() => setQnaLiked(!qnaLiked)}
-                    onDislike={() => setQnaDisliked(!qnaDisliked)}
                   />
                 </div>
 
@@ -179,11 +173,7 @@ export default function CommunityComponentsPage() {
                     hashTagNames="React Vue 프론트엔드 취업"
                     answerCount={8}
                     commentCount={15}
-                    likeCount={23}
                     viewCount={456}
-                    href="#"
-                    onLike={() => console.log('Like')}
-                    onDislike={() => console.log('Dislike')}
                   />
                 </div>
 
@@ -197,11 +187,8 @@ export default function CommunityComponentsPage() {
                     hashTagNames="연봉 협상 경력"
                     answerCount={5}
                     commentCount={8}
-                    likeCount={12}
                     viewCount={234}
                     isPublic={0}
-                    href="#"
-                    onLike={() => console.log('Like')}
                   />
                 </div>
               </div>

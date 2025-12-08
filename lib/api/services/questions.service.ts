@@ -12,6 +12,7 @@ import type {
   AnswerUpdateRequest,
   PaginatedQuestionResponse,
   PaginatedAnswerResponse,
+  QuestionImageUploadResponse,
 } from '../types/questions.types';
 
 /**
@@ -259,6 +260,54 @@ export async function likeAnswer(answerId: number): Promise<void> {
 export async function unlikeAnswer(answerId: number): Promise<void> {
   try {
     await authClient.post(`/api/v1/answers/${answerId}/unlike/`);
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * Q&A 질문 이미지 업로드
+ * 인증 필요
+ */
+export async function uploadQuestionImage(file: File): Promise<QuestionImageUploadResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await authClient.post<QuestionImageUploadResponse>(
+      '/api/v1/questions/images/',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * Q&A 답변 이미지 업로드
+ * 인증 필요
+ */
+export async function uploadAnswerImage(file: File): Promise<QuestionImageUploadResponse> {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await authClient.post<QuestionImageUploadResponse>(
+      '/api/v1/answers/images/',
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    return response.data;
   } catch (error) {
     throw handleApiError(error);
   }

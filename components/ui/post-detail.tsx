@@ -21,6 +21,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  Check,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -83,6 +84,8 @@ export interface PostDetailProps extends React.HTMLAttributes<HTMLDivElement> {
   onDelete?: () => void;
   onCommentLike?: (commentId: number) => void;
   onCommentSubmit?: (content: string) => void;
+  onCommentEdit?: (commentId: number, content: string) => void;
+  onCommentDelete?: (commentId: number) => void;
   liked?: boolean;
   bookmarked?: boolean;
   feedType?: string;
@@ -114,6 +117,8 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
       onDelete,
       onCommentLike,
       onCommentSubmit,
+      onCommentEdit,
+      onCommentDelete,
       liked = false,
       bookmarked = false,
       feedType,
@@ -127,12 +132,47 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
   ) => {
     const [commentInput, setCommentInput] = React.useState('');
     const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+    const [editingCommentId, setEditingCommentId] = React.useState<number | null>(null);
+    const [editingCommentContent, setEditingCommentContent] = React.useState('');
+    const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = React.useState(false);
+    const [commentToDelete, setCommentToDelete] = React.useState<number | null>(null);
 
     const isOwnPost = currentUser?.id !== undefined && (authorId === currentUser.id || userProfile.id === currentUser.id);
 
     const handleDeleteConfirm = () => {
       onDelete?.();
       setDeleteDialogOpen(false);
+    };
+
+    const handleCommentEditStart = (comment: Comment) => {
+      setEditingCommentId(comment.id);
+      setEditingCommentContent(comment.content);
+    };
+
+    const handleCommentEditSave = () => {
+      if (editingCommentId && editingCommentContent.trim()) {
+        onCommentEdit?.(editingCommentId, editingCommentContent.trim());
+        setEditingCommentId(null);
+        setEditingCommentContent('');
+      }
+    };
+
+    const handleCommentEditCancel = () => {
+      setEditingCommentId(null);
+      setEditingCommentContent('');
+    };
+
+    const handleCommentDeleteClick = (commentId: number) => {
+      setCommentToDelete(commentId);
+      setDeleteCommentDialogOpen(true);
+    };
+
+    const handleCommentDeleteConfirm = () => {
+      if (commentToDelete) {
+        onCommentDelete?.(commentToDelete);
+        setCommentToDelete(null);
+        setDeleteCommentDialogOpen(false);
+      }
     };
 
     React.useEffect(() => {
@@ -413,121 +453,190 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
               댓글 {comments.length}
             </h3>
             <div className="divide-y divide-slate-200">
-              {comments.map((comment) => (
-                <div key={comment.id} className="p-2 pb-3 pt-3">
-                <div className="flex items-start gap-2">
-                  <a
-                    href={`/profile/${comment.userId}`}
-                    onClick={(e) => e.stopPropagation()}
-                    className="hover:opacity-80 transition-opacity flex-shrink-0"
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={comment.userImage} alt={comment.userName} />
-                      <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  </a>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex-1">
-                        <a
-                          href={`/profile/${comment.userId}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="hover:opacity-80 transition-opacity"
-                        >
-                          <span className="font-semibold text-slate-900 text-sm">
-                            {comment.userName}
-                          </span>
-                          {comment.userHeadline && (
-                            <p className="text-xs text-slate-600">{comment.userHeadline}</p>
-                          )}
-                        </a>
-                      </div>
-                      <div className="flex items-center gap-3 ml-2 flex-shrink-0">
-                        <button
-                          onClick={() => onCommentLike?.(comment.id)}
-                          className={cn(
-                            'flex items-center gap-1 text-xs transition-colors',
-                            comment.liked
-                              ? 'text-coral-500'
-                              : 'text-slate-400 hover:text-coral-500'
-                          )}
-                        >
-                          <Heart
-                            className={cn(
-                              'h-3.5 w-3.5',
-                              comment.liked && 'fill-current'
-                            )}
-                          />
-                          {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
-                        </button>
-                        <span className="text-xs text-slate-500">{comment.createdAt}</span>
-                      </div>
-                    </div>
+              {comments.map((comment) => {
+                const isOwnComment = currentUser?.id === comment.userId;
+                const isEditing = editingCommentId === comment.id;
 
-                    {/* AI 공유 내용 렌더링 */}
-                    {comment.content.includes('> AI 답변:') ? (
-                      <div className="space-y-2 mb-2">
-                        {/* AI 대화 박스 */}
-                        <div className="bg-white rounded-xl p-3 border border-slate-200">
-                          <div className="space-y-2">
-                            {/* 사용자 질문 (있는 경우) */}
-                            {comment.content.includes('> 사용자 질문:') && (
-                              <div className="flex items-start gap-2 justify-end">
-                                <div className="bg-slate-700 rounded-lg p-2 max-w-[85%]">
-                                  <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
-                                    {comment.content.split('\n\n')[0].replace('> 사용자 질문:\n> ', '').replace(/\n> /g, '\n')}
-                                  </p>
-                                </div>
-                              </div>
+                return (
+                  <div key={comment.id} className="p-2 pb-3 pt-3">
+                    <div className="flex items-start gap-2">
+                      <a
+                        href={`/profile/${comment.userId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="hover:opacity-80 transition-opacity flex-shrink-0"
+                      >
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={comment.userImage} alt={comment.userName} />
+                          <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      </a>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1">
+                            <a
+                              href={`/profile/${comment.userId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="hover:opacity-80 transition-opacity"
+                            >
+                              <span className="font-semibold text-slate-900 text-sm">
+                                {comment.userName}
+                              </span>
+                              {comment.userHeadline && (
+                                <p className="text-xs text-slate-600">{comment.userHeadline}</p>
+                              )}
+                            </a>
+                          </div>
+                          <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                            <button
+                              onClick={() => onCommentLike?.(comment.id)}
+                              className={cn(
+                                'flex items-center gap-1 text-xs transition-colors',
+                                comment.liked
+                                  ? 'text-coral-500'
+                                  : 'text-slate-400 hover:text-coral-500'
+                              )}
+                            >
+                              <Heart
+                                className={cn(
+                                  'h-3.5 w-3.5',
+                                  comment.liked && 'fill-current'
+                                )}
+                              />
+                              {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
+                            </button>
+                            <span className="text-xs text-slate-500">{comment.createdAt}</span>
+                            {/* 본인 댓글인 경우 수정/삭제 메뉴 */}
+                            {isOwnComment && (onCommentEdit || onCommentDelete) && !isEditing && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger
+                                  className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                                  aria-label="더보기"
+                                >
+                                  <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  {onCommentEdit && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleCommentEditStart(comment)}
+                                      className="text-slate-700"
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      수정하기
+                                    </DropdownMenuItem>
+                                  )}
+                                  {onCommentEdit && onCommentDelete && <DropdownMenuSeparator />}
+                                  {onCommentDelete && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleCommentDeleteClick(comment.id)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      삭제하기
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
-
-                            {/* AI 답변 */}
-                            <div className="flex items-start gap-2">
-                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-coral-50 flex-shrink-0 mt-0.5">
-                                <span className="text-sm font-bold text-coral-600">C</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-coral-800 mb-1">AI 어시스턴트</p>
-                                <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                                  <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                    {(() => {
-                                      const parts = comment.content.split('\n\n');
-                                      const hasQuestion = comment.content.includes('> 사용자 질문:');
-                                      const answerPart = hasQuestion ? parts[1] : parts[0];
-                                      return answerPart?.replace('> AI 답변:\n> ', '').replace(/\n> /g, '\n') || '';
-                                    })()}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
                           </div>
                         </div>
 
-                        {/* 사용자 코멘트 */}
-                        {(() => {
-                          const parts = comment.content.split('\n\n');
-                          const hasQuestion = comment.content.includes('> 사용자 질문:');
-                          const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
-                          return userComment ? (
-                            <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                              <Linkify options={linkifyOptions}>
-                                {userComment}
-                              </Linkify>
-                            </p>
-                          ) : null;
-                        })()}
+                        {/* 수정 모드 */}
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <Input
+                              value={editingCommentContent}
+                              onChange={(e) => setEditingCommentContent(e.target.value)}
+                              className="text-sm"
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="solid"
+                                onClick={handleCommentEditSave}
+                                disabled={!editingCommentContent.trim()}
+                              >
+                                <Check className="h-3.5 w-3.5 mr-1" />
+                                저장
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleCommentEditCancel}
+                              >
+                                취소
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            {/* AI 공유 내용 렌더링 */}
+                            {comment.content.includes('> AI 답변:') ? (
+                              <div className="space-y-2 mb-2">
+                                {/* AI 대화 박스 */}
+                                <div className="bg-white rounded-xl p-3 border border-slate-200">
+                                  <div className="space-y-2">
+                                    {/* 사용자 질문 (있는 경우) */}
+                                    {comment.content.includes('> 사용자 질문:') && (
+                                      <div className="flex items-start gap-2 justify-end">
+                                        <div className="bg-slate-700 rounded-lg p-2 max-w-[85%]">
+                                          <p className="text-sm text-white whitespace-pre-wrap leading-relaxed">
+                                            {comment.content.split('\n\n')[0].replace('> 사용자 질문:\n> ', '').replace(/\n> /g, '\n')}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* AI 답변 */}
+                                    <div className="flex items-start gap-2">
+                                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-coral-50 flex-shrink-0 mt-0.5">
+                                        <span className="text-sm font-bold text-coral-600">C</span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-coral-800 mb-1">AI 어시스턴트</p>
+                                        <div className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                                          <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                            {(() => {
+                                              const parts = comment.content.split('\n\n');
+                                              const hasQuestion = comment.content.includes('> 사용자 질문:');
+                                              const answerPart = hasQuestion ? parts[1] : parts[0];
+                                              return answerPart?.replace('> AI 답변:\n> ', '').replace(/\n> /g, '\n') || '';
+                                            })()}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* 사용자 코멘트 */}
+                                {(() => {
+                                  const parts = comment.content.split('\n\n');
+                                  const hasQuestion = comment.content.includes('> 사용자 질문:');
+                                  const userComment = hasQuestion ? parts.slice(2).join('\n\n') : parts.slice(1).join('\n\n');
+                                  return userComment ? (
+                                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                      <Linkify options={linkifyOptions}>
+                                        {userComment}
+                                      </Linkify>
+                                    </p>
+                                  ) : null;
+                                })()}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                <Linkify options={linkifyOptions}>
+                                  {comment.content}
+                                </Linkify>
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        <Linkify options={linkifyOptions}>
-                          {comment.content}
-                        </Linkify>
-                      </p>
-                    )}
+                    </div>
                   </div>
-                </div>
-              </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -539,6 +648,20 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           onConfirm={handleDeleteConfirm}
           title="게시글 삭제"
           description="이 게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다."
+          confirmText="삭제하기"
+          variant="danger"
+        />
+
+        {/* Comment Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={deleteCommentDialogOpen}
+          onClose={() => {
+            setDeleteCommentDialogOpen(false);
+            setCommentToDelete(null);
+          }}
+          onConfirm={handleCommentDeleteConfirm}
+          title="댓글 삭제"
+          description="이 댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다."
           confirmText="삭제하기"
           variant="danger"
         />

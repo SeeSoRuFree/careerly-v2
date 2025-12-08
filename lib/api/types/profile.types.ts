@@ -142,3 +142,11 @@ export interface EducationRequest {
   is_current?: boolean;
   url?: string;
 }
+
+/**
+ * 프로필 이미지 업로드 응답
+ */
+export interface ProfileImageUploadResponse {
+  success: boolean;
+  image_url: string;
+}

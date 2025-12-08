@@ -15,7 +15,8 @@ import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost } from '@/lib/api';
+import { formatRelativeTime } from '@/lib/utils/date';
+import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
@@ -63,6 +64,8 @@ function PostDetailDrawerContent({
   const { openLoginModal } = useStore();
 
   const createComment = useCreateComment();
+  const updateComment = useUpdateComment();
+  const deleteComment = useDeleteComment();
   const viewPost = useViewPost();
   const likeComment = useLikeComment();
   const unlikeComment = useUnlikeComment();
@@ -96,7 +99,7 @@ function PostDetailDrawerContent({
       userImage: comment.author_image_url,
       userHeadline: comment.author_headline,
       content: comment.content,
-      createdAt: new Date(comment.createdat).toLocaleDateString('ko-KR'),
+      createdAt: formatRelativeTime(comment.createdat),
       likeCount: comment.like_count || 0,
       liked: commentLikes[comment.id] ?? comment.is_liked ?? false,
     }));
@@ -134,6 +137,20 @@ function PostDetailDrawerContent({
         onError: () => setCommentLikes(prev => ({ ...prev, [commentId]: false })),
       });
     }
+  };
+
+  const handleCommentEdit = (commentId: number, content: string) => {
+    updateComment.mutate({
+      id: commentId,
+      data: { content },
+    });
+  };
+
+  const handleCommentDelete = (commentId: number) => {
+    deleteComment.mutate({
+      id: commentId,
+      postId: Number(postId),
+    });
   };
 
   if (isLoading) {
@@ -195,6 +212,8 @@ function PostDetailDrawerContent({
         onDelete={onDelete}
         onCommentLike={handleCommentLike}
         onCommentSubmit={handleCommentSubmit}
+        onCommentEdit={handleCommentEdit}
+        onCommentDelete={handleCommentDelete}
         liked={isLiked}
         bookmarked={isSaved}
         currentUser={user ? { id: user.id, name: user.name, image_url: user.image_url } : undefined}
@@ -206,13 +225,29 @@ function PostDetailDrawerContent({
 // Q&A 상세 Drawer 컨텐츠 컴포넌트
 function QnaDetailDrawerContent({
   questionData,
+  questionId,
 }: {
-  questionData: QuestionListItem;
+  questionData?: QuestionListItem;
+  questionId?: string;
 }) {
   const { data: user } = useCurrentUser();
+  const { openLoginModal } = useStore();
 
-  // 답변 데이터 변환 (questionData.answers가 있으면 사용, 없으면 빈 배열)
-  const transformedAnswers = (questionData as any).answers?.map((answer: any) => ({
+  // questionId가 있으면 API로 데이터 가져오기
+  const { data: fetchedQuestion, isLoading, error } = useQuestion(
+    questionId ? Number(questionId) : 0,
+    { enabled: !!questionId && !questionData }
+  );
+
+  const createAnswer = useCreateQuestionAnswer();
+  const updateAnswer = useUpdateAnswer();
+  const deleteAnswer = useDeleteAnswer();
+
+  // questionData 또는 fetchedQuestion 사용
+  const question = questionData || fetchedQuestion;
+
+  // 답변 데이터 변환 (question.answers가 있으면 사용, 없으면 빈 배열)
+  const transformedAnswers = (question as any)?.answers?.map((answer: any) => ({
     id: answer.id,
     userId: answer.user_id,
     userName: answer.author_name,
@@ -227,28 +262,72 @@ function QnaDetailDrawerContent({
     disliked: false,
   })) || [];
 
+  const questionIdNum = question?.id || (questionId ? Number(questionId) : 0);
+
+  const handleAnswerSubmit = async (content: string) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    try {
+      await createAnswer.mutateAsync({
+        questionId: questionIdNum,
+        description: content,
+      });
+    } catch (error) {
+      console.error('Failed to create answer:', error);
+    }
+  };
+
+  const handleAnswerEdit = (answerId: number, content: string) => {
+    updateAnswer.mutate({
+      id: answerId,
+      questionId: questionIdNum,
+      data: { description: content },
+    });
+  };
+
+  const handleAnswerDelete = (answerId: number) => {
+    deleteAnswer.mutate({
+      id: answerId,
+      questionId: questionIdNum,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (error || !question) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-slate-600">질문을 불러올 수 없습니다.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6">
       <QnaDetail
-        qnaId={questionData.id.toString()}
-        title={questionData.title}
-        description={(questionData as any).description || questionData.title}
-        createdAt={questionData.createdat}
-        updatedAt={questionData.updatedat}
+        qnaId={question.id.toString()}
+        title={question.title}
+        description={(question as any).description || question.title}
+        createdAt={question.createdat}
+        updatedAt={question.updatedat}
         hashTagNames=""
         viewCount={0}
-        likeCount={questionData.like_count || 0}
-        dislikeCount={0}
-        status={questionData.status}
-        isPublic={questionData.ispublic}
+        status={question.status}
+        isPublic={question.ispublic}
         answers={transformedAnswers}
-        onLike={() => {}}
-        onDislike={() => {}}
-        onAnswerLike={() => {}}
-        onAnswerDislike={() => {}}
-        onAnswerSubmit={() => {}}
+        onAnswerSubmit={handleAnswerSubmit}
         onAcceptAnswer={() => {}}
-        currentUser={user ? { name: user.name, image_url: user.image_url } : undefined}
+        onAnswerEdit={handleAnswerEdit}
+        onAnswerDelete={handleAnswerDelete}
+        currentUser={user ? { id: user.id, name: user.name, image_url: user.image_url } : undefined}
       />
     </div>
   );
@@ -334,6 +413,7 @@ function CommunityPageContent() {
   const savePost = useSavePost();
   const unsavePost = useUnsavePost();
   const deletePost = useDeletePost();
+  const deleteQuestion = useDeleteQuestion();
   const likeQuestion = useLikeQuestion();
   const unlikeQuestion = useUnlikeQuestion();
   const followUser = useFollowUser();
@@ -631,6 +711,16 @@ function CommunityPageContent() {
     deletePost.mutate(postId);
   };
 
+  // 질문 수정 핸들러
+  const handleEditQuestion = (questionId: number) => {
+    router.push(`/community/edit/qna/${questionId}`);
+  };
+
+  // 질문 삭제 핸들러
+  const handleDeleteQuestion = (questionId: number) => {
+    deleteQuestion.mutate(questionId);
+  };
+
   const handleLoadMore = () => {
     if (contentFilter === 'feed') {
       if (hasNextPosts && !isFetchingNextPosts) {
@@ -893,16 +983,12 @@ function CommunityPageContent() {
                         isPublic={question.ispublic}
                         answerCount={question.answer_count || 0}
                         commentCount={0}
-                        likeCount={question.like_count || 0}
-                        dislikeCount={0}
                         viewCount={0}
                         hashTagNames=""
                         qnaId={question.id}
                         onClick={() => handleOpenQna(question.id.toString(), question)}
-                        onLike={() => handleLikeQuestion(question.id)}
-                        onDislike={() => handleDislikeQuestion(question.id)}
-                        liked={questionLikes[question.id]?.liked || false}
-                        disliked={questionLikes[question.id]?.disliked || false}
+                        onEdit={() => handleEditQuestion(question.id)}
+                        onDelete={() => handleDeleteQuestion(question.id)}
                       />
                     );
                   }
@@ -1011,16 +1097,12 @@ function CommunityPageContent() {
                         isPublic={question.ispublic}
                         answerCount={question.answer_count || 0}
                         commentCount={0}
-                        likeCount={question.like_count || 0}
-                        dislikeCount={0}
                         viewCount={0}
                         hashTagNames=""
                         qnaId={question.id}
                         onClick={() => handleOpenQna(question.id.toString(), question)}
-                        onLike={() => handleLikeQuestion(question.id)}
-                        onDislike={() => handleDislikeQuestion(question.id)}
-                        liked={questionLikes[question.id]?.liked || false}
-                        disliked={questionLikes[question.id]?.disliked || false}
+                        onEdit={() => handleEditQuestion(question.id)}
+                        onDelete={() => handleDeleteQuestion(question.id)}
                       />
                     );
                   }
@@ -1100,16 +1182,12 @@ function CommunityPageContent() {
                             isPublic={question.ispublic}
                             answerCount={question.answer_count || 0}
                             commentCount={0}
-                            likeCount={question.like_count || 0}
-                            dislikeCount={0}
                             viewCount={0}
                             hashTagNames=""
                             qnaId={question.id}
                             onClick={() => handleOpenQna(question.id.toString(), question)}
-                            onLike={() => handleLikeQuestion(question.id)}
-                            onDislike={() => handleDislikeQuestion(question.id)}
-                            liked={questionLikes[question.id]?.liked || false}
-                            disliked={questionLikes[question.id]?.disliked || false}
+                            onEdit={() => handleEditQuestion(question.id)}
+                            onDelete={() => handleDeleteQuestion(question.id)}
                           />
                         </div>
                       );
@@ -1231,8 +1309,11 @@ function CommunityPageContent() {
                   }}
                 />
               )}
-              {selectedContent.type === 'qna' && selectedContent.questionData && (
-                <QnaDetailDrawerContent questionData={selectedContent.questionData} />
+              {selectedContent.type === 'qna' && (
+                <QnaDetailDrawerContent
+                  questionData={selectedContent.questionData}
+                  questionId={selectedContent.id}
+                />
               )}
             </div>
           </div>

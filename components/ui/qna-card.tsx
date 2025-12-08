@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
-import { MessageCircle, ThumbsUp, ThumbsDown, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban } from 'lucide-react';
+import { MessageCircle, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
 
 const linkifyOptions = {
   className: 'text-coral-500 hover:text-coral-600 underline',
@@ -43,17 +43,13 @@ export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   hashTagNames?: string;
   answerCount: number;
   commentCount?: number;
-  likeCount?: number;
-  dislikeCount?: number;
   viewCount: number;
   status?: number;
   isPublic?: number;
   href?: string;
   onClick?: () => void;
-  onLike?: () => void;
-  onDislike?: () => void;
-  liked?: boolean;
-  disliked?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
@@ -68,17 +64,13 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
       hashTagNames,
       answerCount,
       commentCount = 0,
-      likeCount = 0,
-      dislikeCount = 0,
       viewCount,
       status = 0,
       isPublic = 1,
       href,
       onClick,
-      onLike,
-      onDislike,
-      liked = false,
-      disliked = false,
+      onEdit,
+      onDelete,
       className,
       ...props
     },
@@ -88,6 +80,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
     const [isTruncated, setIsTruncated] = useState(false);
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const contentRef = useRef<HTMLParagraphElement>(null);
     const MAX_HEIGHT = 96; // 약 4줄 높이 (line-height: 1.625 * font-size: 14px * 4줄)
 
@@ -155,41 +148,32 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         {...props}
       >
         {/* Author Profile with Status Badges */}
-        <div className="flex items-center justify-between mb-3">
-          {author ? (
-            <Link
-              href={`/profile/${author.id}`}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={author.image_url || ''} alt={author.name} />
-                <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-slate-900">{author.name}</span>
-                {author.headline && (
-                  <span className="text-xs text-slate-500">{author.headline}</span>
-                )}
-              </div>
-            </Link>
-          ) : (
-            <div />
-          )}
-          <div className="flex items-center gap-2">
-            {hasAnswer ? (
-              <Badge tone="success" className="text-xs">
-                답변 {answerCount}
-              </Badge>
+        <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+          <div className="flex items-center justify-between">
+            {author ? (
+              <Link
+                href={`/profile/${author.id}`}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={author.image_url || ''} alt={author.name} />
+                  <AvatarFallback>{author.name?.charAt(0) || '?'}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium text-slate-900">{author.name}</span>
+                  {author.headline && (
+                    <span className="text-xs text-slate-500">{author.headline}</span>
+                  )}
+                </div>
+              </Link>
             ) : (
-              <Badge tone="coral" className="text-xs">
-                미답변
-              </Badge>
+              <div />
             )}
 
-            {/* Report/Block Menu - Only show for others' questions */}
-            {author && !isOwnQuestion && (
-              <DropdownMenu>
+            {/* More Menu - Mobile: next to profile */}
+            <div className="sm:hidden">
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger
                   onClick={(e) => e.stopPropagation()}
                   className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
@@ -198,24 +182,121 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
                   <MoreVertical className="h-4 w-4 text-slate-600" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  <DropdownMenuItem
-                    onSelect={(e) => { e.preventDefault(); handleReport(e as unknown as React.MouseEvent); }}
-                    className="text-slate-700"
-                  >
-                    <Flag className="h-4 w-4 mr-2" />
-                    신고하기
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={(e) => { e.preventDefault(); handleBlock(e as unknown as React.MouseEvent); }}
-                    className="text-red-600"
-                  >
-                    <Ban className="h-4 w-4 mr-2" />
-                    이 사용자 차단하기
-                  </DropdownMenuItem>
+                  {isOwnQuestion ? (
+                    <>
+                      {onEdit && (
+                        <DropdownMenuItem
+                          onSelect={(e) => { e.preventDefault(); onEdit(); }}
+                          className="text-slate-700"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          수정하기
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); setDeleteDialogOpen(true); }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            삭제하기
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem
+                        onSelect={(e) => { e.preventDefault(); handleReport(e as unknown as React.MouseEvent); }}
+                        className="text-slate-700"
+                      >
+                        <Flag className="h-4 w-4 mr-2" />
+                        신고하기
+                      </DropdownMenuItem>
+                      {author && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); handleBlock(e as unknown as React.MouseEvent); }}
+                            className="text-red-600"
+                          >
+                            <Ban className="h-4 w-4 mr-2" />
+                            이 사용자 차단하기
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
+            </div>
+          </div>
+
+          {/* More Menu - Desktop only */}
+          <div className="flex items-center justify-end gap-2">
+            {/* More Menu - Desktop only */}
+            <div className="hidden sm:block">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                  aria-label="더보기"
+                >
+                  <MoreVertical className="h-4 w-4 text-slate-600" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  {isOwnQuestion ? (
+                    <>
+                      {onEdit && (
+                        <DropdownMenuItem
+                          onSelect={(e) => { e.preventDefault(); onEdit(); }}
+                          className="text-slate-700"
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          수정하기
+                        </DropdownMenuItem>
+                      )}
+                      {onDelete && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); setDeleteDialogOpen(true); }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            삭제하기
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem
+                        onSelect={(e) => { e.preventDefault(); handleReport(e as unknown as React.MouseEvent); }}
+                        className="text-slate-700"
+                      >
+                        <Flag className="h-4 w-4 mr-2" />
+                        신고하기
+                      </DropdownMenuItem>
+                      {author && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); handleBlock(e as unknown as React.MouseEvent); }}
+                            className="text-red-600"
+                          >
+                            <Ban className="h-4 w-4 mr-2" />
+                            이 사용자 차단하기
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
@@ -294,41 +375,13 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
             )}
           </div>
 
-          {/* Like/Dislike Actions */}
-          {(onLike || onDislike) && (
-            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-              {onLike && (
-                <button
-                  onClick={onLike}
-                  className={cn(
-                    'flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors',
-                    liked
-                      ? 'text-coral-500 bg-coral-50'
-                      : 'text-slate-500 hover:text-coral-500 hover:bg-coral-50'
-                  )}
-                  aria-label="좋아요"
-                >
-                  <ThumbsUp className="h-3.5 w-3.5" />
-                  {likeCount > 0 && <span>{likeCount}</span>}
-                </button>
-              )}
-              {onDislike && (
-                <button
-                  onClick={onDislike}
-                  className={cn(
-                    'flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors',
-                    disliked
-                      ? 'text-slate-700 bg-slate-100'
-                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                  )}
-                  aria-label="싫어요"
-                >
-                  <ThumbsDown className="h-3.5 w-3.5" />
-                  {dislikeCount > 0 && <span>{dislikeCount}</span>}
-                </button>
-              )}
-            </div>
-          )}
+          {/* Answer Status Text */}
+          <span className={cn(
+            'text-xs font-medium',
+            hasAnswer ? 'text-green-600' : 'text-coral-500'
+          )}>
+            {hasAnswer ? `답변 ${answerCount}` : '미답변'}
+          </span>
         </div>
 
         {/* Confirm Dialogs */}
@@ -351,6 +404,20 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
           variant="danger"
           isLoading={blockMutation.isPending}
         />
+        {onDelete && (
+          <ConfirmDialog
+            isOpen={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+            onConfirm={() => {
+              onDelete();
+              setDeleteDialogOpen(false);
+            }}
+            title="질문 삭제"
+            description="이 질문을 삭제하시겠습니까? 삭제된 질문은 복구할 수 없습니다."
+            confirmText="삭제하기"
+            variant="danger"
+          />
+        )}
       </Card>
     );
   }

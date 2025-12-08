@@ -143,7 +143,7 @@ export async function likePost(postId: number): Promise<void> {
  */
 export async function unlikePost(postId: number): Promise<void> {
   try {
-    await authClient.post(`/api/v1/posts/${postId}/unlike/`);
+    await authClient.delete(`/api/v1/posts/${postId}/unlike/`);
   } catch (error) {
     throw handleApiError(error);
   }
@@ -180,7 +180,7 @@ export async function savePost(postId: number): Promise<void> {
  */
 export async function unsavePost(postId: number): Promise<void> {
   try {
-    await authClient.post(`/api/v1/posts/${postId}/unsave/`);
+    await authClient.delete(`/api/v1/posts/${postId}/unsave/`);
   } catch (error) {
     throw handleApiError(error);
   }

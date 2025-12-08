@@ -8,6 +8,8 @@ import { useMutation, useQueryClient, UseMutationOptions } from '@tanstack/react
 import { toast } from 'sonner';
 import { blockUser, unblockUser } from '../../services/block.service';
 import { blockKeys } from '../queries/useBlock';
+import { postsKeys } from '../queries/usePosts';
+import { questionKeys } from '../queries/useQuestions';
 import type { BlockResponse, UnblockResponse } from '../../types/block.types';
 
 /**
@@ -27,6 +29,10 @@ export function useBlockUser(
 
         // 차단 목록 무효화
         queryClient.invalidateQueries({ queryKey: blockKeys.lists() });
+
+        // 피드 리프레시 - 차단된 사용자의 게시글/질문 제거
+        queryClient.invalidateQueries({ queryKey: postsKeys.lists() });
+        queryClient.invalidateQueries({ queryKey: questionKeys.lists() });
 
         toast.success('사용자를 차단했습니다.');
       } else {

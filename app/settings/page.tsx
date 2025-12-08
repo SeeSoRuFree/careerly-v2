@@ -2,14 +2,14 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, User, Lock, Heart, Briefcase, Eye, LogOut, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, Lock, Heart, Eye, LogOut, Trash2 } from 'lucide-react';
 import { useCurrentUser } from '@/lib/api/hooks/queries/useUser';
 import { useLogout } from '@/lib/api/hooks/mutations/useAuthMutations';
 import { useUserSettings, useUpdateUserSettings } from '@/lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 
 interface SettingItemProps {
@@ -50,7 +50,8 @@ function SettingItem({ icon, title, description, onClick, rightElement, danger }
 export default function SettingsPage() {
   const router = useRouter();
   const { data: user, isLoading: isUserLoading } = useCurrentUser();
-  const { logoutWithConfirm } = useLogout();
+  const logout = useLogout();
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
 
   // 비로그인 상태면 메인으로 리다이렉트
   React.useEffect(() => {
@@ -63,30 +64,9 @@ export default function SettingsPage() {
   const { data: settings } = useUserSettings();
   const updateSettings = useUpdateUserSettings();
 
-  // 이직 상태 변경
-  const handleOpenToWorkChange = (checked: boolean) => {
-    const newStatus = checked ? 'actively_looking' : 'not_interested';
-    updateSettings.mutate({ open_to_work_status: newStatus });
-  };
-
   // 프로필 공개 범위 변경
   const handleProfilePublicChange = (checked: boolean) => {
     updateSettings.mutate({ open_to_search_engine: checked });
-  };
-
-  // 이직 상태 텍스트 표시
-  const getOpenToWorkText = () => {
-    if (!settings?.open_to_work_status) return '미설정';
-    switch (settings.open_to_work_status) {
-      case 'actively_looking':
-        return '적극적으로 구직 중';
-      case 'open':
-        return '이직에 열려 있음';
-      case 'not_interested':
-        return '이직 의향 없음';
-      default:
-        return '미설정';
-    }
   };
 
   return (
@@ -127,25 +107,6 @@ export default function SettingsPage() {
             {/* 커리어 */}
             <section>
               <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-4">커리어</h2>
-              <SettingItem
-                icon={<Briefcase className="h-5 w-5" />}
-                title="이직 상태"
-                description={getOpenToWorkText()}
-                rightElement={
-                  <div className="flex items-center gap-3">
-                    {(settings?.open_to_work_status === 'actively_looking' || settings?.open_to_work_status === 'open') && (
-                      <Badge tone="success" className="text-xs">
-                        Open to Work
-                      </Badge>
-                    )}
-                    <Switch
-                      checked={settings?.open_to_work_status === 'actively_looking' || settings?.open_to_work_status === 'open'}
-                      onCheckedChange={handleOpenToWorkChange}
-                      disabled={updateSettings.isPending}
-                    />
-                  </div>
-                }
-              />
               <SettingItem
                 icon={<Heart className="h-5 w-5" />}
                 title="관심사 설정"
@@ -192,7 +153,7 @@ export default function SettingsPage() {
               <h2 className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-4">계정 관리</h2>
               <SettingItem
                 icon={<Trash2 className="h-5 w-5" />}
-                title="계정 삭제 요청"
+                title="계정 탈퇴"
                 description="계정 및 모든 데이터 삭제"
                 onClick={() => router.push('/settings/delete-account')}
                 danger
@@ -200,12 +161,28 @@ export default function SettingsPage() {
               <SettingItem
                 icon={<LogOut className="h-5 w-5" />}
                 title="로그아웃"
-                onClick={logoutWithConfirm}
+                onClick={() => setShowLogoutConfirm(true)}
                 danger
               />
             </section>
         </div>
       </main>
+
+      {/* 로그아웃 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout.mutate();
+        }}
+        title="로그아웃"
+        description="정말 로그아웃 하시겠습니까?"
+        confirmText="로그아웃"
+        cancelText="취소"
+        variant="danger"
+        isLoading={logout.isPending}
+      />
     </div>
   );
 }

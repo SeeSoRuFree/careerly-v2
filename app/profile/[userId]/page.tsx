@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -29,11 +29,13 @@ import {
   Bookmark,
   Check,
   Save,
+  Camera,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MonthPicker } from '@/components/ui/month-picker';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   useProfileByUserId,
@@ -48,6 +50,7 @@ import {
   useUnblockUser,
   useIsUserBlocked,
   useUpdateMyProfile,
+  useUploadProfileImage,
   useDeleteCareer,
   useDeleteEducation,
   useAddCareer,
@@ -55,8 +58,11 @@ import {
   useAddEducation,
   useUpdateEducation,
   useInfiniteMySavedPosts,
+  useReplaceProfileSkills,
+  searchSkills,
   CONTENT_TYPE,
 } from '@/lib/api';
+import type { Skill } from '@/lib/api';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +71,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { LoadMore } from '@/components/ui/load-more';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 type ContentTab = 'posts' | 'qna' | 'bookmarks';
 
@@ -113,6 +120,10 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const [showAddEducation, setShowAddEducation] = useState(false);
   const [editingCareer, setEditingCareer] = useState<number | null>(null);
   const [editingEducation, setEditingEducation] = useState<number | null>(null);
+
+  // 삭제 확인 다이얼로그 상태
+  const [deleteCareerConfirm, setDeleteCareerConfirm] = useState<{ isOpen: boolean; careerId: number | null }>({ isOpen: false, careerId: null });
+  const [deleteEducationConfirm, setDeleteEducationConfirm] = useState<{ isOpen: boolean; educationId: number | null }>({ isOpen: false, educationId: null });
 
   // 경력 폼 데이터
   const [careerForm, setCareerForm] = useState({
@@ -193,12 +204,109 @@ export default function UserProfilePage({ params }: { params: { userId: string }
 
   // 본인 프로필 편집 mutations
   const updateProfile = useUpdateMyProfile();
+  const uploadProfileImage = useUploadProfileImage();
   const deleteCareer = useDeleteCareer();
   const deleteEducation = useDeleteEducation();
   const addCareer = useAddCareer();
   const updateCareer = useUpdateCareer();
   const addEducation = useAddEducation();
   const updateEducation = useUpdateEducation();
+  const replaceSkills = useReplaceProfileSkills();
+
+  // 프로필 이미지 업로드용 ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 프로필 이미지 업로드 핸들러
+  const handleProfileImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // 파일 타입 검증
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      return;
+    }
+
+    // 파일 크기 검증 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return;
+    }
+
+    uploadProfileImage.mutate(file);
+
+    // input 초기화
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // 스킬 편집 상태
+  const [editingSkills, setEditingSkills] = useState(false);
+  const [selectedSkills, setSelectedSkills] = useState<Array<{ id: number; name: string; category: string }>>([]);
+  const [skillSearchQuery, setSkillSearchQuery] = useState('');
+  const [skillSearchResults, setSkillSearchResults] = useState<Skill[]>([]);
+  const [isSearchingSkills, setIsSearchingSkills] = useState(false);
+
+  // 스킬 편집 다이얼로그 열 때 기존 스킬로 초기화
+  const handleOpenSkillEditor = () => {
+    if (profile?.skills) {
+      setSelectedSkills(profile.skills.map(s => ({
+        id: s.skill_id,
+        name: s.name,
+        category: s.category,
+      })));
+    }
+    setEditingSkills(true);
+  };
+
+  // 스킬 검색
+  const handleSkillSearch = async (query: string) => {
+    setSkillSearchQuery(query);
+    if (query.length < 1) {
+      setSkillSearchResults([]);
+      return;
+    }
+    setIsSearchingSkills(true);
+    try {
+      const results = await searchSkills(query, 10);
+      // 이미 선택된 스킬은 제외
+      const selectedIds = new Set(selectedSkills.map(s => s.id));
+      setSkillSearchResults(results.filter(r => !selectedIds.has(r.id)));
+    } catch {
+      setSkillSearchResults([]);
+    } finally {
+      setIsSearchingSkills(false);
+    }
+  };
+
+  // 스킬 추가
+  const handleAddSkill = (skill: Skill) => {
+    setSelectedSkills(prev => [...prev, { id: skill.id, name: skill.name, category: skill.category }]);
+    setSkillSearchQuery('');
+    setSkillSearchResults([]);
+  };
+
+  // 스킬 제거
+  const handleRemoveSkill = (skillId: number) => {
+    setSelectedSkills(prev => prev.filter(s => s.id !== skillId));
+  };
+
+  // 스킬 저장
+  const handleSaveSkills = () => {
+    replaceSkills.mutate(
+      {
+        skills: selectedSkills.map((s, idx) => ({
+          skill_id: s.id,
+          display_sequence: idx + 1,
+        })),
+      },
+      {
+        onSuccess: () => {
+          setEditingSkills(false);
+        },
+      }
+    );
+  };
 
   const isFollowing = followStatus?.is_following ?? false;
   const isFollowedBy = followStatus?.is_followed_by ?? false;
@@ -257,23 +365,37 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     }
   };
 
-  // 경력 삭제
-  const handleDeleteCareer = async (careerId: number) => {
-    if (!confirm('이 경력을 삭제하시겠습니까?')) return;
+  // 경력 삭제 다이얼로그 열기
+  const handleDeleteCareerClick = (careerId: number) => {
+    setDeleteCareerConfirm({ isOpen: true, careerId });
+  };
+
+  // 경력 삭제 확인
+  const handleConfirmDeleteCareer = async () => {
+    if (!deleteCareerConfirm.careerId) return;
     try {
-      await deleteCareer.mutateAsync(careerId);
+      await deleteCareer.mutateAsync(deleteCareerConfirm.careerId);
     } catch (error) {
       console.error('Failed to delete career:', error);
+    } finally {
+      setDeleteCareerConfirm({ isOpen: false, careerId: null });
     }
   };
 
-  // 학력 삭제
-  const handleDeleteEducation = async (educationId: number) => {
-    if (!confirm('이 학력을 삭제하시겠습니까?')) return;
+  // 학력 삭제 다이얼로그 열기
+  const handleDeleteEducationClick = (educationId: number) => {
+    setDeleteEducationConfirm({ isOpen: true, educationId });
+  };
+
+  // 학력 삭제 확인
+  const handleConfirmDeleteEducation = async () => {
+    if (!deleteEducationConfirm.educationId) return;
     try {
-      await deleteEducation.mutateAsync(educationId);
+      await deleteEducation.mutateAsync(deleteEducationConfirm.educationId);
     } catch (error) {
       console.error('Failed to delete education:', error);
+    } finally {
+      setDeleteEducationConfirm({ isOpen: false, educationId: null });
     }
   };
 
@@ -431,10 +553,35 @@ export default function UserProfilePage({ params }: { params: { userId: string }
         <div className="space-y-5 md:space-y-6">
           {/* Profile Header - 모바일: 세로 중앙정렬, PC: 가로 레이아웃 */}
           <div className="flex flex-col items-center gap-4 pb-5 border-b border-slate-200 md:flex-row md:items-center md:gap-6 md:pb-6">
-            <Avatar className="h-20 w-20 md:h-24 md:w-24">
-              {profile.image_url && <AvatarImage src={profile.image_url} alt={profile.name} />}
-              <AvatarFallback className="text-lg md:text-xl font-semibold">{fallback}</AvatarFallback>
-            </Avatar>
+            {/* 프로필 이미지 - 본인일 경우 클릭하여 변경 가능 */}
+            <div className="relative group">
+              <Avatar className="h-20 w-20 md:h-24 md:w-24">
+                {profile.image_url && <AvatarImage src={profile.image_url} alt={profile.name} />}
+                <AvatarFallback className="text-lg md:text-xl font-semibold">{fallback}</AvatarFallback>
+              </Avatar>
+              {isOwnProfile && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                    onChange={handleProfileImageUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadProfileImage.isPending}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {uploadProfileImage.isPending ? (
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    ) : (
+                      <Camera className="h-6 w-6 text-white" />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
 
             <div className="flex-1 text-center md:text-left">
               <h1 className="text-xl md:text-2xl font-bold text-slate-900">{profile.name}</h1>
@@ -462,9 +609,14 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                 </div>
               </div>
 
+              {profile.open_to_work_status === 'actively_looking' && (
+                <Badge tone="coral" className="mt-3">
+                  적극 구직 중
+                </Badge>
+              )}
               {profile.open_to_work_status === 'open' && (
                 <Badge tone="success" className="mt-3">
-                  구직 중
+                  이직 열려 있음
                 </Badge>
               )}
             </div>
@@ -660,20 +812,138 @@ export default function UserProfilePage({ params }: { params: { userId: string }
           )}
 
           {/* 스킬 */}
-          {profile.skills && profile.skills.length > 0 && (
+          {((profile.skills && profile.skills.length > 0) || isOwnProfile) && (
             <div className="space-y-2 md:space-y-3">
-              <h2 className="text-base md:text-lg font-bold text-slate-900">
-                스킬
-              </h2>
-              <div className="flex flex-wrap gap-1.5 md:gap-2">
-                {profile.skills.map((skill) => (
-                  <Chip key={skill.id} variant="default">
-                    {skill.name}
-                  </Chip>
-                ))}
+              <div className="flex items-center justify-between">
+                <h2 className="text-base md:text-lg font-bold text-slate-900">
+                  스킬
+                </h2>
+                {isOwnProfile && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleOpenSkillEditor}
+                    className="h-8 px-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
+              {profile.skills && profile.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 md:gap-2">
+                  {profile.skills.map((skill) => (
+                    <Chip key={skill.id} variant="default">
+                      {skill.name}
+                    </Chip>
+                  ))}
+                </div>
+              ) : isOwnProfile ? (
+                <div className="text-center py-6 bg-slate-50/50 rounded-lg">
+                  <p className="text-sm text-slate-500">아직 등록된 스킬이 없습니다.</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={handleOpenSkillEditor}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    스킬 추가
+                  </Button>
+                </div>
+              ) : null}
             </div>
           )}
+
+          {/* 스킬 편집 다이얼로그 */}
+          <Dialog.Root open={editingSkills} onOpenChange={setEditingSkills}>
+            <Dialog.Portal>
+              <Dialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+              <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-[95vw] max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <Dialog.Title className="text-lg font-semibold">스킬 편집</Dialog.Title>
+                  <Dialog.Close asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </Dialog.Close>
+                </div>
+
+                <div className="p-4 flex-1 overflow-y-auto space-y-4">
+                  {/* 스킬 검색 */}
+                  <div className="space-y-2">
+                    <Label>스킬 검색</Label>
+                    <Input
+                      placeholder="스킬 이름을 입력하세요"
+                      value={skillSearchQuery}
+                      onChange={(e) => handleSkillSearch(e.target.value)}
+                    />
+                    {/* 검색 결과 */}
+                    {skillSearchResults.length > 0 && (
+                      <div className="border rounded-lg max-h-40 overflow-y-auto">
+                        {skillSearchResults.map((skill) => (
+                          <button
+                            key={skill.id}
+                            className="w-full px-3 py-2 text-left hover:bg-slate-100 flex items-center justify-between"
+                            onClick={() => handleAddSkill(skill)}
+                          >
+                            <span className="text-sm">{skill.name}</span>
+                            <span className="text-xs text-slate-500">{skill.category}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {isSearchingSkills && (
+                      <div className="text-sm text-slate-500 text-center py-2">
+                        <Loader2 className="h-4 w-4 animate-spin inline-block mr-1" />
+                        검색 중...
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 선택된 스킬 목록 */}
+                  <div className="space-y-2">
+                    <Label>선택된 스킬 ({selectedSkills.length}개)</Label>
+                    {selectedSkills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedSkills.map((skill) => (
+                          <div
+                            key={skill.id}
+                            className="flex items-center gap-1 bg-slate-100 rounded-full px-3 py-1"
+                          >
+                            <span className="text-sm">{skill.name}</span>
+                            <button
+                              onClick={() => handleRemoveSkill(skill.id)}
+                              className="text-slate-500 hover:text-red-500"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-500">선택된 스킬이 없습니다.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 p-4 border-t">
+                  <Dialog.Close asChild>
+                    <Button variant="outline">취소</Button>
+                  </Dialog.Close>
+                  <Button
+                    variant="coral"
+                    onClick={handleSaveSkills}
+                    disabled={replaceSkills.isPending}
+                  >
+                    {replaceSkills.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    저장
+                  </Button>
+                </div>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
 
           {/* 사이트/링크 */}
           {profile.sites && profile.sites.length > 0 && (
@@ -780,20 +1050,20 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="career-start">시작일 *</Label>
-                      <Input
+                      <MonthPicker
                         id="career-start"
-                        type="month"
                         value={careerForm.start_date}
-                        onChange={(e) => setCareerForm({ ...careerForm, start_date: e.target.value })}
+                        onChange={(value) => setCareerForm({ ...careerForm, start_date: value })}
+                        placeholder="시작일 선택"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="career-end">종료일</Label>
-                      <Input
+                      <MonthPicker
                         id="career-end"
-                        type="month"
                         value={careerForm.end_date}
-                        onChange={(e) => setCareerForm({ ...careerForm, end_date: e.target.value })}
+                        onChange={(value) => setCareerForm({ ...careerForm, end_date: value })}
+                        placeholder="종료일 선택"
                         disabled={careerForm.is_current}
                       />
                     </div>
@@ -868,7 +1138,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-red-500 hover:text-red-600"
-                                onClick={() => handleDeleteCareer(career.id)}
+                                onClick={() => handleDeleteCareerClick(career.id)}
                                 disabled={deleteCareer.isPending}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -970,20 +1240,20 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edu-start">시작일 *</Label>
-                      <Input
+                      <MonthPicker
                         id="edu-start"
-                        type="month"
                         value={educationForm.start_date}
-                        onChange={(e) => setEducationForm({ ...educationForm, start_date: e.target.value })}
+                        onChange={(value) => setEducationForm({ ...educationForm, start_date: value })}
+                        placeholder="시작일 선택"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edu-end">종료일</Label>
-                      <Input
+                      <MonthPicker
                         id="edu-end"
-                        type="month"
                         value={educationForm.end_date}
-                        onChange={(e) => setEducationForm({ ...educationForm, end_date: e.target.value })}
+                        onChange={(value) => setEducationForm({ ...educationForm, end_date: value })}
+                        placeholder="종료일 선택"
                         disabled={educationForm.is_current}
                       />
                     </div>
@@ -1035,33 +1305,36 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                           <h3 className="font-semibold text-sm md:text-base text-slate-900">{edu.institute}</h3>
                           <p className="text-xs md:text-sm text-slate-600">{edu.major}</p>
                           <p className="text-xs md:text-sm text-slate-500">
-                            {formatDate(edu.start_date)} - {formatDate(edu.end_date)}
+                            {formatDate(edu.start_date)} - {edu.is_current ? '현재' : formatDate(edu.end_date)}
                           </p>
                           {edu.description && (
                             <p className="text-xs md:text-sm text-slate-600 mt-2">{edu.description}</p>
                           )}
                         </div>
-                        {isOwnProfile && (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => handleEditEducation(edu)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-500 hover:text-red-600"
-                              onClick={() => handleDeleteEducation(edu.id)}
-                              disabled={deleteEducation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-1">
+                          {edu.is_current === 1 && <Badge tone="success" className="shrink-0 text-xs">재학 중</Badge>}
+                          {isOwnProfile && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleEditEducation(edu)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600"
+                                onClick={() => handleDeleteEducationClick(edu.id)}
+                                disabled={deleteEducation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1214,10 +1487,8 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                           description=""
                           createdAt={question.createdat}
                           answerCount={question.answer_count || 0}
-                          likeCount={question.like_count || 0}
                           viewCount={0}
                           status={question.status}
-                          liked={question.is_liked}
                           onClick={() => router.push(`/community?qna=${question.id}`)}
                         />
                       ))}
@@ -1290,6 +1561,32 @@ export default function UserProfilePage({ params }: { params: { userId: string }
           </div>
         </div>
       </div>
+
+      {/* 경력 삭제 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={deleteCareerConfirm.isOpen}
+        onClose={() => setDeleteCareerConfirm({ isOpen: false, careerId: null })}
+        onConfirm={handleConfirmDeleteCareer}
+        title="경력 삭제"
+        description="이 경력을 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+        variant="danger"
+        isLoading={deleteCareer.isPending}
+      />
+
+      {/* 학력 삭제 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={deleteEducationConfirm.isOpen}
+        onClose={() => setDeleteEducationConfirm({ isOpen: false, educationId: null })}
+        onConfirm={handleConfirmDeleteEducation}
+        title="학력 삭제"
+        description="이 학력을 삭제하시겠습니까?"
+        confirmText="삭제"
+        cancelText="취소"
+        variant="danger"
+        isLoading={deleteEducation.isPending}
+      />
     </div>
   );
 }

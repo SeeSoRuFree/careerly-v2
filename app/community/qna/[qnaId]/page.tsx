@@ -90,7 +90,7 @@ export default function QnaDetailPage() {
   // 답변 수정 핸들러 (필요 시 사용)
   const handleAnswerEdit = async (answerId: number, content: string) => {
     try {
-      await updateAnswer.mutateAsync({ id: answerId, data: { description: content } });
+      await updateAnswer.mutateAsync({ id: answerId, questionId: Number(qnaId), data: { description: content } });
     } catch (error) {
       console.error('Failed to update answer:', error);
     }
@@ -221,12 +221,8 @@ export default function QnaDetailPage() {
           updatedAt={qnaData.updatedat}
           hashTagNames=""
           viewCount={0}
-          likeCount={0}
-          dislikeCount={0}
           status={qnaData.status}
           isPublic={qnaData.ispublic}
-          liked={questionLiked}
-          disliked={questionDisliked}
           answers={qnaData.answers.map(answer => ({
             id: answer.id,
             userId: answer.user_id,
@@ -235,16 +231,8 @@ export default function QnaDetailPage() {
             userHeadline: '',
             content: answer.description,
             createdAt: answer.createdat,
-            likeCount: 0,
-            dislikeCount: 0,
             isAccepted: false,
-            liked: answerLikes[answer.id]?.liked || false,
-            disliked: answerLikes[answer.id]?.disliked || false,
           }))}
-          onLike={handleQuestionLike}
-          onDislike={handleQuestionDislike}
-          onAnswerLike={handleAnswerLike}
-          onAnswerDislike={handleAnswerDislike}
           onAnswerSubmit={handleAnswerSubmit}
           onAcceptAnswer={handleAcceptAnswer}
           sharedAiContent={sharedAiContent}

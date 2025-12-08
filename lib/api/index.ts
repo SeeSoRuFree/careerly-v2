@@ -152,7 +152,10 @@ export {
   addEducation,
   updateEducation,
   deleteEducation,
+  searchSkills,
+  replaceProfileSkills,
 } from './services/profile.service';
+export type { Skill, ReplaceSkillsRequest, ReplaceSkillsResponse } from './services/profile.service';
 
 // Settings Service
 export {
@@ -378,17 +381,21 @@ export {
   useUnlikeQuestion,
   useLikeAnswer,
   useUnlikeAnswer,
+  useUploadQuestionImage,
+  useUploadAnswerImage,
 } from './hooks/mutations/useQuestionsMutations';
 
 // Profile Mutations
 export {
   useUpdateMyProfile,
+  useUploadProfileImage,
   useAddCareer,
   useUpdateCareer,
   useDeleteCareer,
   useAddEducation,
   useUpdateEducation,
   useDeleteEducation,
+  useReplaceProfileSkills,
 } from './hooks/mutations/useProfileMutations';
 
 // Settings Mutations
