@@ -17,6 +17,7 @@ import { RelatedQueriesSection, type RelatedQuery } from '@/components/ui/relate
 import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-input';
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
+import { PopularPostsSlider } from '@/components/ui/popular-posts-slider';
 
 // 상태 step에 따른 아이콘 매핑
 const STATUS_ICONS: Record<SSEStatusStep, React.ReactNode> = {
@@ -678,8 +679,14 @@ function SearchContent() {
                   className="border-0 shadow-none bg-transparent p-0"
                 />
               ) : isLoading ? (
-                <div className="py-8 text-center text-slate-500">
-                  {/* 로딩은 AgentActivityIndicator에서 처리 */}
+                <div className="py-6">
+                  {/* 대기 중 인기글 슬라이더 표시 */}
+                  <PopularPostsSlider
+                    period="monthly"
+                    limit={10}
+                    autoSlide={true}
+                    autoSlideInterval={4000}
+                  />
                 </div>
               ) : null}
 

@@ -2,6 +2,7 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import rehypeRaw from 'rehype-raw';
 
 interface MarkdownProps {
@@ -13,7 +14,7 @@ export function Markdown({ content, className = '' }: MarkdownProps) {
   return (
     <div className={`markdown-content overflow-hidden ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeRaw]}
         components={{
           // Custom link handling
