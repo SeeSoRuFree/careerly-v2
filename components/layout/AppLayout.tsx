@@ -20,13 +20,18 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const searchParams = useSearchParams();
   const isDrawerMode = searchParams.get('drawer') === 'true';
 
+  // share 페이지는 별도 레이아웃 사용 (인증 체크 안함)
+  const isSharePage = pathname?.startsWith('/share');
+
   const [isSignupModalOpen, setIsSignupModalOpen] = React.useState(false);
 
   // Get modal state from Zustand store
   const { isLoginModalOpen, openLoginModal, closeLoginModal } = useStore();
 
-  // 로그인 상태 확인
-  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser();
+  // 로그인 상태 확인 (share 페이지에서는 스킵)
+  const { data: currentUser, isLoading: isUserLoading } = useCurrentUser({
+    enabled: !isSharePage, // share 페이지에서는 호출 안함
+  });
   const logout = useLogout({
     onSuccess: () => {
       // 로그아웃 성공 시 별도 처리 필요 없음 (useLogout에서 처리)
@@ -41,6 +46,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const handleLogout = () => {
     logout.mutate();
   };
+
+  // share 페이지는 별도 레이아웃 사용 (사이드바, 모달 없음)
+  if (isSharePage) {
+    return <>{children}</>;
+  }
 
   // 모바일 네비게이션 상태
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);

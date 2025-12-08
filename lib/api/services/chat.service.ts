@@ -381,6 +381,41 @@ export async function getChatSessionWithFallback(sessionId: string): Promise<Cha
 }
 
 /**
+ * 공유 페이지용 세션 조회 (공개 API 먼저 시도 → 실패 시 인증 API fallback)
+ * 로그인 없이도 공개 세션 조회 가능, 로그인한 경우 비공개 세션도 미리보기 가능
+ * @param sessionId - 조회할 세션 ID
+ * @returns 세션 정보 및 메시지 목록
+ */
+export async function getSharePageSession(sessionId: string): Promise<ChatSession> {
+  try {
+    // 먼저 공개 API 시도 (로그인 없이도 접근 가능)
+    const publicResponse = await chatClient.get<ChatSession>(`/sessions/public/${sessionId}/`);
+    return publicResponse.data;
+  } catch (publicError) {
+    // 공개 API 실패 시 인증 API 시도 (본인 세션 미리보기용)
+    // fetch 직접 사용하여 인터셉터 우회 (로그인 모달 방지)
+    try {
+      const response = await fetch(`${API_CONFIG.REST_BASE_URL}/api/v1/chat/sessions/${sessionId}/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (authError) {
+      // 둘 다 실패하면 공개 API 에러 던지기 (더 적절한 메시지)
+      throw handleApiError(publicError);
+    }
+  }
+}
+
+/**
  * 세션 공유 설정 변경
  * @param sessionId - 세션 ID
  * @param isPublic - 공개 여부
@@ -392,7 +427,8 @@ export async function shareChatSession(
 ): Promise<ChatSession> {
   try {
     const request: ShareSessionRequest = { is_public: isPublic };
-    const response = await chatClient.patch<ChatSession>(`/sessions/${sessionId}/share/`, request);
+    // POST 메서드 사용 (백엔드가 PATCH를 지원하지 않음)
+    const response = await chatClient.post<ChatSession>(`/sessions/${sessionId}/share/`, request);
     return response.data;
   } catch (error) {
     throw handleApiError(error);

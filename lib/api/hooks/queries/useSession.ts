@@ -10,6 +10,7 @@ import {
   getChatSession,
   getPublicChatSession,
   getChatSessionWithFallback,
+  getSharePageSession,
 } from '../../services/chat.service';
 import type { ChatSession } from '../../types/chat.types';
 
@@ -94,6 +95,35 @@ export function useChatSessionWithFallback(
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
     retry: 1,
+    ...options,
+  });
+}
+
+/**
+ * 공유 페이지용 세션 조회 훅 (공개 API 먼저 시도 → 실패 시 인증 API fallback)
+ * 로그인 없이도 공개 세션 조회 가능, 로그인한 경우 비공개 세션도 미리보기 가능
+ * @param sessionId - 조회할 세션 ID
+ * @param options - React Query 옵션
+ */
+export function useSharePageSession(
+  sessionId: string | null | undefined,
+  options?: Omit<
+    UseQueryOptions<ChatSession, Error, ChatSession, [string, string]>,
+    'queryKey' | 'queryFn'
+  >
+) {
+  return useQuery<ChatSession, Error, ChatSession, [string, string]>({
+    queryKey: ['sharePageSession', sessionId || ''],
+    queryFn: () => {
+      if (!sessionId) {
+        throw new Error('Session ID is required');
+      }
+      return getSharePageSession(sessionId);
+    },
+    enabled: !!sessionId,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: false, // 공유 페이지에서는 재시도 안 함
     ...options,
   });
 }

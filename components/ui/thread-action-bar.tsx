@@ -35,7 +35,7 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
 
         // 이미 공개 상태면 바로 URL 복사
         if (isPublic) {
-          const url = `${window.location.origin}/search/${sessionId}`;
+          const url = `${window.location.origin}/share/${sessionId}`;
           await navigator.clipboard.writeText(url);
           setJustCopied(true);
           setShareStatus('copied');
@@ -48,7 +48,7 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
 
         // 공개 설정 후 URL 복사
         await shareSession.mutateAsync({ sessionId, isPublic: true });
-        const url = `${window.location.origin}/search/${sessionId}`;
+        const url = `${window.location.origin}/share/${sessionId}`;
         await navigator.clipboard.writeText(url);
         setJustCopied(true);
         setShareStatus('copied');

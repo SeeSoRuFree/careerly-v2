@@ -308,6 +308,7 @@ export {
   useChatSession,
   usePublicChatSession,
   useChatSessionWithFallback,
+  useSharePageSession,
 } from './hooks/queries/useSession';
 
 // ============================================================
