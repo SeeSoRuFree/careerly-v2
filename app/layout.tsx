@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -7,6 +7,12 @@ import {
   GoogleTagManager,
   GoogleTagManagerNoScript,
 } from '@/components/analytics';
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+};
 
 export const metadata: Metadata = {
   title: {

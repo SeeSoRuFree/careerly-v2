@@ -60,7 +60,7 @@ export function DiscoverDetailDrawer({
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-10">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white sticky top-0 z-10 safe-mt">
             <Dialog.Title className="text-lg font-semibold text-slate-900 line-clamp-1">
               {content.title}
             </Dialog.Title>
@@ -118,7 +118,7 @@ export function DiscoverDetailDrawer({
           </div>
 
           {/* Footer - Action Buttons */}
-          <div className="border-t border-slate-200 px-6 py-4 bg-white sticky bottom-0">
+          <div className="border-t border-slate-200 px-6 py-4 bg-white sticky bottom-0 safe-mb">
             <div className="flex items-center justify-between gap-4">
               {/* Like Button */}
               <Button

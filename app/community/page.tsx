@@ -599,7 +599,12 @@ function CommunityPageContent() {
   // 글쓰기 버튼 핸들러
   const handleWriteClick = () => {
     if (user) {
-      router.push('/community/new/post');
+      // 현재 탭에 따라 다른 작성 페이지로 이동
+      if (contentFilter === 'qna') {
+        router.push('/community/new/qna');
+      } else {
+        router.push('/community/new/post');
+      }
     } else {
       openLoginModal();
     }

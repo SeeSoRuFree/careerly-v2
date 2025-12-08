@@ -80,6 +80,43 @@
    Utilities
    =========================== */
 @layer utilities {
+  /* Safe Area utilities for iOS notch/Dynamic Island support */
+  /* Use margin to ADD safe area spacing without overriding existing padding */
+  .safe-mt {
+    margin-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-mb {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-ml {
+    margin-left: env(safe-area-inset-left, 0px);
+  }
+  .safe-mr {
+    margin-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Padding versions - replaces existing padding, use only on elements without other padding */
+  .safe-pt {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-pl {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .safe-pr {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Position offset versions */
+  .safe-top {
+    top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;

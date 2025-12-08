@@ -61,7 +61,7 @@ export default function InterestsSettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 bg-slate-50 z-50 pt-4 pb-2">
+      <header className="sticky top-0 bg-slate-50 z-50 pt-4 pb-2 safe-mt">
         <div className="max-w-3xl mx-auto px-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => router.back()}>

@@ -1271,7 +1271,7 @@ export function DiscoverDetailPage({ content }: DiscoverDetailPageProps) {
           )}
 
           {/* Actions Bar - Mobile */}
-          <div className="md:hidden sticky bottom-4 rounded-full shadow-lg p-3 bg-white">
+          <div className="md:hidden sticky bottom-4 rounded-full shadow-lg p-3 bg-white safe-mb">
             <ActionBar actions={actions} onAction={handleAction} size="md" />
           </div>
 
@@ -1294,7 +1294,7 @@ export function DiscoverDetailPage({ content }: DiscoverDetailPageProps) {
       </main>
 
       {/* 플로팅 AI 대화창 */}
-      <div className="fixed bottom-0 left-20 right-0 z-40 bg-slate-50/95 backdrop-blur-sm">
+      <div className="fixed bottom-0 left-0 md:left-20 right-0 z-40 bg-slate-50/95 backdrop-blur-sm safe-mb">
         <div className="max-w-4xl mx-auto px-4 pt-2 pb-0.5">
           <SearchComposeInput
             value={aiQuery}

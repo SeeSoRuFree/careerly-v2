@@ -111,7 +111,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
           )}
         >
           {/* Header */}
-          <div className="flex flex-col items-center pt-8 pb-4 px-6">
+          <div className="flex flex-col items-center pt-8 pb-4 px-6 safe-mt">
             <Image
               src="/images/logo.svg"
               alt="Careerly"
@@ -138,7 +138,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
           </Dialog.Close>
 
           {/* Content */}
-          <div className="px-6 pb-8 space-y-6">
+          <div className="px-6 pb-8 space-y-6 safe-mb">
             {/* OAuth 버튼 (구글 제외) */}
             <div className="space-y-3">
               <Button

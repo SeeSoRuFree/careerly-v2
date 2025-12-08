@@ -2,246 +2,472 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Chip } from '@/components/ui/chip';
-import { Switch } from '@/components/ui/switch';
-import { cn } from '@/lib/utils';
-import { HelpCircle, X, Globe, Lock, CheckCircle2 } from 'lucide-react';
-import { useCreateQuestion } from '@/lib/api';
-import type { QuestionCreateRequest } from '@/lib/api';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  ChevronLeft,
+  AlertCircle,
+  Bold,
+  Italic,
+  Strikethrough,
+  List,
+  ListOrdered,
+  Code,
+  Link2,
+  ImagePlus,
+  Loader2
+} from 'lucide-react';
+import { useCurrentUser, useCreateQuestion, useUploadPostImage } from '@/lib/api';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
+import { useStore } from '@/hooks/useStore';
+import { toast } from 'sonner';
 
-// 인기 태그 목록
-const POPULAR_TAGS = ['취업', '이직', '포트폴리오', '면접', 'React'];
+const DRAFT_KEY = 'careerly_draft_qna';
 
-/**
- * Community Q&A 등록 페이지
- *
- * 기존 /app/community/page.tsx의 정확한 패턴을 따릅니다.
- */
+interface DraftData {
+  title: string;
+  content: string;
+  savedAt: string;
+}
+
 export default function NewQnaPage() {
   const router = useRouter();
-  const createQuestion = useCreateQuestion();
-
-  // Form state
   const [title, setTitle] = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [tags, setTags] = React.useState<string[]>([]);
-  const [tagInput, setTagInput] = React.useState('');
-  const [isPublic, setIsPublic] = React.useState(true);
+  const [isSaved, setIsSaved] = React.useState(false);
+  const createQuestionMutation = useCreateQuestion();
+  const uploadImageMutation = useUploadPostImage();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  /**
-   * 태그 입력 핸들러 (Enter 키)
-   */
-  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && tagInput.trim() && tags.length < 5) {
-      e.preventDefault();
-      if (!tags.includes(tagInput.trim())) {
-        setTags([...tags, tagInput.trim()]);
+  // User authentication
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
+  const { openLoginModal } = useStore();
+
+  // Redirect to community and show login modal if not authenticated
+  React.useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/community?tab=qna');
+      openLoginModal();
+    }
+  }, [user, isUserLoading, router, openLoginModal]);
+
+  // Tiptap editor setup
+  const editor = useEditor({
+    immediatelyRender: false, // SSR support for Next.js
+    extensions: [
+      StarterKit,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-blue-600 underline',
+        },
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg',
+        },
+      }),
+      Placeholder.configure({
+        placeholder: '질문 내용을 자세히 작성해주세요. 구체적인 상황, 시도해본 것, 관련 코드나 에러를 포함하면 좋습니다.',
+      }),
+    ],
+    editorProps: {
+      attributes: {
+        class: 'prose prose-lg max-w-none focus:outline-none min-h-[400px] px-4 py-3',
+      },
+    },
+  });
+
+  // Draft functions
+  const saveDraft = React.useCallback((silent = false) => {
+    if (!editor) return;
+
+    const draft: DraftData = {
+      title,
+      content: editor.getHTML(),
+      savedAt: new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+
+    if (!silent) {
+      toast.success('임시저장되었습니다');
+    }
+
+    setIsSaved(true);
+  }, [title, editor]);
+
+  const loadDraft = React.useCallback((): DraftData | null => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        return JSON.parse(saved);
       }
-      setTagInput('');
+    } catch (error) {
+      console.error('Failed to load draft:', error);
     }
-  };
+    return null;
+  }, []);
 
-  /**
-   * 인기 태그 클릭으로 추가
-   */
-  const addTag = (tag: string) => {
-    if (tags.length < 5 && !tags.includes(tag)) {
-      setTags([...tags, tag]);
-    }
-  };
+  const clearDraft = React.useCallback(() => {
+    localStorage.removeItem(DRAFT_KEY);
+  }, []);
 
-  /**
-   * 태그 삭제
-   */
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
+  // Track content changes to reset isSaved state
+  React.useEffect(() => {
+    if (!editor) return;
 
-  /**
-   * 질문 등록
-   */
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-
-    const requestData: QuestionCreateRequest = {
-      title: title.trim(),
-      description: description.trim(),
-      ispublic: isPublic ? 1 : 0,
+    const handleUpdate = () => {
+      setIsSaved(false);
     };
 
+    editor.on('update', handleUpdate);
+
+    return () => {
+      editor.off('update', handleUpdate);
+    };
+  }, [editor]);
+
+  // Track title changes to reset isSaved state
+  React.useEffect(() => {
+    setIsSaved(false);
+  }, [title]);
+
+  // Auto-save every 3 seconds
+  React.useEffect(() => {
+    if (!editor) return;
+
+    const interval = setInterval(() => {
+      const editorText = editor.getText().trim();
+      if (title || editorText) {
+        saveDraft(true); // Silent save
+      }
+    }, 3000); // 3 seconds
+
+    return () => clearInterval(interval);
+  }, [title, editor, saveDraft]);
+
+  // Load draft on mount (when editor is ready)
+  React.useEffect(() => {
+    if (!editor) return;
+
+    const draft = loadDraft();
+    if (draft && (draft.title || draft.content)) {
+      if (confirm('이전에 작성 중이던 질문이 있습니다. 불러오시겠습니까?')) {
+        setTitle(draft.title || '');
+        editor.commands.setContent(draft.content || '');
+      }
+    }
+  }, [editor, loadDraft]);
+
+  const MIN_CONTENT_LENGTH = 20;
+
+  const handleCancel = () => {
+    const editorText = editor?.getText().trim() || '';
+
+    // If saved, navigate without warning
+    if (isSaved) {
+      router.push('/community?tab=qna');
+      return;
+    }
+
+    // If has content and not saved, show warning
+    if (title.trim().length > 0 || editorText.length > 0) {
+      if (confirm('작성 중인 내용이 있습니다. 정말 나가시겠습니까?')) {
+        router.push('/community?tab=qna');
+      }
+    } else {
+      router.push('/community?tab=qna');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!editor) return;
+
+    // 제목 필수 체크
+    if (!title.trim()) {
+      toast.error('제목을 입력해주세요');
+      return;
+    }
+
+    const contentLength = editor.getText().trim().length;
+    if (contentLength < MIN_CONTENT_LENGTH) {
+      toast.error(`내용을 ${MIN_CONTENT_LENGTH}자 이상 입력해주세요. (현재 ${contentLength}자)`);
+      return;
+    }
+
     try {
-      await createQuestion.mutateAsync(requestData);
+      await createQuestionMutation.mutateAsync({
+        title: title.trim(),
+        description: editor.getText(),
+        descriptionhtml: editor.getHTML(),
+        ispublic: 1,
+      });
+
+      // Clear draft on successful post
+      clearDraft();
+
+      // Success - redirect to community Q&A tab
       router.push('/community?tab=qna');
     } catch (error) {
       console.error('Failed to create question:', error);
     }
   };
 
-  /**
-   * 취소
-   */
-  const handleCancel = () => {
-    if (title || description || tags.length > 0) {
-      if (confirm('작성 중인 내용이 있습니다. 정말 취소하시겠습니까?')) {
-        router.back();
-      }
-    } else {
-      router.back();
+  const handleBold = () => editor?.chain().focus().toggleBold().run();
+  const handleItalic = () => editor?.chain().focus().toggleItalic().run();
+  const handleStrike = () => editor?.chain().focus().toggleStrike().run();
+  const handleBulletList = () => editor?.chain().focus().toggleBulletList().run();
+  const handleOrderedList = () => editor?.chain().focus().toggleOrderedList().run();
+  const handleCode = () => editor?.chain().focus().toggleCodeBlock().run();
+
+  const handleLink = () => {
+    const url = window.prompt('URL을 입력하세요');
+    if (url) {
+      editor?.chain().focus().setLink({ href: url }).run();
     }
   };
 
-  const canSubmit = title.trim() && description.trim() && !createQuestion.isPending;
+  const handleImage = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('이미지 파일만 업로드할 수 있습니다');
+      return;
+    }
+
+    // Validate file size (max 10MB to match backend limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('이미지 크기는 10MB 이하여야 합니다');
+      return;
+    }
+
+    try {
+      const result = await uploadImageMutation.mutateAsync(file);
+      if (result.image_url) {
+        editor?.chain().focus().setImage({ src: result.image_url }).run();
+      }
+    } catch (error) {
+      // Error toast is handled by the mutation hook
+      console.error('Failed to upload image:', error);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Show loading while checking authentication
+  if (isUserLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-      {/* Main Content */}
-      <main className="lg:col-span-9">
-        <div className="space-y-4">
-          {/* Header */}
-          <div className="pt-16 pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <HelpCircle className="h-10 w-10 text-slate-700" />
-                <h1 className="text-3xl font-bold text-slate-900">질문하기</h1>
-              </div>
-              <Button variant="ghost" onClick={handleCancel}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+    <div className="min-h-screen bg-slate-50">
+      {/* Top Navigation Bar - Full Width, Seamless */}
+      <header className="w-full bg-slate-50 sticky top-0 z-50">
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={handleCancel} className="-ml-2 hover:bg-slate-200">
+              <ChevronLeft className="h-6 w-6 text-slate-900" />
+            </Button>
+            <span className="font-semibold text-slate-900">질문하기</span>
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-slate-500 hover:bg-slate-200"
+              onClick={() => saveDraft(false)}
+            >
+              임시저장
+            </Button>
+            <Button
+              variant="coral"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={createQuestionMutation.isPending}
+              className="px-6 font-semibold"
+            >
+              {createQuestionMutation.isPending ? '등록 중...' : '등록'}
+            </Button>
+          </div>
+        </div>
+      </header>
 
-          {/* 질문 폼 카드 */}
-          <Card elevation="sm">
-            <CardContent className="p-6 space-y-6">
-              {/* 제목 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">제목</label>
+      <div className="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-12">
+        {/* Main Editor Area */}
+        <main className="lg:col-span-8 space-y-8">
+          {/* Editor - No Card */}
+          <div className="min-h-[600px]">
+            <div className="space-y-6">
+              {/* Title Input - Always visible and required for Q&A */}
+              <div className="relative">
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="질문을 한 줄로 요약해주세요"
-                  className="h-12"
-                  maxLength={200}
+                  placeholder="질문을 한 줄로 요약해주세요 (필수)"
+                  className="text-xl font-bold border-2 border-transparent hover:border-slate-200 focus-visible:border-slate-300 px-4 py-3 shadow-none focus-visible:ring-0 placeholder:text-slate-300 h-auto bg-transparent rounded-lg transition-colors"
                 />
               </div>
 
-              {/* 내용 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">내용</label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="질문 내용을 자세히 작성해주세요"
-                  className="min-h-[200px] resize-none"
-                  maxLength={5000}
-                />
-              </div>
+              {/* Editor Toolbar */}
+              <div className="flex items-center gap-1 px-2 py-2 border-b border-slate-200">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('bold') ? 'bg-slate-100' : ''}`}
+                  title="Bold"
+                  onClick={handleBold}
+                >
+                  <Bold className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('italic') ? 'bg-slate-100' : ''}`}
+                  title="Italic"
+                  onClick={handleItalic}
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('strike') ? 'bg-slate-100' : ''}`}
+                  title="Strikethrough"
+                  onClick={handleStrike}
+                >
+                  <Strikethrough className="h-4 w-4" />
+                </Button>
 
-              {/* 태그 입력 */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">태그 (선택)</label>
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-lg min-h-[48px]">
-                  {tags.map((tag) => (
-                    <Chip key={tag} dismissible onDismiss={() => removeTag(tag)}>
-                      {tag}
-                    </Chip>
-                  ))}
-                  <input
-                    type="text"
-                    value={tagInput}
-                    onChange={(e) => setTagInput(e.target.value)}
-                    onKeyDown={handleTagKeyDown}
-                    placeholder={tags.length < 5 ? '태그 입력 후 Enter' : ''}
-                    disabled={tags.length >= 5}
-                    className="flex-1 min-w-[100px] bg-transparent border-0 outline-none text-sm"
-                  />
-                </div>
-              </div>
+                <div className="w-px h-6 bg-slate-200 mx-1" />
 
-              {/* 공개 설정 */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  {isPublic ? (
-                    <Globe className="h-5 w-5 text-teal-500" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('bulletList') ? 'bg-slate-100' : ''}`}
+                  title="Bullet List"
+                  onClick={handleBulletList}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('orderedList') ? 'bg-slate-100' : ''}`}
+                  title="Numbered List"
+                  onClick={handleOrderedList}
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+
+                <div className="w-px h-6 bg-slate-200 mx-1" />
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('codeBlock') ? 'bg-slate-100' : ''}`}
+                  title="Code Block"
+                  onClick={handleCode}
+                >
+                  <Code className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900 ${editor?.isActive('link') ? 'bg-slate-100' : ''}`}
+                  title="Link"
+                  onClick={handleLink}
+                >
+                  <Link2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  title="Image"
+                  onClick={handleImage}
+                  disabled={uploadImageMutation.isPending}
+                >
+                  {uploadImageMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Lock className="h-5 w-5 text-slate-500" />
+                    <ImagePlus className="h-4 w-4" />
                   )}
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {isPublic ? '공개' : '비공개'}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {isPublic ? '모든 사용자가 볼 수 있어요' : '나만 볼 수 있어요'}
-                    </p>
-                  </div>
-                </div>
-                <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+                </Button>
               </div>
-            </CardContent>
 
-            {/* 하단 액션 */}
-            <div className="p-4 border-t border-slate-100 flex items-center justify-end gap-3">
-              <Button variant="ghost" onClick={handleCancel}>
-                취소
-              </Button>
-              <Button variant="coral" onClick={handleSubmit} disabled={!canSubmit}>
-                질문 등록
-              </Button>
+              {/* Content Editor */}
+              <div className="min-h-[400px] border-2 border-transparent hover:border-slate-200 focus-within:border-slate-300 rounded-lg transition-colors">
+                <EditorContent editor={editor} />
+              </div>
+
+              {/* Hidden file input for image upload */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
             </div>
-          </Card>
-        </div>
-      </main>
+          </div>
 
-      {/* Right Sidebar */}
-      <aside className="lg:col-span-3">
-        <div className="space-y-4 pt-16">
-          {/* 좋은 질문 작성법 */}
-          <Card elevation="sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">좋은 질문 작성법</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 flex-shrink-0" />
-                <span className="text-slate-600">구체적인 상황을 설명해주세요</span>
+          {/* Error Message */}
+          {createQuestionMutation.isError && (
+            <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-red-900">질문 등록 실패</p>
+                <p className="text-sm text-red-700 mt-1">
+                  {createQuestionMutation.error instanceof Error
+                    ? createQuestionMutation.error.message
+                    : '알 수 없는 오류가 발생했습니다. 다시 시도해주세요.'}
+                </p>
               </div>
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 flex-shrink-0" />
-                <span className="text-slate-600">이미 시도해본 것을 알려주세요</span>
-              </div>
-              <div className="flex items-start gap-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-teal-500 mt-0.5 flex-shrink-0" />
-                <span className="text-slate-600">관련 코드나 에러를 첨부하세요</span>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
+        </main>
 
-          {/* 인기 태그 */}
-          <Card elevation="sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">인기 태그</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {POPULAR_TAGS.map((tag) => (
-                  <Chip
-                    key={tag}
-                    variant="default"
-                    onClick={() => addTag(tag)}
-                    className="cursor-pointer"
-                  >
-                    {tag}
-                  </Chip>
-                ))}
+        {/* Sidebar */}
+        <aside className="hidden lg:block lg:col-span-4 space-y-8">
+          <div className="sticky top-24 space-y-6">
+            {/* User Profile */}
+            <div className="flex items-center gap-4 px-2">
+              <Avatar className="h-12 w-12 border border-slate-200">
+                <AvatarImage src={user.image_url} alt={user.name} />
+                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-bold text-slate-900">{user.name}</p>
+                {user.headline && (
+                  <p className="text-sm text-slate-500">{user.headline}</p>
+                )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </aside>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }

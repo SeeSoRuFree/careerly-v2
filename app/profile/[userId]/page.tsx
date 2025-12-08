@@ -92,10 +92,12 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   // API 데이터 가져오기
   const userId = parseInt(params.userId, 10);
   const { data: profile, isLoading, error } = useProfileByUserId(userId);
-  const { data: currentUser } = useCurrentUser();
+  const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
 
   // 본인 프로필 여부
   const isOwnProfile = currentUser?.id === userId;
+  // currentUser 로드 완료 후 본인 프로필인지 확인된 상태
+  const isOwnProfileConfirmed = !isLoadingCurrentUser && isOwnProfile;
 
   // 탭 상태 (본인 프로필일 때만 사용)
   const [activeTab, setActiveTab] = useState<ContentTab>('posts');
@@ -170,7 +172,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     fetchNextPage: fetchNextBookmarks,
     hasNextPage: hasNextBookmarks,
     isFetchingNextPage: isFetchingNextBookmarks,
-  } = useInfiniteMySavedPosts();
+  } = useInfiniteMySavedPosts(isOwnProfileConfirmed);
 
   // 팔로우 상태 조회 (로그인한 경우에만, 자기 자신이 아닐 때만)
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useFollowStatus(
@@ -1239,7 +1241,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                   </div>
-                ) : !myBookmarksData?.pages || myBookmarksData.pages.flatMap(page => page.results).length === 0 ? (
+                ) : !myBookmarksData?.pages || myBookmarksData.pages.flatMap(page => page.results || []).length === 0 ? (
                   <div className="text-center py-8">
                     <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                     <p className="text-slate-500">북마크한 게시글이 없습니다.</p>
@@ -1247,7 +1249,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                 ) : (
                   <>
                     <div className="space-y-4">
-                      {myBookmarksData.pages.flatMap(page => page.results).map((post) => {
+                      {myBookmarksData.pages.flatMap(page => page.results || []).map((post) => {
                         const userProfile = {
                           id: post.author?.id || 0,
                           name: post.author?.name || '',

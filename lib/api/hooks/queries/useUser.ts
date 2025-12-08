@@ -150,7 +150,7 @@ export function useMySavedPosts(page?: number) {
 /**
  * 무한 스크롤용 북마크 훅
  */
-export function useInfiniteMySavedPosts() {
+export function useInfiniteMySavedPosts(enabled: boolean = true) {
   return useInfiniteQuery<PaginatedPostResponse, Error>({
     queryKey: [...userKeys.all, 'savedPosts', 'infinite'],
     queryFn: ({ pageParam = 1 }) => getMySavedPosts(pageParam as number),
@@ -162,6 +162,7 @@ export function useInfiniteMySavedPosts() {
       }
       return undefined;
     },
+    enabled,
   });
 }
 

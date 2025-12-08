@@ -73,6 +73,7 @@ export interface QuestionListItem {
 export interface QuestionCreateRequest {
   title: string;
   description: string;
+  descriptionhtml?: string;
   ispublic?: number;
 }
 

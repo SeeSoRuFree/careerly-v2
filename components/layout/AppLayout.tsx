@@ -75,7 +75,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
     <div className="min-h-screen bg-slate-50">
       {/* Mobile Header - 모바일에서만 표시, 자체 헤더가 있는 페이지에서는 숨김 */}
       {!isDrawerMode && !hasOwnHeader && (
-        <header className="fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 z-40 md:hidden bg-slate-50">
+        <header className="fixed top-0 left-0 right-0 h-14 flex items-center justify-between px-4 z-40 md:hidden bg-slate-50 safe-mt">
           <button
             onClick={() => setIsMobileNavOpen(true)}
             className="p-2 -ml-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"

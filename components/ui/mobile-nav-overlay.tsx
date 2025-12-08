@@ -97,7 +97,7 @@ export function MobileNavOverlay({
         aria-label="모바일 메뉴"
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200 safe-mt">
           <span className="font-semibold text-slate-900">메뉴</span>
           <button
             onClick={onClose}
@@ -176,7 +176,7 @@ export function MobileNavOverlay({
 
           {/* CTA Buttons */}
           {sections?.ctas && sections.ctas.length > 0 && (
-            <div className="p-4 border-t border-slate-100 space-y-2">
+            <div className="p-4 border-t border-slate-100 space-y-2 safe-mb">
               {sections.ctas.map((cta, idx) => (
                 <MobileCTAButton
                   key={idx}

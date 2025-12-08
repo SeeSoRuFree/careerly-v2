@@ -71,7 +71,7 @@ export default function AccountSettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="w-full bg-slate-50 sticky top-0 z-50 pt-4 pb-2">
+      <header className="w-full bg-slate-50 sticky top-0 z-50 pt-4 pb-2 safe-mt">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center">
           <div className="flex items-center gap-2">
             <Button
