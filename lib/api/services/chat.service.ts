@@ -14,12 +14,15 @@ import type {
   ApiVersion,
   ChatComparisonResult,
   StreamCallbacks,
+  SSESessionEvent,
   SSEStatusEvent,
   SSETokenEvent,
   SSESourcesEvent,
   SSECompleteEvent,
   SSEErrorEvent,
   SSEAgentProgressEvent,
+  ChatSession,
+  ShareSessionRequest,
 } from '../types/chat.types';
 
 /**
@@ -253,6 +256,11 @@ export function streamChatMessage(
               const data = JSON.parse(dataStr);
 
               switch (currentEvent) {
+                case 'session': {
+                  const sessionData = data as SSESessionEvent;
+                  callbacks.onSession?.(sessionData.session_id);
+                  break;
+                }
                 case 'status': {
                   const statusData = data as SSEStatusEvent;
                   callbacks.onStatus?.(statusData.step, statusData.message);
@@ -320,6 +328,75 @@ export function streamChatMessage(
   return () => {
     abortController.abort();
   };
+}
+
+/**
+ * 세션 조회 (인증 필요, 본인 세션만)
+ * @param sessionId - 조회할 세션 ID
+ * @returns 세션 정보 및 메시지 목록
+ */
+export async function getChatSession(sessionId: string): Promise<ChatSession> {
+  try {
+    const response = await chatClient.get<ChatSession>(`/sessions/${sessionId}/`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 공개 세션 조회 (인증 불필요)
+ * @param sessionId - 조회할 세션 ID
+ * @returns 공개 세션 정보 및 메시지 목록
+ */
+export async function getPublicChatSession(sessionId: string): Promise<ChatSession> {
+  try {
+    const response = await chatClient.get<ChatSession>(`/sessions/public/${sessionId}/`);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 세션 조회 (인증 API 먼저 시도 → 실패 시 공개 API fallback)
+ * @param sessionId - 조회할 세션 ID
+ * @returns 세션 정보 및 메시지 목록
+ */
+export async function getChatSessionWithFallback(sessionId: string): Promise<ChatSession> {
+  try {
+    // 먼저 인증된 API 시도
+    const response = await chatClient.get<ChatSession>(`/sessions/${sessionId}/`);
+    return response.data;
+  } catch (error) {
+    // 인증 에러(401, 403, 404)면 공개 API 시도
+    try {
+      const publicResponse = await chatClient.get<ChatSession>(`/sessions/public/${sessionId}/`);
+      return publicResponse.data;
+    } catch (publicError) {
+      // 둘 다 실패하면 원래 에러 던지기
+      throw handleApiError(publicError);
+    }
+  }
+}
+
+/**
+ * 세션 공유 설정 변경
+ * @param sessionId - 세션 ID
+ * @param isPublic - 공개 여부
+ * @returns 업데이트된 세션 정보
+ */
+export async function shareChatSession(
+  sessionId: string,
+  isPublic: boolean
+): Promise<ChatSession> {
+  try {
+    const request: ShareSessionRequest = { is_public: isPublic };
+    const response = await chatClient.patch<ChatSession>(`/sessions/${sessionId}/share/`, request);
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
 }
 
 /**

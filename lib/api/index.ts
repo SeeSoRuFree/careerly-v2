@@ -45,6 +45,9 @@ export {
   chatSearch,
   checkAgentHealth,
   streamChatMessage,
+  getChatSession,
+  getPublicChatSession,
+  shareChatSession,
 } from './services/chat.service';
 
 // User Service
@@ -300,6 +303,13 @@ export {
   blockKeys,
 } from './hooks/queries/useBlock';
 
+// Session Queries
+export {
+  useChatSession,
+  usePublicChatSession,
+  useChatSessionWithFallback,
+} from './hooks/queries/useSession';
+
 // ============================================================
 // React Query Hooks - Mutations
 // ============================================================
@@ -336,8 +346,13 @@ export {
   useChatSearch,
   useChatMessage,
   useChatSearchAllVersions,
+  useShareSession,
 } from './hooks/mutations/useChat';
-export type { UseChatMutationParams, UseChatSearchAllVersionsParams } from './hooks/mutations/useChat';
+export type {
+  UseChatMutationParams,
+  UseChatSearchAllVersionsParams,
+  UseShareSessionParams,
+} from './hooks/mutations/useChat';
 
 // Comments Mutations
 export {
@@ -453,11 +468,15 @@ export type {
   ChatCitation,
   ChatComparisonResult,
   ChatSources,
+  ChatSession,
+  ChatSessionMessage,
+  ShareSessionRequest,
   ApiVersion,
 
   // SSE Types
   SSEEventType,
   SSEStatusStep,
+  SSESessionEvent,
   SSEStatusEvent,
   SSETokenEvent,
   SSESourcesEvent,

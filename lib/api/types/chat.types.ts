@@ -118,12 +118,19 @@ export interface ChatComparisonResult {
 /**
  * SSE 이벤트 타입
  */
-export type SSEEventType = 'status' | 'token' | 'sources' | 'complete' | 'error' | 'agent_progress';
+export type SSEEventType = 'session' | 'status' | 'token' | 'sources' | 'complete' | 'error' | 'agent_progress';
 
 /**
  * SSE Status 이벤트 step 타입
  */
 export type SSEStatusStep = 'intent' | 'routing' | 'searching' | 'generating';
+
+/**
+ * SSE Session 이벤트 데이터 (스트리밍 시작 시 세션 ID 반환)
+ */
+export interface SSESessionEvent {
+  session_id: string;
+}
 
 /**
  * Agent Progress Event Type
@@ -208,10 +215,68 @@ export interface SSEAgentProgressEvent {
  * 스트리밍 콜백 인터페이스
  */
 export interface StreamCallbacks {
+  onSession?: (sessionId: string) => void;
   onStatus?: (step: SSEStatusStep, message: string) => void;
   onToken?: (content: string) => void;
   onSources?: (sources: string[], count: number) => void;
   onComplete?: (metadata: SSECompleteEvent) => void;
   onError?: (error: string, code?: string) => void;
   onAgentProgress?: (data: SSEAgentProgressEvent) => void;
+}
+
+/**
+ * Chat 세션 메시지 타입
+ */
+export interface ChatSessionMessage {
+  /** 메시지 ID */
+  id: string;
+  /** 메시지 역할 (user/assistant) */
+  role: 'user' | 'assistant';
+  /** 메시지 내용 */
+  content: string;
+  /** 구조화된 출처 정보 (assistant만) */
+  sources?: ChatSources;
+  /** 질문 의도 분류 (assistant만) */
+  intent?: string;
+  /** 사용된 에이전트 목록 (assistant만) */
+  agents_used?: string[];
+  /** 메시지 생성 시간 */
+  created_at: string;
+  /** 답변 신뢰도 (assistant만) */
+  confidence?: number;
+  /** 응답 생성 지연시간 (ms, assistant만) */
+  latency_ms?: number;
+  /** P1 점수 (1-5, V4 only, assistant만) */
+  p1_score?: number;
+  /** P2 달성 여부 (V4 only, assistant만) */
+  p2_achieved?: boolean;
+  /** LangSmith trace ID (assistant만) */
+  langsmith_run_id?: string;
+}
+
+/**
+ * Chat 세션 타입
+ */
+export interface ChatSession {
+  /** 세션 ID */
+  id: string;
+  /** 세션 제목 (첫 질문 기반) */
+  title: string;
+  /** 세션 생성 시간 */
+  created_at: string;
+  /** 세션 수정 시간 */
+  updated_at: string;
+  /** 메시지 개수 */
+  message_count: number;
+  /** 공개 여부 */
+  is_public: boolean;
+  /** 세션 메시지 목록 */
+  messages: ChatSessionMessage[];
+}
+
+/**
+ * 세션 공유 요청 타입
+ */
+export interface ShareSessionRequest {
+  is_public: boolean;
 }

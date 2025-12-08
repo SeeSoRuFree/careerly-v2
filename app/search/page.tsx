@@ -351,6 +351,22 @@ function SearchContent() {
 
     // 스트림 시작
     const cleanup = streamChatMessage(queryText.trim(), existingSessionId ?? null, {
+      onSession: (newSessionId) => {
+        // 세션 ID를 받으면 페이지 전환 없이 URL만 변경
+        setSessionId(newSessionId);
+
+        // window.history.replaceState를 사용하여 페이지 전환 없이 URL만 업데이트
+        window.history.replaceState(
+          {
+            ...window.history.state,
+            as: `/search/${newSessionId}`,
+            url: `/search/${newSessionId}`,
+            sessionId: newSessionId,
+          },
+          '',
+          `/search/${newSessionId}`
+        );
+      },
       onStatus: (step, message) => {
         setStreamStatus({ step, message });
         // 상태 히스토리에 추가 (중복 방지)
@@ -489,7 +505,7 @@ function SearchContent() {
 
     cleanupRef.current = cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openLoginModal]);
+  }, [openLoginModal, router]);
 
   // 쿼리 변경 시 스트리밍 시작
   useEffect(() => {
@@ -507,6 +523,23 @@ function SearchContent() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
+
+  // 브라우저 뒤로가기/앞으로가기 대응
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      // URL이 /search?q=xxx 형태로 돌아갔을 때 처리
+      if (window.location.search.includes('q=')) {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q');
+        if (q && q !== query) {
+          router.replace(`/search?q=${encodeURIComponent(q)}`);
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [query, router]);
 
   // 핸들러들
   const handleEdit = () => {
@@ -601,6 +634,8 @@ function SearchContent() {
               onChange={setViewMode}
             />
             <ThreadActionBar
+              sessionId={sessionId || undefined}
+              isPublic={false}
               onShare={handleShare}
               onBookmark={handleBookmark}
               onExport={handleExport}
