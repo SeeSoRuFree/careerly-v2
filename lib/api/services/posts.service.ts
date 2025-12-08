@@ -258,7 +258,7 @@ export async function getTopPosts(
 }
 
 /**
- * 추천 포스트 조회
+ * 추천 포스트 조회 (간단 버전 - 사이드바용)
  * - 로그인 사용자: 팔로잉하는 사람의 포스트 (최근 7일, 참여도 순)
  * - 비로그인/팔로잉 없음: 글로벌 트렌딩 포스트
  */
@@ -266,6 +266,19 @@ export async function getRecommendedPosts(limit: number = 10): Promise<PostListI
   try {
     const params = { limit };
     const response = await publicClient.get<PostListItem[]>('/api/v1/posts/recommended/', { params });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 추천 포스트 조회 (페이지네이션 버전 - 메인 피드용)
+ * GET /api/v1/posts/recommend/
+ */
+export async function getRecommendedPostsPaginated(params?: { page?: number; page_size?: number }): Promise<PaginatedPostResponse> {
+  try {
+    const response = await authClient.get<PaginatedPostResponse>('/api/v1/posts/recommend/', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -291,6 +304,18 @@ export async function uploadPostImage(file: File): Promise<ImageUploadResponse> 
       }
     );
     return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 노출 수 일괄 기록
+ * 인증 필요
+ */
+export async function recordImpressionsBatch(postIds: number[]): Promise<void> {
+  try {
+    await authClient.post('/api/v1/posts/impressions/batch/', { post_ids: postIds });
   } catch (error) {
     throw handleApiError(error);
   }

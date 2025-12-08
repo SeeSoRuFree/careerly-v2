@@ -5,7 +5,7 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';
-import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, getFollowingPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
+import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, getRecommendedPostsPaginated, getFollowingPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
 import type { TopPostsPeriod, GetPostsParams } from '../../services/posts.service';
 import type { Post, PostListItem, PaginatedPostResponse } from '../../types/posts.types';
 
@@ -20,6 +20,7 @@ export const postsKeys = {
   popular: (limit?: number) => [...postsKeys.all, 'popular', { limit }] as const,
   top: (period: TopPostsPeriod, limit?: number) => [...postsKeys.all, 'top', { period, limit }] as const,
   recommended: (limit?: number) => [...postsKeys.all, 'recommended', { limit }] as const,
+  recommendedPaginated: (params?: { page_size?: number }) => [...postsKeys.all, 'recommend', params] as const,
   details: () => [...postsKeys.all, 'detail'] as const,
   detail: (id: number) => [...postsKeys.details(), id] as const,
   likeStatus: (id: number) => [...postsKeys.all, 'like-status', id] as const,
@@ -168,7 +169,7 @@ export function useTopPosts(
 }
 
 /**
- * 추천 포스트 조회 훅
+ * 추천 포스트 조회 훅 (간단 버전 - 사이드바용)
  * - 로그인 사용자: 팔로잉하는 사람의 포스트
  * - 비로그인: 글로벌 트렌딩 포스트
  */
@@ -181,6 +182,31 @@ export function useRecommendedPosts(
     queryFn: () => getRecommendedPosts(limit),
     staleTime: 5 * 60 * 1000, // 5분
     gcTime: 15 * 60 * 1000, // 15분
+    ...options,
+  });
+}
+
+/**
+ * 추천 포스트 무한 스크롤 훅 (메인 피드용)
+ * GET /api/v1/posts/recommend/
+ */
+export function useInfiniteRecommendedPosts(
+  params?: Omit<{ page_size?: number }, 'page'>,
+  options?: Omit<UseInfiniteQueryOptions<PaginatedPostResponse, Error, InfiniteData<PaginatedPostResponse>, readonly unknown[], number>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+) {
+  return useInfiniteQuery<PaginatedPostResponse, Error, InfiniteData<PaginatedPostResponse>, readonly unknown[], number>({
+    queryKey: postsKeys.recommendedPaginated(params),
+    queryFn: ({ pageParam }) => getRecommendedPostsPaginated({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      // next가 있으면 다음 페이지 번호 반환
+      if (lastPage.next) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    staleTime: 2 * 60 * 1000, // 2분
+    gcTime: 10 * 60 * 1000, // 10분
     ...options,
   });
 }

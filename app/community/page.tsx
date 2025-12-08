@@ -16,7 +16,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { useInfinitePosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer } from '@/lib/api';
+import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
@@ -337,13 +337,13 @@ function CommunityPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // URL 파라미터에서 탭 읽기 (기본값: 'feed')
-  const currentTab = (searchParams.get('tab') as 'feed' | 'qna' | 'following') || 'feed';
+  // URL 파라미터에서 탭 읽기 (기본값: 'recent')
+  const currentTab = (searchParams.get('tab') as 'recent' | 'recommend' | 'qna' | 'following') || 'recent';
   const postIdFromUrl = searchParams.get('post');
   const qnaIdFromUrl = searchParams.get('qna');
 
   const [selectedInterests, setSelectedInterests] = React.useState<string[]>([]);
-  const [contentFilter, setContentFilter] = React.useState<'feed' | 'qna' | 'following'>(currentTab);
+  const [contentFilter, setContentFilter] = React.useState<'recent' | 'recommend' | 'qna' | 'following'>(currentTab);
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
 
@@ -359,10 +359,10 @@ function CommunityPageContent() {
   const { openLoginModal } = useStore();
 
   // 탭 변경 핸들러
-  const handleTabChange = (tab: 'feed' | 'qna' | 'following') => {
+  const handleTabChange = (tab: 'recent' | 'recommend' | 'qna' | 'following') => {
     setContentFilter(tab);
     // URL 업데이트
-    if (tab === 'feed') {
+    if (tab === 'recent') {
       router.push('/community');
     } else {
       router.push(`/community?tab=${tab}`);
@@ -378,6 +378,15 @@ function CommunityPageContent() {
     hasNextPage: hasNextPosts,
     isFetchingNextPage: isFetchingNextPosts
   } = useInfinitePosts();
+
+  const {
+    data: recommendedPostsDataPaginated,
+    isLoading: isLoadingRecommendedPostsPaginated,
+    error: recommendedPostsError,
+    fetchNextPage: fetchNextRecommendedPosts,
+    hasNextPage: hasNextRecommendedPosts,
+    isFetchingNextPage: isFetchingNextRecommendedPosts
+  } = useInfiniteRecommendedPosts();
 
   const {
     data: questionsData,
@@ -451,6 +460,22 @@ function CommunityPageContent() {
       setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
     }
   }, [postsData]);
+
+  // Recommended posts에서도 초기 좋아요/북마크 상태 설정
+  React.useEffect(() => {
+    if (recommendedPostsDataPaginated?.pages) {
+      const initialLikedState: Record<number, boolean> = {};
+      const initialSavedState: Record<number, boolean> = {};
+      recommendedPostsDataPaginated.pages.forEach((page) => {
+        (page as PaginatedPostResponse).results.forEach((post) => {
+          initialLikedState[post.id] = post.is_liked;
+          initialSavedState[post.id] = post.is_saved;
+        });
+      });
+      setLikedPosts(prev => ({ ...prev, ...initialLikedState }));
+      setSavedPosts(prev => ({ ...prev, ...initialSavedState }));
+    }
+  }, [recommendedPostsDataPaginated]);
 
   // Following posts에서도 초기 좋아요/북마크 상태 설정
   React.useEffect(() => {
@@ -722,9 +747,13 @@ function CommunityPageContent() {
   };
 
   const handleLoadMore = () => {
-    if (contentFilter === 'feed') {
+    if (contentFilter === 'recent') {
       if (hasNextPosts && !isFetchingNextPosts) {
         fetchNextPosts();
+      }
+    } else if (contentFilter === 'recommend') {
+      if (hasNextRecommendedPosts && !isFetchingNextRecommendedPosts) {
+        fetchNextRecommendedPosts();
       }
     } else if (contentFilter === 'qna') {
       if (hasNextQuestions && !isFetchingNextQuestions) {
@@ -761,6 +790,12 @@ function CommunityPageContent() {
       originalIndex: idx,
     }));
 
+    const recommendedItems = ((recommendedPostsDataPaginated?.pages as PaginatedPostResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
+      type: 'feed' as const,
+      data: item,
+      originalIndex: idx,
+    }));
+
     const qnaItems = ((questionsData?.pages as PaginatedQuestionResponse[] | undefined)?.flatMap(page => page.results) || []).map((item, idx) => ({
       type: 'qna' as const,
       data: item,
@@ -777,8 +812,8 @@ function CommunityPageContent() {
       if (i < qnaItems.length) result.push(qnaItems[i]);
     }
 
-    return result;
-  }, [postsData, questionsData]);
+    return { allItems: result, recommendedItems };
+  }, [postsData, recommendedPostsDataPaginated, questionsData]);
 
   // Filter content based on selected filter
   const filteredContent = React.useMemo(() => {
@@ -792,23 +827,31 @@ function CommunityPageContent() {
         originalIndex: idx,
       }));
     }
-    return allContent.filter(item => item.type === contentFilter);
+    if (contentFilter === 'recommend') {
+      return allContent.recommendedItems;
+    }
+    if (contentFilter === 'recent') {
+      return allContent.allItems.filter(item => item.type === 'feed');
+    }
+    return allContent.allItems.filter(item => item.type === contentFilter);
   }, [allContent, contentFilter, followingPostsData]);
 
   // Loading state
-  const isLoading = isLoadingPosts || isLoadingQuestions || isFetchingNextPosts || isFetchingNextQuestions || (contentFilter === 'following' && isLoadingFollowingPosts);
+  const isLoading = isLoadingPosts || isLoadingRecommendedPostsPaginated || isLoadingQuestions || isFetchingNextPosts || isFetchingNextRecommendedPosts || isFetchingNextQuestions || (contentFilter === 'following' && isLoadingFollowingPosts);
 
   // Error state
-  const hasError = postsError || questionsError || (contentFilter === 'following' && followingPostsError);
+  const hasError = postsError || recommendedPostsError || questionsError || (contentFilter === 'following' && followingPostsError);
 
   // Check if there's more data to load
-  const hasMoreData = contentFilter === 'feed'
+  const hasMoreData = contentFilter === 'recent'
     ? hasNextPosts
-    : contentFilter === 'qna'
-      ? hasNextQuestions
-      : contentFilter === 'following'
-        ? false // Following uses single page for now
-        : hasNextPosts || hasNextQuestions;
+    : contentFilter === 'recommend'
+      ? hasNextRecommendedPosts
+      : contentFilter === 'qna'
+        ? hasNextQuestions
+        : contentFilter === 'following'
+          ? false // Following uses single page for now
+          : hasNextPosts || hasNextQuestions;
 
   // Transform recommended posts data for RecommendedPostsPanel
   const recommendedPosts = React.useMemo(() => {
@@ -857,11 +900,18 @@ function CommunityPageContent() {
               <div className="flex items-center justify-between md:justify-end gap-3">
                 <div className="flex items-center gap-2 overflow-x-auto">
                   <Chip
-                    variant={contentFilter === 'feed' ? 'selected' : 'default'}
-                    onClick={() => handleTabChange('feed')}
+                    variant={contentFilter === 'recent' ? 'selected' : 'default'}
+                    onClick={() => handleTabChange('recent')}
                   >
                     <MessageSquare className="h-4 w-4" />
-                    Feed
+                    최신
+                  </Chip>
+                  <Chip
+                    variant={contentFilter === 'recommend' ? 'selected' : 'default'}
+                    onClick={() => handleTabChange('recommend')}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    추천
                   </Chip>
                   <Chip
                     variant={contentFilter === 'qna' ? 'selected' : 'default'}
