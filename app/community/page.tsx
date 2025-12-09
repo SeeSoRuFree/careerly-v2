@@ -8,7 +8,6 @@ import { CommunityFeedCard } from '@/components/ui/community-feed-card';
 import { QnaCard } from '@/components/ui/qna-card';
 import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
-import { RecommendedPostsPanel } from '@/components/ui/recommended-posts-panel';
 import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers-panel';
 import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { LoadMore } from '@/components/ui/load-more';
@@ -16,12 +15,13 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedPosts, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer } from '@/lib/api';
+import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer, useFollowing } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
+import { useImpressionTracker } from '@/lib/hooks/useImpressionTracker';
 
 
 type UserProfile = {
@@ -347,6 +347,9 @@ function CommunityPageContent() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
 
+  // Impression tracking
+  const { trackImpression } = useImpressionTracker();
+
   // Drawer 열릴 때 body 스크롤 막기
   React.useEffect(() => {
     if (drawerOpen) {
@@ -409,17 +412,16 @@ function CommunityPageContent() {
     isFetchingNextPage: isFetchingNextQuestions
   } = useInfiniteQuestions();
 
-  // Recommended Posts (팔로잉 기반 또는 글로벌 트렌딩)
+  // Recommended Followers - 30명 후보군에서 필터링/셔플 후 5명 노출 (로그인 사용자만)
   const {
-    data: recommendedPostsData,
-    isLoading: isLoadingRecommendedPosts,
-  } = useRecommendedPosts(5);
-
-  // Recommended Followers (friends of friends) - 로그인 사용자만 호출
-  const {
-    data: recommendedFollowersData,
+    data: recommendedFollowersCandidates,
     isLoading: isLoadingRecommendedFollowers,
-  } = useRecommendedFollowers(5, { enabled: !!user });
+  } = useRecommendedFollowers(30, { enabled: !!user });
+
+  // 내 팔로잉 목록 (추천 팔로워 필터링용)
+  const { data: myFollowingData } = useFollowing(user?.id || 0, {
+    enabled: !!user?.id,
+  });
 
   // Following Posts (팔로잉하는 사람의 포스트)
   const {
@@ -865,37 +867,38 @@ function CommunityPageContent() {
           ? false // Following uses single page for now
           : hasNextPosts || hasNextQuestions;
 
-  // Transform recommended posts data for RecommendedPostsPanel
-  const recommendedPosts = React.useMemo(() => {
-    const posts = Array.isArray(recommendedPostsData) ? recommendedPostsData : [];
-    if (posts.length === 0) return [];
-
-    return posts.map((post) => ({
-      id: post.id.toString(),
-      title: post.title || post.description.substring(0, 50) + '...',
-      author: {
-        name: post.author?.name || '알 수 없음',
-        image_url: post.author?.image_url,
-      },
-      likeCount: post.like_count,
-      href: `/community/post/${post.id}`,
-    }));
-  }, [recommendedPostsData]);
-
   // Transform recommended followers data for RecommendedFollowersPanel
+  // 30명 후보군에서 팔로우 중인 유저 제외 → 랜덤 셔플 → 5명 선택
   const recommendedFollowers = React.useMemo(() => {
-    const followers = Array.isArray(recommendedFollowersData) ? recommendedFollowersData : [];
-    if (followers.length === 0) return [];
+    if (!recommendedFollowersCandidates || recommendedFollowersCandidates.length === 0) return [];
 
-    return followers.map((follower) => ({
+    // 내가 팔로우 중인 유저 ID 목록
+    const myFollowingIds = new Set(
+      myFollowingData?.results?.map((f) => f.id) || []
+    );
+
+    // 이미 팔로우 중인 유저 제외
+    const filtered = recommendedFollowersCandidates.filter(
+      (follower) => !myFollowingIds.has(follower.user_id || follower.id)
+    );
+
+    // Fisher-Yates 셔플 (랜덤 정렬)
+    const shuffled = [...filtered];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    // 상위 5명만 선택
+    return shuffled.slice(0, 5).map((follower) => ({
       id: follower.id.toString(),
       name: follower.name,
       image_url: follower.image_url || undefined,
       headline: follower.headline || undefined,
-      isFollowing: follower.is_following ?? false,
+      isFollowing: false,
       href: `/profile/${follower.id}`,
     }));
-  }, [recommendedFollowersData]);
+  }, [recommendedFollowersCandidates, myFollowingData]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">
@@ -990,6 +993,8 @@ function CommunityPageContent() {
                 {filteredContent.slice(0, 1).map((item) => {
                   if (item.type === 'feed') {
                     const post = item.data;
+                    // Track impression
+                    trackImpression(post.id);
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
                       name: post.author.name,
@@ -1033,6 +1038,8 @@ function CommunityPageContent() {
                     );
                   } else if (item.type === 'qna') {
                     const question = item.data;
+                    // Track impression for Q&A
+                    trackImpression(question.id);
                     const author = {
                       id: question.user_id,
                       name: question.author_name,
@@ -1076,16 +1083,7 @@ function CommunityPageContent() {
                       onPostClick={(postId) => handleOpenPost(postId)}
                     />
                   </div>
-                  {recommendedPosts.length > 0 && (
-                    <div className="w-[320px] shrink-0">
-                      <RecommendedPostsPanel
-                        posts={recommendedPosts}
-                        maxItems={5}
-                        onPostClick={(postId) => handleOpenPost(postId)}
-                      />
-                    </div>
-                  )}
-                  {user && recommendedFollowers.length > 0 && (
+                  {recommendedFollowers.length > 0 && (
                     <div className="w-[320px] shrink-0">
                       <RecommendedFollowersPanel
                         followers={recommendedFollowers}
@@ -1105,6 +1103,8 @@ function CommunityPageContent() {
                 {filteredContent.slice(1).map((item) => {
                   if (item.type === 'feed') {
                     const post = item.data;
+                    // Track impression
+                    trackImpression(post.id);
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
                       name: post.author.name,
@@ -1148,6 +1148,8 @@ function CommunityPageContent() {
                     );
                   } else if (item.type === 'qna') {
                     const question = item.data;
+                    // Track impression for Q&A
+                    trackImpression(question.id);
                     const author = {
                       id: question.user_id,
                       name: question.author_name,
@@ -1190,6 +1192,8 @@ function CommunityPageContent() {
                   {filteredContent.map((item) => {
                     if (item.type === 'feed') {
                       const post = item.data;
+                      // Track impression
+                      trackImpression(post.id);
                       const userProfile: UserProfile = post.author ? {
                         id: post.author.id,
                         name: post.author.name,
@@ -1234,6 +1238,8 @@ function CommunityPageContent() {
                       );
                     } else if (item.type === 'qna') {
                       const question = item.data;
+                      // Track impression for Q&A
+                      trackImpression(question.id);
                       const author = {
                         id: question.user_id,
                         name: question.author_name,
@@ -1290,22 +1296,13 @@ function CommunityPageContent() {
             onPostClick={(postId) => handleOpenPost(postId)}
           />
 
-          {/* Recommended Posts (추천 포스트) */}
-          <RecommendedPostsPanel
-            posts={recommendedPosts}
+          {/* Recommended Followers (추천 팔로워) */}
+          <RecommendedFollowersPanel
+            followers={recommendedFollowers}
             maxItems={5}
-            onPostClick={(postId) => handleOpenPost(postId)}
+            onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
+            onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
           />
-
-          {/* Recommended Followers (추천 팔로워) - 로그인 사용자만 표시 */}
-          {user && (
-            <RecommendedFollowersPanel
-              followers={recommendedFollowers}
-              maxItems={5}
-              onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
-              onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
-            />
-          )}
         </div>
       </aside>
 
