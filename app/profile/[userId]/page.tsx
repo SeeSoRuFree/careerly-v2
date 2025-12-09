@@ -44,8 +44,8 @@ import {
   useFollowStatus,
   useFollowUser,
   useUnfollowUser,
-  useUserFollowers,
-  useUserFollowing,
+  useInfiniteUserFollowers,
+  useInfiniteUserFollowing,
   useCurrentUser,
   useReportContent,
   useBlockUser,
@@ -132,6 +132,12 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const [followersModalOpen, setFollowersModalOpen] = useState(false);
   const [followingModalOpen, setFollowingModalOpen] = useState(false);
 
+  // 낙관적 업데이트를 위한 로컬 팔로잉 상태
+  // optimisticFollowIds: 팔로우한 ID (추가)
+  // optimisticUnfollowIds: 언팔로우한 ID (제거)
+  const [optimisticFollowIds, setOptimisticFollowIds] = useState<Set<number>>(new Set());
+  const [optimisticUnfollowIds, setOptimisticUnfollowIds] = useState<Set<number>>(new Set());
+
   // 경력 폼 데이터
   const [careerForm, setCareerForm] = useState({
     company: '',
@@ -197,17 +203,101 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     isOwnProfile ? undefined : userId
   );
 
-  // 팔로워/팔로잉 목록 조회 (모달이 열릴 때만)
-  const { data: followersData, isLoading: isLoadingFollowers } = useUserFollowers(
-    followersModalOpen ? userId : undefined
-  );
-  const { data: followingData, isLoading: isLoadingFollowing } = useUserFollowing(
-    followingModalOpen ? userId : undefined
+  // 해당 프로필 유저의 팔로워/팔로잉 목록 조회 (무한 스크롤, 모달이 열릴 때만)
+  const {
+    data: followersData,
+    isLoading: isLoadingFollowers,
+    fetchNextPage: fetchNextFollowers,
+    hasNextPage: hasNextFollowers,
+    isFetchingNextPage: isFetchingNextFollowers,
+  } = useInfiniteUserFollowers(userId, followersModalOpen);
+
+  const {
+    data: followingData,
+    isLoading: isLoadingFollowing,
+    fetchNextPage: fetchNextFollowing,
+    hasNextPage: hasNextFollowing,
+    isFetchingNextPage: isFetchingNextFollowing,
+  } = useInfiniteUserFollowing(userId, followingModalOpen);
+
+  // 내(현재 로그인 유저)의 팔로잉 목록 조회 (모달이 열릴 때만, 타인 프로필일 때만)
+  const isModalOpen = followersModalOpen || followingModalOpen;
+  const {
+    data: myFollowingData,
+    fetchNextPage: fetchNextMyFollowing,
+    hasNextPage: hasNextMyFollowing,
+  } = useInfiniteUserFollowing(currentUser?.id, isModalOpen && !isOwnProfile && !!currentUser?.id);
+
+  // 내 팔로잉 전체를 가져오기 위해 hasNextPage가 있으면 자동으로 다음 페이지 로드
+  useEffect(() => {
+    if (hasNextMyFollowing && isModalOpen && !isOwnProfile) {
+      fetchNextMyFollowing();
+    }
+  }, [hasNextMyFollowing, isModalOpen, isOwnProfile, fetchNextMyFollowing]);
+
+  // 해당 프로필 유저의 팔로워/팔로잉 데이터를 평탄화
+  const flatFollowers = followersData?.pages.flatMap(page => page.results) ?? [];
+  const flatFollowing = followingData?.pages.flatMap(page => page.results) ?? [];
+  const followersCount = followersData?.pages[0]?.count;
+  const followingCount = followingData?.pages[0]?.count;
+
+  // 내 팔로잉 목록에서 ID 추출 (본인 프로필이면 flatFollowing 사용)
+  const myFlatFollowing = isOwnProfile
+    ? flatFollowing
+    : (myFollowingData?.pages.flatMap(page => page.results) ?? []);
+  const myServerFollowingIds = new Set(myFlatFollowing.map(f => f.user?.id).filter(Boolean) as number[]);
+
+  // 낙관적 업데이트와 내 팔로잉 데이터를 병합한 최종 팔로잉 상태
+  // (내 서버 데이터 + 새로 팔로우한 ID) - 언팔로우한 ID
+  const mergedFollowingIds = new Set(
+    [...myServerFollowingIds, ...optimisticFollowIds].filter(id => !optimisticUnfollowIds.has(id))
   );
 
   // 팔로우/언팔로우 mutations
   const followMutation = useFollowUser();
   const unfollowMutation = useUnfollowUser();
+
+  // 모달 내 팔로우 핸들러 (낙관적 업데이트 적용)
+  const handleModalFollow = (targetUserId: number) => {
+    // 낙관적 업데이트: 즉시 UI 반영
+    setOptimisticFollowIds(prev => new Set([...prev, targetUserId]));
+    setOptimisticUnfollowIds(prev => {
+      const next = new Set(prev);
+      next.delete(targetUserId);
+      return next;
+    });
+    followMutation.mutate(targetUserId, {
+      onError: () => {
+        // 실패 시 롤백
+        setOptimisticFollowIds(prev => {
+          const next = new Set(prev);
+          next.delete(targetUserId);
+          return next;
+        });
+      },
+    });
+  };
+
+  // 모달 내 언팔로우 핸들러 (낙관적 업데이트 적용)
+  const handleModalUnfollow = (targetUserId: number) => {
+    // 낙관적 업데이트: 즉시 UI 반영
+    setOptimisticUnfollowIds(prev => new Set([...prev, targetUserId]));
+    setOptimisticFollowIds(prev => {
+      const next = new Set(prev);
+      next.delete(targetUserId);
+      return next;
+    });
+    unfollowMutation.mutate(targetUserId, {
+      onError: () => {
+        // 실패 시 롤백
+        setOptimisticUnfollowIds(prev => {
+          const next = new Set(prev);
+          next.delete(targetUserId);
+          return next;
+        });
+      },
+    });
+  };
 
   // 신고/차단 관련
   const reportMutation = useReportContent();
@@ -1614,17 +1704,21 @@ export default function UserProfilePage({ params }: { params: { userId: string }
         isOpen={followersModalOpen}
         onClose={() => setFollowersModalOpen(false)}
         title="팔로워"
-        users={followersData?.results ?? []}
+        users={flatFollowers}
         isLoading={isLoadingFollowers}
-        onUserClick={(userId) => {
+        onUserClick={(clickedUserId) => {
           setFollowersModalOpen(false);
-          router.push(`/profile/${userId}`);
+          router.push(`/profile/${clickedUserId}`);
         }}
-        onFollow={(targetUserId) => followMutation.mutate(targetUserId)}
-        onUnfollow={(targetUserId) => unfollowMutation.mutate(targetUserId)}
+        onFollow={handleModalFollow}
+        onUnfollow={handleModalUnfollow}
         currentUserId={currentUser?.id}
-        followingIds={new Set(followingData?.results?.map(f => f.user?.id).filter(Boolean) as number[] ?? [])}
-        isFollowLoading={followMutation.isPending || unfollowMutation.isPending}
+        followingIds={mergedFollowingIds}
+        isFollowLoading={false}
+        hasNextPage={hasNextFollowers}
+        isFetchingNextPage={isFetchingNextFollowers}
+        fetchNextPage={fetchNextFollowers}
+        totalCount={followersCount}
       />
 
       {/* 팔로잉 목록 모달 */}
@@ -1632,17 +1726,21 @@ export default function UserProfilePage({ params }: { params: { userId: string }
         isOpen={followingModalOpen}
         onClose={() => setFollowingModalOpen(false)}
         title="팔로잉"
-        users={followingData?.results ?? []}
+        users={flatFollowing}
         isLoading={isLoadingFollowing}
-        onUserClick={(userId) => {
+        onUserClick={(clickedUserId) => {
           setFollowingModalOpen(false);
-          router.push(`/profile/${userId}`);
+          router.push(`/profile/${clickedUserId}`);
         }}
-        onFollow={(targetUserId) => followMutation.mutate(targetUserId)}
-        onUnfollow={(targetUserId) => unfollowMutation.mutate(targetUserId)}
+        onFollow={handleModalFollow}
+        onUnfollow={handleModalUnfollow}
         currentUserId={currentUser?.id}
-        followingIds={new Set(followingData?.results?.map(f => f.user?.id).filter(Boolean) as number[] ?? [])}
-        isFollowLoading={followMutation.isPending || unfollowMutation.isPending}
+        followingIds={mergedFollowingIds}
+        isFollowLoading={false}
+        hasNextPage={hasNextFollowing}
+        isFetchingNextPage={isFetchingNextFollowing}
+        fetchNextPage={fetchNextFollowing}
+        totalCount={followingCount}
       />
     </div>
   );

@@ -415,11 +415,11 @@ function CommunityPageContent() {
     isLoading: isLoadingRecommendedPosts,
   } = useRecommendedPosts(5);
 
-  // Recommended Followers (friends of friends 또는 popular authors)
+  // Recommended Followers (friends of friends) - 로그인 사용자만 호출
   const {
     data: recommendedFollowersData,
     isLoading: isLoadingRecommendedFollowers,
-  } = useRecommendedFollowers(5);
+  } = useRecommendedFollowers(5, { enabled: !!user });
 
   // Following Posts (팔로잉하는 사람의 포스트)
   const {
@@ -890,7 +890,7 @@ function CommunityPageContent() {
       name: follower.name,
       image_url: follower.image_url || undefined,
       headline: follower.headline || undefined,
-      isFollowing: false, // TODO: 팔로잉 상태 확인 API 필요
+      isFollowing: follower.is_following ?? false,
       href: `/profile/${follower.id}`,
     }));
   }, [recommendedFollowersData]);
@@ -909,11 +909,12 @@ function CommunityPageContent() {
                 <h1 className="text-3xl font-bold text-slate-900">Community</h1>
               </div>
 
-              <div className="flex items-center justify-between md:justify-end gap-3">
-                <div className="flex items-center gap-2 overflow-x-auto">
+              <div className="flex items-center justify-between md:justify-end gap-3 min-w-0">
+                <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
                   <Chip
                     variant={contentFilter === 'recent' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('recent')}
+                    className="shrink-0"
                   >
                     <MessageSquare className="h-4 w-4" />
                     최신
@@ -921,6 +922,7 @@ function CommunityPageContent() {
                   <Chip
                     variant={contentFilter === 'recommend' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('recommend')}
+                    className="shrink-0"
                   >
                     <MessageSquare className="h-4 w-4" />
                     추천
@@ -928,6 +930,7 @@ function CommunityPageContent() {
                   <Chip
                     variant={contentFilter === 'qna' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('qna')}
+                    className="shrink-0"
                   >
                     <HelpCircle className="h-4 w-4" />
                     Q&A
@@ -936,6 +939,7 @@ function CommunityPageContent() {
                     <Chip
                       variant={contentFilter === 'following' ? 'selected' : 'default'}
                       onClick={() => handleTabChange('following')}
+                      className="shrink-0"
                     >
                       <Users className="h-4 w-4" />
                       팔로잉
@@ -1007,6 +1011,7 @@ function CommunityPageContent() {
                         userProfile={userProfile}
                         title={post.title ?? undefined}
                         content={post.description}
+                        contentHtml={post.descriptionhtml}
                         createdAt={post.createdat}
                         stats={{
                           likeCount: post.like_count || 0,
@@ -1078,7 +1083,7 @@ function CommunityPageContent() {
                       />
                     </div>
                   )}
-                  {recommendedFollowers.length > 0 && (
+                  {user && recommendedFollowers.length > 0 && (
                     <div className="w-[320px] shrink-0">
                       <RecommendedFollowersPanel
                         followers={recommendedFollowers}
@@ -1121,6 +1126,7 @@ function CommunityPageContent() {
                         userProfile={userProfile}
                         title={post.title ?? undefined}
                         content={post.description}
+                        contentHtml={post.descriptionhtml}
                         createdAt={post.createdat}
                         stats={{
                           likeCount: post.like_count || 0,
@@ -1205,6 +1211,7 @@ function CommunityPageContent() {
                             userProfile={userProfile}
                             title={post.title ?? undefined}
                             content={post.description}
+                            contentHtml={post.descriptionhtml}
                             createdAt={post.createdat}
                             stats={{
                               likeCount: post.like_count || 0,
@@ -1288,13 +1295,15 @@ function CommunityPageContent() {
             onPostClick={(postId) => handleOpenPost(postId)}
           />
 
-          {/* Recommended Followers (추천 팔로워) */}
-          <RecommendedFollowersPanel
-            followers={recommendedFollowers}
-            maxItems={5}
-            onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
-            onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
-          />
+          {/* Recommended Followers (추천 팔로워) - 로그인 사용자만 표시 */}
+          {user && (
+            <RecommendedFollowersPanel
+              followers={recommendedFollowers}
+              maxItems={5}
+              onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
+              onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
+            />
+          )}
         </div>
       </aside>
 

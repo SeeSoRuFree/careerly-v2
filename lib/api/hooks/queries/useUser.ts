@@ -230,8 +230,8 @@ export function useInfiniteMyQuestions(userId: number | undefined) {
 
 /**
  * 추천 팔로워 조회 훅
- * - 로그인 사용자: friends of friends 알고리즘 (mutual_count 포함)
- * - 비로그인: popular authors (최근 30일 좋아요 많은 포스트 작성자)
+ * - 로그인 사용자 전용: friends of friends 알고리즘 (mutual_count 포함)
+ * - 캐싱 없음: 페이지 로드 시 항상 새로운 데이터 fetch
  */
 export function useRecommendedFollowers(
   limit: number = 10,
@@ -240,8 +240,9 @@ export function useRecommendedFollowers(
   return useQuery<RecommendedFollower[], Error>({
     queryKey: userKeys.recommended(limit),
     queryFn: () => getRecommendedFollowers(limit),
-    staleTime: 10 * 60 * 1000, // 10분
-    gcTime: 30 * 60 * 1000, // 30분
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: 'always',
     ...options,
   });
 }
@@ -292,5 +293,43 @@ export function useUserFollowing(
     enabled: !!userId,
     staleTime: 2 * 60 * 1000, // 2분
     ...options,
+  });
+}
+
+/**
+ * 무한 스크롤용 팔로워 목록 훅
+ */
+export function useInfiniteUserFollowers(userId: number | undefined, enabled: boolean = true) {
+  return useInfiniteQuery<PaginatedFollowResponse, Error>({
+    queryKey: [...userKeys.followers(String(userId!)), 'infinite'],
+    queryFn: ({ pageParam = 1 }) => getFollowers(userId!, pageParam as number),
+    initialPageParam: 1,
+    enabled: !!userId && enabled,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.next) {
+        const url = new URL(lastPage.next);
+        return Number(url.searchParams.get('page'));
+      }
+      return undefined;
+    },
+  });
+}
+
+/**
+ * 무한 스크롤용 팔로잉 목록 훅
+ */
+export function useInfiniteUserFollowing(userId: number | undefined, enabled: boolean = true) {
+  return useInfiniteQuery<PaginatedFollowResponse, Error>({
+    queryKey: [...userKeys.following(String(userId!)), 'infinite'],
+    queryFn: ({ pageParam = 1 }) => getFollowing(userId!, pageParam as number),
+    initialPageParam: 1,
+    enabled: !!userId && enabled,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.next) {
+        const url = new URL(lastPage.next);
+        return Number(url.searchParams.get('page'));
+      }
+      return undefined;
+    },
   });
 }

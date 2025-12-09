@@ -215,6 +215,8 @@ export {
   useFollowStatus,
   useUserFollowers,
   useUserFollowing,
+  useInfiniteUserFollowers,
+  useInfiniteUserFollowing,
   useMySavedPosts,
   useInfiniteMySavedPosts,
   useMyPosts,

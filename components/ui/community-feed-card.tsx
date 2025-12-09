@@ -168,14 +168,6 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       return content;
     }, [title, content]);
 
-    // 높이 기반 truncate 체크
-    useEffect(() => {
-      const el = contentRef.current;
-      if (el) {
-        setIsTruncated(el.scrollHeight > MAX_HEIGHT);
-      }
-    }, [displayContent, contentHtml]);
-
     // contentHtml에 포함된 이미지 URL 추출
     const htmlImageUrls = React.useMemo(() => {
       if (!contentHtml) return [];
@@ -187,6 +179,51 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       }
       return urls;
     }, [contentHtml]);
+
+    // 높이 기반 truncate 체크
+    useEffect(() => {
+      const el = contentRef.current;
+      if (!el) return;
+
+      const checkTruncation = () => {
+        setIsTruncated(el.scrollHeight > MAX_HEIGHT);
+      };
+
+      // 초기 체크
+      checkTruncation();
+
+      // contentHtml에 이미지가 있으면 이미지 로드 후 다시 체크
+      if (htmlImageUrls.length > 0) {
+        const images = el.querySelectorAll('img');
+        let loadedCount = 0;
+        const totalImages = images.length;
+
+        if (totalImages > 0) {
+          images.forEach((img) => {
+            if (img.complete) {
+              loadedCount++;
+            } else {
+              img.addEventListener('load', () => {
+                loadedCount++;
+                if (loadedCount >= totalImages) {
+                  checkTruncation();
+                }
+              }, { once: true });
+              img.addEventListener('error', () => {
+                loadedCount++;
+                if (loadedCount >= totalImages) {
+                  checkTruncation();
+                }
+              }, { once: true });
+            }
+          });
+          // 모든 이미지가 이미 로드된 경우
+          if (loadedCount >= totalImages) {
+            checkTruncation();
+          }
+        }
+      }
+    }, [displayContent, contentHtml, htmlImageUrls.length]);
 
     // contentHtml에 없는 이미지만 별도 그리드에 표시
     const standaloneImageUrls = React.useMemo(() => {
@@ -336,21 +373,30 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
 
         {/* Content */}
         <div className="mb-2">
-          <div
-            ref={contentRef}
-            className={cn(
-              'text-slate-900 text-sm leading-relaxed break-words whitespace-pre-wrap',
-              contentHtml && 'prose prose-sm max-w-none',
-              !isExpanded && 'overflow-hidden'
-            )}
-            style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
-          >
-            {contentHtml ? (
-              <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
-            ) : (
-              <Linkify options={linkifyOptions}>
-                {displayContent}
-              </Linkify>
+          <div className="relative">
+            <div
+              ref={contentRef}
+              className={cn(
+                'text-slate-900 text-sm leading-relaxed break-words whitespace-pre-wrap',
+                contentHtml && 'prose prose-sm max-w-none',
+                !isExpanded && 'overflow-hidden'
+              )}
+              style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
+            >
+              {contentHtml ? (
+                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+              ) : (
+                <Linkify options={linkifyOptions}>
+                  {displayContent}
+                </Linkify>
+              )}
+            </div>
+            {/* Fade effect when truncated */}
+            {isTruncated && !isExpanded && (
+              <div
+                className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"
+                aria-hidden="true"
+              />
             )}
           </div>
 

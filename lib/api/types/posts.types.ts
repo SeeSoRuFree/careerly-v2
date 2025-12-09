@@ -48,6 +48,7 @@ export interface PostListItem {
   author: User | null; // 삭제된 사용자의 경우 null 가능
   title: string | null; // DB에 NULL 데이터가 있을 수 있음
   description: string;
+  descriptionhtml?: string;
   posttype: PostType;
   isdeleted: number;
   createdat: string;

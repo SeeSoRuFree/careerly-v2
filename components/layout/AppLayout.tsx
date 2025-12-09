@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { SidebarRail } from '@/components/ui/sidebar-rail';
 import { MobileNavOverlay } from '@/components/ui/mobile-nav-overlay';
 import { LoginModal, SignupModal } from '@/components/auth';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { MessageSquare, Sparkles, Users, Settings, LogIn, LogOut, Menu } from 'lucide-react';
 import { useCurrentUser, useLogout } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
@@ -26,6 +27,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const [isSignupModalOpen, setIsSignupModalOpen] = React.useState(false);
   // 모바일 네비게이션 상태 (조건부 return 전에 선언해야 함)
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
+  // 로그아웃 확인 다이얼로그 상태
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
 
   // Get modal state from Zustand store
   const { isLoginModalOpen, openLoginModal, closeLoginModal } = useStore();
@@ -46,6 +49,12 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   };
 
   const handleLogout = () => {
+    setIsMobileNavOpen(false);
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout.mutate();
   };
 
@@ -176,6 +185,19 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         isOpen={isSignupModalOpen}
         onClose={() => setIsSignupModalOpen(false)}
         onLoginClick={openLoginModal}
+      />
+
+      {/* 로그아웃 확인 다이얼로그 */}
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleConfirmLogout}
+        title="로그아웃"
+        description="정말 로그아웃 하시겠습니까?"
+        confirmText="로그아웃"
+        cancelText="취소"
+        variant="danger"
+        isLoading={logout.isPending}
       />
     </div>
   );

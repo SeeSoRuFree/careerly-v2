@@ -224,17 +224,18 @@ export interface RecommendedFollower {
   headline: string | null;
   mutual_count: number | null; // friends of friends인 경우에만 있음
   follower_count: number;
+  is_following: boolean; // 현재 사용자가 팔로우 중인지
 }
 
 /**
  * 추천 팔로워 조회
- * - 로그인 사용자: friends of friends 알고리즘
- * - 비로그인: popular authors (최근 30일 좋아요 많은 포스트 작성자)
+ * - 로그인 사용자 전용: friends of friends 알고리즘
+ * - 인증 필요 (authClient 사용)
  */
 export async function getRecommendedFollowers(limit: number = 10): Promise<RecommendedFollower[]> {
   try {
     const params = { limit };
-    const response = await publicClient.get<RecommendedFollower[]>('/api/v1/users/recommended/', { params });
+    const response = await authClient.get<RecommendedFollower[]>('/api/v1/users/recommended/', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
