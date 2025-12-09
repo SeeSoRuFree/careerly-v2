@@ -138,8 +138,13 @@ export default function DiscoverPage() {
 
   // Mock 데이터를 API 응답 형태로 변환
   const feedResponse = React.useMemo(() => {
+    const jobs = mockDiscoverResponse?.jobs || [];
+    const blogs = mockDiscoverResponse?.blogs || [];
+    const books = mockDiscoverResponse?.books || [];
+    const courses = mockDiscoverResponse?.courses || [];
+
     const allFeeds = [
-      ...mockDiscoverResponse.jobs.map((job, index) => ({
+      ...jobs.map((job, index) => ({
         id: `job-${job.id}`,
         title: job.title,
         description: job.summary,
@@ -150,8 +155,7 @@ export default function DiscoverPage() {
         category: '채용공고',
         tags: ['채용', '커리어', 'IT', '개발자'],
       })),
-      ...mockDiscoverResponse.blogs
-        .slice() // 원본 보호
+      ...[...blogs]
         .sort((a, b) => new Date(b.publishedAt || b.createdAt || 0).getTime() - new Date(a.publishedAt || a.createdAt || 0).getTime()) // 최신순 정렬
         .map((blog, index) => ({
         id: `blog-${blog.id}`,
@@ -168,7 +172,7 @@ export default function DiscoverPage() {
         aiScore: blog.aiScore || 0,
         aiCategory: blog.aiCategory || 'other', // AI 카테고리 추가
       })),
-      ...mockDiscoverResponse.books.map((book, index) => ({
+      ...books.map((book, index) => ({
         id: `book-${book.id}`,
         title: book.title,
         description: book.summary,
@@ -179,7 +183,7 @@ export default function DiscoverPage() {
         category: '도서',
         tags: ['도서', '학습', '리더십', '프로그래밍', 'React'],
       })),
-      ...mockDiscoverResponse.courses.map((course, index) => ({
+      ...courses.map((course, index) => ({
         id: `course-${course.id}`,
         title: course.title,
         description: course.summary,
@@ -292,7 +296,7 @@ export default function DiscoverPage() {
   // Extract all unique tags
   const allTags = React.useMemo(() => {
     const tagSet = new Set<string>();
-    feedResponse.feeds.forEach((feed) => {
+    (feedResponse?.feeds || []).forEach((feed) => {
       feed.tags?.forEach((tag) => tagSet.add(tag));
     });
     return Array.from(tagSet);
