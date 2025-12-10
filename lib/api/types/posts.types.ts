@@ -11,6 +11,7 @@ export enum PostType {
   GENERAL = 0,
   NOTICE = 1,
   EVENT = 2,
+  AI_CHAT_SESSION = 10, // AI 대화 세션 포스트
 }
 
 /**
@@ -37,6 +38,7 @@ export interface Post {
   is_saved: boolean;
   is_reposted: boolean;
   images?: string[];
+  chat_session_id?: string; // AI 대화 세션 ID (posttype=10일 때 사용)
 }
 
 /**
@@ -62,6 +64,7 @@ export interface PostListItem {
   is_saved: boolean;
   is_reposted: boolean;
   images?: string[];
+  chat_session_id?: string; // AI 대화 세션 ID (posttype=10일 때 사용)
 }
 
 /**

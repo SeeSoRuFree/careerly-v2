@@ -8,24 +8,28 @@ import { useShareToCommunity } from '@/lib/api';
 export interface CommunityShareCTAProps extends React.HTMLAttributes<HTMLDivElement> {
   sessionId: string;
   isShared?: boolean;
+  sharedPostId?: number;
   onShareSuccess?: () => void;
 }
 
 const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProps>(
-  ({ sessionId, isShared = false, onShareSuccess, className, ...props }, ref) => {
+  ({ sessionId, isShared = false, sharedPostId, onShareSuccess, className, ...props }, ref) => {
     const shareToCommunity = useShareToCommunity();
     const [localShared, setLocalShared] = React.useState(isShared);
+    const [localPostId, setLocalPostId] = React.useState(sharedPostId);
 
     React.useEffect(() => {
       setLocalShared(isShared);
-    }, [isShared]);
+      setLocalPostId(sharedPostId);
+    }, [isShared, sharedPostId]);
 
     const handleShare = async () => {
       if (localShared) return;
 
       try {
-        await shareToCommunity.mutateAsync({ sessionId });
+        const response = await shareToCommunity.mutateAsync({ sessionId });
         setLocalShared(true);
+        setLocalPostId(response.id);
         onShareSuccess?.();
       } catch (error) {
         console.error('Share to community failed:', error);
@@ -50,9 +54,30 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
               <h3 className="text-lg font-semibold text-slate-900 mb-1">
                 커뮤니티에 공유되었습니다
               </h3>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-600 mb-3">
                 다른 사용자들도 이 답변을 확인할 수 있습니다
               </p>
+              {localPostId && (
+                <a
+                  href={`/community/post/${localPostId}`}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors"
+                >
+                  <span>공유된 포스트 보기</span>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </a>
+              )}
             </div>
           </div>
         </div>

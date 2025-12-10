@@ -5,6 +5,7 @@ import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Masonry from 'react-masonry-css';
 import { CommunityFeedCard } from '@/components/ui/community-feed-card';
+import { AIChatPostCard } from '@/components/ui/ai-chat-post-card';
 import { QnaCard } from '@/components/ui/qna-card';
 import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers
 import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle } from 'lucide-react';
+import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer, useFollowing } from '@/lib/api';
@@ -62,6 +63,7 @@ function PostDetailDrawerContent({
   const { data: user } = useCurrentUser();
   const { data: commentsData } = useComments({ postId: Number(postId) });
   const { openLoginModal } = useStore();
+  const router = useRouter();
 
   const createComment = useCreateComment();
   const updateComment = useUpdateComment();
@@ -169,6 +171,181 @@ function PostDetailDrawerContent({
     );
   }
 
+  // AI 포스트 (posttype=10)인 경우 간소화된 UI 렌더링
+  if (post.posttype === 10) {
+    const shareUrl = post.chat_session_id
+      ? `/share/${post.chat_session_id}`
+      : `/community/post/${postId}`;
+
+    return (
+      <div className="p-6 space-y-6">
+        {/* AI Agent Profile */}
+        <div className="flex items-start gap-3">
+          <div className="relative">
+            <Avatar className="h-12 w-12 bg-gradient-to-br from-teal-400 to-teal-600">
+              <AvatarFallback className="bg-transparent">
+                <span className="text-lg font-bold text-white">C</span>
+              </AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-slate-900">커리어리 AI 에이전트</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
+                AI
+              </span>
+            </div>
+            <p className="text-sm text-slate-500 mt-1">
+              {formatRelativeTime(post.createdat)}
+            </p>
+          </div>
+        </div>
+
+        {/* Question */}
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 leading-snug mb-3">
+            Q. {post.title || '제목 없음'}
+          </h3>
+
+          {/* Answer Preview with Fade Out */}
+          <div className="relative">
+            <div className="text-slate-600 leading-relaxed line-clamp-6">
+              {post.description}
+            </div>
+            {/* Fade out gradient */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+          </div>
+        </div>
+
+        {/* URL Preview Card - Kakao/Slack style */}
+        <button
+          onClick={() => router.push(shareUrl)}
+          className="block w-full mt-4 text-left"
+        >
+          <div className="border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 transition-colors bg-white">
+            {/* URL Display */}
+            <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
+              <LinkIcon className="h-3 w-3 text-slate-400" />
+              <span className="text-xs text-slate-500">share.careerly.co.kr</span>
+            </div>
+
+            {/* OG Card Content */}
+            <div className="p-4">
+              <div className="text-xs text-slate-500 mb-1">커리어리 AI 검색</div>
+              <div className="font-medium text-slate-900 mb-1 line-clamp-1">{post.title || '제목 없음'}</div>
+              <div className="text-sm text-slate-600 line-clamp-2">
+                커리어리 AI 에이전트가 답변한 내용입니다
+              </div>
+            </div>
+
+            {/* Continue Reading CTA */}
+            <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-center gap-2 text-teal-600 font-medium">
+              계속 읽기
+              <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </button>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-sm text-slate-500 pt-4 border-t border-slate-200">
+          <button
+            onClick={onLike}
+            className={cn(
+              'flex items-center gap-1.5 transition-colors hover:text-teal-600',
+              isLiked && 'text-teal-600'
+            )}
+          >
+            <Heart className={cn('h-5 w-5', isLiked && 'fill-current')} />
+            <span className="font-medium">{post.like_count || 0}</span>
+          </button>
+          <div className="flex items-center gap-1.5">
+            <MessageCircle className="h-5 w-5" />
+            <span className="font-medium">{commentsData?.count || post.comment_count || 0}</span>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div className="border-t border-slate-200 -mx-6" />
+
+        {/* Comment Section for AI Post */}
+        <div className="space-y-4">
+          {/* Comment Input */}
+          {user && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const input = (e.currentTarget.elements.namedItem('comment') as HTMLInputElement);
+              if (input.value.trim()) {
+                handleCommentSubmit(input.value.trim());
+                input.value = '';
+              }
+            }} className="flex gap-2">
+              <Avatar className="h-10 w-10 flex-shrink-0">
+                <AvatarImage src={user.image_url} alt={user.name} />
+                <AvatarFallback className="bg-slate-200 text-slate-600">
+                  {user.name?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 flex gap-2">
+                <input
+                  name="comment"
+                  placeholder="댓글을 입력하세요..."
+                  className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Comments List */}
+          {transformedComments.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="text-base font-semibold text-slate-900">
+                댓글 {transformedComments.length}
+              </h4>
+              <div className="divide-y divide-slate-200">
+                {transformedComments.map((comment) => (
+                  <div key={comment.id} className="py-3 first:pt-0">
+                    <div className="flex items-start gap-2">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={comment.userImage} alt={comment.userName} />
+                        <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="font-semibold text-sm text-slate-900">{comment.userName}</span>
+                          <span className="text-xs text-slate-500">{comment.createdAt}</span>
+                        </div>
+                        <p className="text-sm text-slate-700 leading-relaxed">{comment.content}</p>
+                        <button
+                          onClick={() => handleCommentLike(comment.id)}
+                          className={cn(
+                            'flex items-center gap-1 mt-2 text-xs transition-colors',
+                            comment.liked ? 'text-teal-600' : 'text-slate-400 hover:text-teal-600'
+                          )}
+                        >
+                          <Heart className={cn('h-3.5 w-3.5', comment.liked && 'fill-current')} />
+                          {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 일반 포스트 렌더링
   const userProfile = post.author
     ? {
         id: post.author.id,
@@ -995,6 +1172,27 @@ function CommunityPageContent() {
                     const post = item.data;
                     // Track impression
                     trackImpression(post.id);
+
+                    // AI Chat Session Post (posttype=10)
+                    if (post.posttype === 10) {
+                      return (
+                        <AIChatPostCard
+                          key={`mobile-ai-${post.id}`}
+                          postId={post.id}
+                          question={post.title || '제목 없음'}
+                          answerPreview={post.description}
+                          sessionId={post.chat_session_id}
+                          createdAt={post.createdat}
+                          likeCount={post.like_count || 0}
+                          commentCount={post.comment_count || 0}
+                          isLiked={likedPosts[post.id] || false}
+                          onLike={() => handleLikePost(post.id)}
+                          onClick={() => handleOpenPost(post.id.toString())}
+                        />
+                      );
+                    }
+
+                    // Regular Post
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
                       name: post.author.name,
@@ -1105,6 +1303,27 @@ function CommunityPageContent() {
                     const post = item.data;
                     // Track impression
                     trackImpression(post.id);
+
+                    // AI Chat Session Post (posttype=10)
+                    if (post.posttype === 10) {
+                      return (
+                        <AIChatPostCard
+                          key={`mobile-rest-ai-${post.id}`}
+                          postId={post.id}
+                          question={post.title || '제목 없음'}
+                          answerPreview={post.description}
+                          sessionId={post.chat_session_id}
+                          createdAt={post.createdat}
+                          likeCount={post.like_count || 0}
+                          commentCount={post.comment_count || 0}
+                          isLiked={likedPosts[post.id] || false}
+                          onLike={() => handleLikePost(post.id)}
+                          onClick={() => handleOpenPost(post.id.toString())}
+                        />
+                      );
+                    }
+
+                    // Regular Post
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
                       name: post.author.name,
@@ -1194,6 +1413,28 @@ function CommunityPageContent() {
                       const post = item.data;
                       // Track impression
                       trackImpression(post.id);
+
+                      // AI Chat Session Post (posttype=10)
+                      if (post.posttype === 10) {
+                        return (
+                          <div key={`ai-${post.id}`} className="mb-6">
+                            <AIChatPostCard
+                              postId={post.id}
+                              question={post.title || '제목 없음'}
+                              answerPreview={post.description}
+                              sessionId={post.chat_session_id}
+                              createdAt={post.createdat}
+                              likeCount={post.like_count || 0}
+                              commentCount={post.comment_count || 0}
+                              isLiked={likedPosts[post.id] || false}
+                              onLike={() => handleLikePost(post.id)}
+                              onClick={() => handleOpenPost(post.id.toString())}
+                            />
+                          </div>
+                        );
+                      }
+
+                      // Regular Post
                       const userProfile: UserProfile = post.author ? {
                         id: post.author.id,
                         name: post.author.name,

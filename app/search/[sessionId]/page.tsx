@@ -46,7 +46,6 @@ function SessionContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('answer');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followUpValue, setFollowUpValue] = useState('');
-  const [isSharedToCommunity, setIsSharedToCommunity] = useState(false);
 
   // 세션 조회 (인증 API 먼저 시도 → 실패 시 공개 API fallback)
   const { data: session, isLoading, error } = useChatSessionWithFallback(
@@ -65,7 +64,8 @@ function SessionContent() {
   };
 
   const handleShareToCommunity = () => {
-    setIsSharedToCommunity(true);
+    // 공유 성공 시 세션 데이터 리프레시 (shared_post_id 업데이트)
+    // React Query가 자동으로 캐시를 업데이트할 것이므로 별도 처리 불필요
   };
 
   const handleFollowUpSubmit = () => {
@@ -159,6 +159,10 @@ function SessionContent() {
     faviconUrl: undefined,
   }));
 
+  // 커뮤니티 공유 상태 확인
+  const isSharedToCommunity = !!session.shared_post_id;
+  const sharedPostId = session.shared_post_id;
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-4 max-w-4xl">
@@ -223,6 +227,7 @@ function SessionContent() {
                 <CommunityShareCTA
                   sessionId={sessionId}
                   isShared={isSharedToCommunity}
+                  sharedPostId={sharedPostId}
                   onShareSuccess={handleShareToCommunity}
                 />
               </div>

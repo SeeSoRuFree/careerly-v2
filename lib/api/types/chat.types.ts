@@ -270,6 +270,8 @@ export interface ChatSession {
   message_count: number;
   /** 공개 여부 */
   is_public: boolean;
+  /** 커뮤니티에 공유된 포스트 ID (있으면 이미 공유됨) */
+  shared_post_id?: number;
   /** 세션 메시지 목록 */
   messages: ChatSessionMessage[];
 }
