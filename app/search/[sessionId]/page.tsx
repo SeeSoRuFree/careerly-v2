@@ -16,6 +16,7 @@ import { RelatedQueriesSection, type RelatedQuery } from '@/components/ui/relate
 import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-input';
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
+import { CommunityShareCTA } from '@/components/ui/community-share-cta';
 
 // Mock Related Queries
 const MOCK_RELATED_QUERIES: RelatedQuery[] = [
@@ -45,6 +46,7 @@ function SessionContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('answer');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followUpValue, setFollowUpValue] = useState('');
+  const [isSharedToCommunity, setIsSharedToCommunity] = useState(false);
 
   // 세션 조회 (인증 API 먼저 시도 → 실패 시 공개 API fallback)
   const { data: session, isLoading, error } = useChatSessionWithFallback(
@@ -53,12 +55,6 @@ function SessionContent() {
   );
 
   // 핸들러들
-  const handleEdit = () => {
-    if (session?.messages?.[0]?.content) {
-      router.push(`/search?q=${encodeURIComponent(session.messages[0].content)}`);
-    }
-  };
-
   const handleShare = () => {
     // 공유 기능은 ThreadActionBar에서 처리
     console.log('Share thread');
@@ -68,14 +64,8 @@ function SessionContent() {
     setIsBookmarked(!isBookmarked);
   };
 
-  const handleExport = () => {
-    console.log('Export thread');
-  };
-
-  const handleRewrite = () => {
-    if (session?.messages?.[0]?.content) {
-      router.push(`/search?q=${encodeURIComponent(session.messages[0].content)}`);
-    }
+  const handleShareToCommunity = () => {
+    setIsSharedToCommunity(true);
   };
 
   const handleFollowUpSubmit = () => {
@@ -175,7 +165,6 @@ function SessionContent() {
         {/* SearchQueryHeader */}
         <SearchQueryHeader
           queryText={query}
-          onEdit={handleEdit}
           className="mb-3 border-b-0"
         />
 
@@ -202,10 +191,10 @@ function SessionContent() {
               sessionId={sessionId}
               isPublic={session.is_public}
               onShare={handleShare}
+              onShareToCommunity={handleShareToCommunity}
               onBookmark={handleBookmark}
-              onExport={handleExport}
-              onRewrite={handleRewrite}
               isBookmarked={isBookmarked}
+              isSharedToCommunity={isSharedToCommunity}
             />
           </div>
         </div>
@@ -219,7 +208,6 @@ function SessionContent() {
                 answerHtml={answer}
                 loading={false}
                 error={undefined}
-                onRetry={handleRewrite}
                 className="border-0 shadow-none bg-transparent p-0"
               />
 
@@ -229,6 +217,15 @@ function SessionContent() {
                   <CitationSourceList sources={citationSources} />
                 </div>
               )}
+
+              {/* 커뮤니티 공유 CTA */}
+              <div className="py-6 border-t border-slate-200">
+                <CommunityShareCTA
+                  sessionId={sessionId}
+                  isShared={isSharedToCommunity}
+                  onShareSuccess={handleShareToCommunity}
+                />
+              </div>
             </>
           )}
 

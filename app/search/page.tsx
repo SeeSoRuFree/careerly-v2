@@ -609,7 +609,6 @@ function SearchContent() {
         {/* SearchQueryHeader */}
         <SearchQueryHeader
           queryText={query}
-          onEdit={handleEdit}
           className="mb-3 border-b-0"
         />
 
@@ -639,8 +638,6 @@ function SearchContent() {
               isPublic={false}
               onShare={handleShare}
               onBookmark={handleBookmark}
-              onExport={handleExport}
-              onRewrite={handleRewrite}
               isBookmarked={isBookmarked}
             />
           </div>

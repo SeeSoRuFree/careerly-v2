@@ -595,10 +595,9 @@ export default function DisplayComponentsPage() {
             >
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-semibold text-slate-700 mb-3">With Edit Button</p>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Basic Query</p>
                   <SearchQueryHeader
                     queryText="React 19의 새로운 기능은 무엇인가요?"
-                    onEdit={() => console.log('Edit clicked')}
                   />
                 </div>
 
@@ -606,15 +605,13 @@ export default function DisplayComponentsPage() {
                   <p className="text-sm font-semibold text-slate-700 mb-3">Long Query</p>
                   <SearchQueryHeader
                     queryText="TypeScript와 JavaScript의 주요 차이점과 TypeScript를 사용하면 얻을 수 있는 이점은 무엇이며, 어떤 프로젝트에서 사용하는 것이 좋을까요?"
-                    onEdit={() => console.log('Edit clicked')}
                   />
                 </div>
 
                 <div>
-                  <p className="text-sm font-semibold text-slate-700 mb-3">Read Only</p>
+                  <p className="text-sm font-semibold text-slate-700 mb-3">Short Query</p>
                   <SearchQueryHeader
                     queryText="Next.js의 App Router와 Pages Router 차이점"
-                    editable={false}
                   />
                 </div>
               </div>

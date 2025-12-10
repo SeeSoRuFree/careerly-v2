@@ -30,6 +30,7 @@ const CitationSourceList = React.forwardRef<HTMLDivElement, CitationSourceListPr
             <QuoteSourceLink
               key={source.id}
               title={source.title}
+              href={source.href}
               faviconUrl={source.faviconUrl}
             />
           ))}

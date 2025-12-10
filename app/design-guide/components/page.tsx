@@ -785,8 +785,6 @@ export default function ComponentsPage() {
                   <ThreadActionBar
                     onShare={() => console.log('Share')}
                     onBookmark={() => setIsBookmarked(!isBookmarked)}
-                    onExport={() => console.log('Export')}
-                    onRewrite={() => console.log('Rewrite')}
                     isBookmarked={isBookmarked}
                   />
                 </div>

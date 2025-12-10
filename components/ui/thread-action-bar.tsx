@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Share2, Bookmark, Download, RefreshCw, Check, Loader2, Users } from 'lucide-react';
+import { Share2, Bookmark, Check, Loader2, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/icon-button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -13,15 +13,13 @@ export interface ThreadActionBarProps extends React.HTMLAttributes<HTMLDivElemen
   onShare?: () => void;
   onShareToCommunity?: () => void;
   onBookmark?: () => void;
-  onExport?: () => void;
-  onRewrite?: () => void;
   isBookmarked?: boolean;
   /** 커뮤니티에 이미 공유됐는지 여부 */
   isSharedToCommunity?: boolean;
 }
 
 const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
-  ({ sessionId, isPublic = false, onShare, onShareToCommunity, onBookmark, onExport, onRewrite, isBookmarked = false, isSharedToCommunity = false, className, ...props }, ref) => {
+  ({ sessionId, isPublic = false, onShare, onShareToCommunity, onBookmark, isBookmarked = false, isSharedToCommunity = false, className, ...props }, ref) => {
     const shareSession = useShareSession();
     const shareToCommunity = useShareToCommunity();
     const [justCopied, setJustCopied] = React.useState(false);
@@ -160,42 +158,6 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
               </TooltipTrigger>
               <TooltipContent>
                 <p>{isBookmarked ? "Remove bookmark" : "Bookmark"}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {onExport && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <IconButton
-                  variant="ghost"
-                  size="md"
-                  onClick={onExport}
-                  aria-label="Export thread"
-                >
-                  <Download className="h-4 w-4" />
-                </IconButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {onRewrite && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <IconButton
-                  variant="ghost"
-                  size="md"
-                  onClick={onRewrite}
-                  aria-label="Rewrite answer"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </IconButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Rewrite</p>
               </TooltipContent>
             </Tooltip>
           )}

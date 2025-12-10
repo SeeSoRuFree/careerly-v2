@@ -264,9 +264,9 @@ export async function getTopPosts(
  */
 export async function getRecommendedPosts(limit: number = 10): Promise<PostListItem[]> {
   try {
-    const params = { limit };
-    const response = await publicClient.get<PostListItem[]>('/api/v1/posts/recommended/', { params });
-    return response.data;
+    const params = { page_size: limit };
+    const response = await publicClient.get<PaginatedPostResponse>('/api/v1/posts/recommended/', { params });
+    return response.data.results || [];
   } catch (error) {
     throw handleApiError(error);
   }
@@ -274,11 +274,11 @@ export async function getRecommendedPosts(limit: number = 10): Promise<PostListI
 
 /**
  * 추천 포스트 조회 (페이지네이션 버전 - 메인 피드용)
- * GET /api/v1/posts/recommend/
+ * GET /api/v1/posts/recommended/
  */
 export async function getRecommendedPostsPaginated(params?: { page?: number; page_size?: number }): Promise<PaginatedPostResponse> {
   try {
-    const response = await authClient.get<PaginatedPostResponse>('/api/v1/posts/recommend/', { params });
+    const response = await authClient.get<PaginatedPostResponse>('/api/v1/posts/recommended/', { params });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
