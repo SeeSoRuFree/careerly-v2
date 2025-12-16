@@ -30,6 +30,9 @@ import type {
   JobItemData,
   ContentDetailData,
   SourceItemData,
+  BlogCardData,
+  BookCardData,
+  CourseCardData,
 } from '@/components/discover';
 
 // API 훅
