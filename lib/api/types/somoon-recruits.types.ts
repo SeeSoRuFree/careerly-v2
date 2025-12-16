@@ -9,6 +9,22 @@
 export type RecruitsContentType = 'blog' | 'lecture' | 'book';
 
 /**
+ * 콘텐츠 추가 정보
+ */
+export interface RecruitsContentAdditionalInfo {
+  /** 콘텐츠 이미지 URL */
+  image_url?: string;
+  /** 저자 */
+  author?: string;
+  /** 가격 (도서) */
+  price?: number | null;
+  /** 출판사 (도서) */
+  publisher?: string;
+  /** 출판일 (도서) */
+  published_date?: string | null;
+}
+
+/**
  * 콘텐츠 아이템
  */
 export interface RecruitsContent {
@@ -30,6 +46,8 @@ export interface RecruitsContent {
   url: string;
   /** 요약 (분석된 경우) */
   summary?: string;
+  /** 추가 정보 (이미지, 저자 등) */
+  additional_info?: RecruitsContentAdditionalInfo;
 }
 
 /**
