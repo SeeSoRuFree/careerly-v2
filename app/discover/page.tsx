@@ -516,7 +516,6 @@ export default function DiscoverPage() {
       isBookmarked: false,
       views: job.views || 0,
       likes: job.likes || 0,
-      comments: [],
     });
     setDrawerOpen(true);
   };
@@ -535,18 +534,6 @@ export default function DiscoverPage() {
       isBookmarked: false,
       views: blog.views,
       likes: blog.likes,
-      comments: [
-        {
-          id: '1',
-          userName: '개발자A',
-          userImage: 'https://i.pravatar.cc/40?u=blog1',
-          userHeadline: 'Frontend Developer @ 네이버',
-          content: '정말 유용한 글이네요! 잘 읽었습니다.',
-          createdAt: '2시간 전',
-          likeCount: 12,
-          liked: false,
-        },
-      ],
     });
     setDrawerOpen(true);
   };
@@ -569,7 +556,6 @@ export default function DiscoverPage() {
       isBookmarked: false,
       views: isBook ? 800 : courseItem.views,
       likes: isBook ? 80 : courseItem.likes,
-      comments: [],
     });
     setDrawerOpen(true);
   };
@@ -1158,6 +1144,7 @@ export default function DiscoverPage() {
       <ContentDetailDrawer
         open={drawerOpen}
         content={selectedContent}
+        contentType={contentType}
         onClose={() => setDrawerOpen(false)}
         onContentChange={setSelectedContent}
       />

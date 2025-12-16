@@ -1,21 +1,11 @@
 'use client';
 
 import * as React from 'react';
-import { X, Eye, Heart, MessageCircle, ExternalLink, Bookmark, Send } from 'lucide-react';
+import { X, Eye, Heart, ExternalLink, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
-export interface CommentData {
-  id: string;
-  userName: string;
-  userImage?: string;
-  userHeadline?: string;
-  content: string;
-  createdAt: string;
-  likeCount: number;
-  liked: boolean;
-}
+export type ContentType = 'jobs' | 'blogs' | 'books' | 'courses';
 
 export interface ContentDetailData {
   id: string;
@@ -29,12 +19,12 @@ export interface ContentDetailData {
   isBookmarked: boolean;
   views: number;
   likes: number;
-  comments: CommentData[];
 }
 
 export interface ContentDetailDrawerProps {
   open: boolean;
   content: ContentDetailData | null;
+  contentType?: ContentType;
   onClose: () => void;
   onContentChange: (content: ContentDetailData | null) => void;
 }
@@ -42,11 +32,10 @@ export interface ContentDetailDrawerProps {
 export function ContentDetailDrawer({
   open,
   content,
+  contentType = 'jobs',
   onClose,
   onContentChange,
 }: ContentDetailDrawerProps) {
-  const [newComment, setNewComment] = React.useState('');
-
   const handleLikeContent = () => {
     if (!content) return;
     onContentChange({
@@ -64,37 +53,20 @@ export function ContentDetailDrawer({
     });
   };
 
-  const handleLikeComment = (commentId: string) => {
-    if (!content) return;
-    onContentChange({
-      ...content,
-      comments: content.comments.map((c) =>
-        c.id === commentId
-          ? { ...c, liked: !c.liked, likeCount: c.liked ? c.likeCount - 1 : c.likeCount + 1 }
-          : c
-      ),
-    });
-  };
-
-  const handleAddComment = () => {
-    if (!content || !newComment.trim()) return;
-    onContentChange({
-      ...content,
-      comments: [
-        {
-          id: Date.now().toString(),
-          userName: '나',
-          userImage: undefined,
-          userHeadline: undefined,
-          content: newComment,
-          createdAt: '방금 전',
-          likeCount: 0,
-          liked: false,
-        },
-        ...content.comments,
-      ],
-    });
-    setNewComment('');
+  // 콘텐츠 타입별 버튼 텍스트
+  const getButtonText = () => {
+    switch (contentType) {
+      case 'jobs':
+        return '공고 보기';
+      case 'blogs':
+        return '블로그 보기';
+      case 'books':
+        return '도서 보기';
+      case 'courses':
+        return '강의 보기';
+      default:
+        return '자세히 보기';
+    }
   };
 
   return (
@@ -148,10 +120,6 @@ export function ContentDetailDrawer({
                     <Heart className="h-4 w-4" />
                     <span className="text-sm">{content.likes}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <MessageCircle className="h-4 w-4" />
-                    <span className="text-sm">{content.comments.length}</span>
-                  </div>
                 </div>
 
                 {/* Summary */}
@@ -161,9 +129,12 @@ export function ContentDetailDrawer({
 
                 {/* Action Buttons */}
                 <div className="flex gap-2 mb-8">
-                  <Button className="flex-1 bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
+                  <Button
+                    className="flex-1 bg-teal-600 hover:bg-teal-700 text-white shadow-sm"
+                    onClick={() => content.externalUrl && window.open(content.externalUrl, '_blank')}
+                  >
                     <ExternalLink className="h-4 w-4 mr-2" />
-                    공고 보기
+                    {getButtonText()}
                   </Button>
                   <Button
                     variant="outline"
@@ -194,98 +165,6 @@ export function ContentDetailDrawer({
                       )}
                     />
                   </Button>
-                </div>
-
-                {/* Comments Section */}
-                <div className="border-t border-slate-100 pt-6">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-4">
-                    댓글 {content.comments.length}
-                  </h3>
-
-                  {/* Comment Input */}
-                  <div className="flex gap-2 mb-6">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarFallback className="bg-slate-200 text-slate-600">U</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 flex gap-2">
-                      <input
-                        type="text"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="댓글을 입력하세요..."
-                        className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && newComment.trim()) {
-                            handleAddComment();
-                          }
-                        }}
-                      />
-                      <Button
-                        size="icon"
-                        className="bg-teal-600 hover:bg-teal-700"
-                        disabled={!newComment.trim()}
-                        onClick={handleAddComment}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Comments List */}
-                  {content.comments.length > 0 ? (
-                    <div className="divide-y divide-slate-200">
-                      {content.comments.map((comment) => (
-                        <div key={comment.id} className="py-4 first:pt-0">
-                          <div className="flex items-start gap-3">
-                            <Avatar className="h-10 w-10 flex-shrink-0">
-                              <AvatarImage src={comment.userImage} alt={comment.userName} />
-                              <AvatarFallback className="bg-slate-200 text-slate-600">
-                                {comment.userName.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between mb-1">
-                                <div className="flex-1">
-                                  <span className="font-semibold text-slate-900 text-sm">
-                                    {comment.userName}
-                                  </span>
-                                  {comment.userHeadline && (
-                                    <p className="text-xs text-slate-500">{comment.userHeadline}</p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 ml-2 flex-shrink-0">
-                                  <button
-                                    onClick={() => handleLikeComment(comment.id)}
-                                    className={cn(
-                                      'flex items-center gap-1 text-xs transition-colors',
-                                      comment.liked
-                                        ? 'text-red-500'
-                                        : 'text-slate-400 hover:text-red-500'
-                                    )}
-                                  >
-                                    <Heart
-                                      className={cn('h-3.5 w-3.5', comment.liked && 'fill-current')}
-                                    />
-                                    {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
-                                  </button>
-                                  <span className="text-xs text-slate-400">{comment.createdAt}</span>
-                                </div>
-                              </div>
-                              <p className="text-sm text-slate-700 leading-relaxed">
-                                {comment.content}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-slate-400">
-                      <MessageCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">아직 댓글이 없습니다.</p>
-                      <p className="text-xs">첫 번째 댓글을 남겨보세요!</p>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

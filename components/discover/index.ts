@@ -18,7 +18,6 @@ export { ContentDetailDrawer } from './ContentDetailDrawer';
 export type {
   ContentDetailData,
   ContentDetailDrawerProps,
-  CommentData,
 } from './ContentDetailDrawer';
 
 export { SourceListItem } from './SourceListItem';
