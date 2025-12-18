@@ -375,3 +375,91 @@ export interface RecruitsV2MainResponse {
   /** 일별 회사별 채용공고 데이터 */
   daily_company_jobs: RecruitsV2DailyCompanyJobs[];
 }
+
+// ============================================
+// Jobs/Contents ID Search API Types
+// ============================================
+
+/**
+ * 채용공고 상세 정보 (search?ids=xxx)
+ */
+export interface RecruitsJobDetail {
+  /** 채용공고 ID */
+  id: number;
+  /** 제목 */
+  title: string;
+  /** URL */
+  url: string;
+  /** 생성일 */
+  created_at: string;
+  /** 수정일 */
+  updated_at: string;
+  /** 회사명 */
+  company_title: string;
+  /** 회사 sign */
+  company_sign: string;
+  /** 회사 로고 이미지 URL */
+  company_image?: string;
+  /** AI 요약 */
+  summary?: string | null;
+  /** AI 상세 요약 */
+  full_summary?: string | null;
+  /** 직무 카테고리 */
+  job_category?: string | null;
+  /** 분석된 채용공고 속성 */
+  jobs_attributes?: RecruitsJobAttributes;
+}
+
+/**
+ * 채용공고 ID 검색 응답 (search?ids=xxx)
+ */
+export interface RecruitsJobsByIdsResponse {
+  data: RecruitsJobDetail[];
+  current_page: number;
+  total_count: number;
+}
+
+/**
+ * 콘텐츠 상세 정보 (search/contents_ids?ids=xxx)
+ */
+export interface RecruitsContentDetail {
+  /** 콘텐츠 ID */
+  id: number;
+  /** 제목 */
+  title: string;
+  /** URL */
+  url: string;
+  /** 콘텐츠 타입 (blog, lecture, book) */
+  content_type: RecruitsContentType;
+  /** 소스 */
+  source?: string | null;
+  /** 전체 콘텐츠 내용 */
+  content?: string;
+  /** 카테고리 */
+  category?: string;
+  /** 태그 목록 */
+  tags?: string[];
+  /** 생성일 */
+  created_at: string;
+  /** 추가 정보 (이미지, 저자 등) */
+  additional_info?: RecruitsContentAdditionalInfo | null;
+  /** 회사명 */
+  company_title: string;
+  /** 회사 sign */
+  company_sign: string;
+  /** 회사 로고 이미지 URL */
+  company_image: string;
+  /** AI 요약 */
+  summary?: string;
+  /** AI 상세 요약 */
+  full_summary?: string;
+}
+
+/**
+ * 콘텐츠 ID 검색 응답 (search/contents_ids?ids=xxx)
+ */
+export interface RecruitsContentsByIdsResponse {
+  data: RecruitsContentDetail[];
+  current_page: number;
+  total_count: number;
+}

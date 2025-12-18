@@ -11,6 +11,8 @@ import {
   getContentsRanking,
   searchJobsByKeyword,
   getV2MainData,
+  getJobsByIds,
+  getContentsByIds,
 } from '../../services/somoon-recruits.service';
 import type {
   RecruitsContentsMainResponse,
@@ -25,6 +27,8 @@ import type {
   SearchJobsByKeywordParams,
   RecruitsKeywordSearchResponse,
   RecruitsV2MainResponse,
+  RecruitsJobsByIdsResponse,
+  RecruitsContentsByIdsResponse,
 } from '../../types/somoon-recruits.types';
 
 // Query Keys
@@ -33,11 +37,15 @@ export const somoonRecruitsKeys = {
   contents: () => [...somoonRecruitsKeys.all, 'contents'] as const,
   contentsList: (params: GetRecruitsContentsParams) =>
     [...somoonRecruitsKeys.contents(), params] as const,
+  contentsByIds: (ids: string) =>
+    [...somoonRecruitsKeys.contents(), 'by-ids', ids] as const,
   jobs: () => [...somoonRecruitsKeys.all, 'jobs'] as const,
   jobsSearch: (params: SearchCompaniesJobsParams) =>
     [...somoonRecruitsKeys.jobs(), 'search', params] as const,
   jobsKeyword: (query: string, page?: number, size?: number) =>
     [...somoonRecruitsKeys.jobs(), 'keyword', query, page, size] as const,
+  jobsByIds: (ids: string) =>
+    [...somoonRecruitsKeys.jobs(), 'by-ids', ids] as const,
   v2Main: () => [...somoonRecruitsKeys.all, 'v2-main'] as const,
   trendReport: (params?: GetTrendReportParams) =>
     [...somoonRecruitsKeys.all, 'trend-report', params] as const,
@@ -200,6 +208,42 @@ export function useV2MainData(
     queryKey: somoonRecruitsKeys.v2Main(),
     queryFn: getV2MainData,
     staleTime: 5 * 60 * 1000, // 5분
+    ...options,
+  });
+}
+
+/**
+ * 채용공고 ID로 상세 정보 조회 훅
+ * @param ids 쉼표로 구분된 채용공고 ID 또는 ID 배열
+ */
+export function useJobsByIds(
+  ids: string | number[] | null | undefined,
+  options?: Omit<UseQueryOptions<RecruitsJobsByIdsResponse>, 'queryKey' | 'queryFn'>
+) {
+  const idsString = Array.isArray(ids) ? ids.join(',') : (ids || '');
+  return useQuery({
+    queryKey: somoonRecruitsKeys.jobsByIds(idsString),
+    queryFn: () => getJobsByIds(idsString),
+    staleTime: 5 * 60 * 1000, // 5분
+    enabled: !!ids && (Array.isArray(ids) ? ids.length > 0 : ids.length > 0),
+    ...options,
+  });
+}
+
+/**
+ * 콘텐츠(블로그/도서/강의) ID로 상세 정보 조회 훅
+ * @param ids 쉼표로 구분된 콘텐츠 ID 또는 ID 배열
+ */
+export function useContentsByIds(
+  ids: string | number[] | null | undefined,
+  options?: Omit<UseQueryOptions<RecruitsContentsByIdsResponse>, 'queryKey' | 'queryFn'>
+) {
+  const idsString = Array.isArray(ids) ? ids.join(',') : (ids || '');
+  return useQuery({
+    queryKey: somoonRecruitsKeys.contentsByIds(idsString),
+    queryFn: () => getContentsByIds(idsString),
+    staleTime: 5 * 60 * 1000, // 5분
+    enabled: !!ids && (Array.isArray(ids) ? ids.length > 0 : ids.length > 0),
     ...options,
   });
 }

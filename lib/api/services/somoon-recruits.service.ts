@@ -17,6 +17,8 @@ import type {
   SearchJobsByKeywordParams,
   RecruitsKeywordSearchResponse,
   RecruitsV2MainResponse,
+  RecruitsJobsByIdsResponse,
+  RecruitsContentsByIdsResponse,
 } from '../types/somoon-recruits.types';
 
 /**
@@ -181,6 +183,46 @@ export async function getV2MainData(): Promise<RecruitsV2MainResponse> {
   try {
     const response = await somoonRecruitsClient.get<RecruitsV2MainResponse>(
       '/search/v2/main'
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 채용공고 ID로 상세 정보 조회
+ * @param ids 쉼표로 구분된 채용공고 ID 또는 ID 배열
+ * @returns 채용공고 상세 정보 목록
+ */
+export async function getJobsByIds(
+  ids: string | number[]
+): Promise<RecruitsJobsByIdsResponse> {
+  try {
+    const idsString = Array.isArray(ids) ? ids.join(',') : ids;
+    const response = await somoonRecruitsClient.get<RecruitsJobsByIdsResponse>(
+      '/search',
+      { params: { ids: idsString } }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 콘텐츠(블로그/도서/강의) ID로 상세 정보 조회
+ * @param ids 쉼표로 구분된 콘텐츠 ID 또는 ID 배열
+ * @returns 콘텐츠 상세 정보 목록
+ */
+export async function getContentsByIds(
+  ids: string | number[]
+): Promise<RecruitsContentsByIdsResponse> {
+  try {
+    const idsString = Array.isArray(ids) ? ids.join(',') : ids;
+    const response = await somoonRecruitsClient.get<RecruitsContentsByIdsResponse>(
+      '/search/contents_ids',
+      { params: { ids: idsString } }
     );
     return response.data;
   } catch (error) {

@@ -159,6 +159,9 @@ export {
   getCompanyInfo,
   getContentsRanking,
   searchJobsByKeyword,
+  getV2MainData,
+  getJobsByIds,
+  getContentsByIds,
 } from './services/somoon-recruits.service';
 
 // Profile Service
@@ -312,6 +315,9 @@ export {
   useCompanyInfo,
   useContentsRanking,
   useSearchJobsByKeyword,
+  useV2MainData,
+  useJobsByIds,
+  useContentsByIds,
   somoonRecruitsKeys,
 } from './hooks/queries/useSomoonRecruits';
 
@@ -625,6 +631,16 @@ export type {
   RecruitsCompanyInfoResponse,
   RecruitsContentRanking,
   RecruitsContentRankingResponse,
+  RecruitsV2MainResponse,
+  RecruitsV2DailyStat,
+  RecruitsV2CompanyJobsData,
+  RecruitsV2CompanyJobsMap,
+  RecruitsV2JobItem,
+  RecruitsV2DailyCompanyJobs,
+  RecruitsJobDetail,
+  RecruitsJobsByIdsResponse,
+  RecruitsContentDetail,
+  RecruitsContentsByIdsResponse,
 } from './types/somoon-recruits.types';
 
 // ============================================================
