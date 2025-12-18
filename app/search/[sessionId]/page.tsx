@@ -213,6 +213,8 @@ function SessionContent() {
                 loading={false}
                 error={undefined}
                 className="border-0 shadow-none bg-transparent p-0"
+                messageId={assistantMessage.id}
+                currentFeedback={assistantMessage.is_liked}
               />
 
               {/* CitationSourceList */}

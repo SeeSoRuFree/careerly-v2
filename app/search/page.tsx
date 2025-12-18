@@ -309,6 +309,7 @@ function SearchContent() {
   const [completedAnswer, setCompletedAnswer] = useState<string>('');
   const [completedSources, setCompletedSources] = useState<string[]>([]);
   const [completedMetadata, setCompletedMetadata] = useState<SSECompleteEvent | null>(null);
+  const [completedMessageId, setCompletedMessageId] = useState<string | null>(null);
 
   // Cleanup ref
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -348,6 +349,7 @@ function SearchContent() {
     setCompletedAnswer('');
     setCompletedSources([]);
     setCompletedMetadata(null);
+    setCompletedMessageId(null);
     setAgentProgress(new Map());
 
     // 스트림 시작
@@ -404,6 +406,11 @@ function SearchContent() {
 
         setCompletedSources(streamingSources);
         setCompletedMetadata(metadata);
+
+        // 메시지 ID 저장 (피드백용)
+        if (metadata.message_id) {
+          setCompletedMessageId(metadata.message_id);
+        }
 
         // 세션 ID 업데이트
         if (metadata.session_id) {
@@ -711,6 +718,7 @@ function SearchContent() {
                   error={undefined}
                   onRetry={handleRetry}
                   className="border-0 shadow-none bg-transparent p-0"
+                  messageId={completedMessageId ?? undefined}
                 />
               ) : isLoading ? (
                 <div className="py-6">

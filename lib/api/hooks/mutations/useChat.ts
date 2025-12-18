@@ -12,6 +12,7 @@ import {
   chatSearchAllVersions,
   shareChatSession,
   shareSessionToCommunity,
+  submitMessageFeedback,
 } from '../../services/chat.service';
 import type {
   ChatRequest,
@@ -19,6 +20,7 @@ import type {
   ChatSearchResult,
   ChatComparisonResult,
   ChatSession,
+  ChatSessionMessage,
   ShareToCommunityResponse,
 } from '../../types/chat.types';
 
@@ -146,6 +148,40 @@ export function useShareToCommunity(
       // 포스트 목록 캐시 무효화
       queryClient.invalidateQueries({ queryKey: ['posts'] });
       queryClient.invalidateQueries({ queryKey: ['followingPosts'] });
+    },
+    ...options,
+  });
+}
+
+/**
+ * 메시지 피드백 파라미터 타입
+ */
+export interface UseMessageFeedbackParams {
+  messageId: string;
+  isLiked: boolean;
+  feedbackText?: string;
+}
+
+/**
+ * 메시지 피드백 훅 (좋아요/싫어요)
+ * AI 응답에 대한 사용자 만족도 피드백 제출
+ */
+export function useMessageFeedback(
+  options?: Omit<
+    UseMutationOptions<ChatSessionMessage, Error, UseMessageFeedbackParams>,
+    'mutationFn'
+  >
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation<ChatSessionMessage, Error, UseMessageFeedbackParams>({
+    mutationFn: async ({ messageId, isLiked, feedbackText }) => {
+      return submitMessageFeedback(messageId, isLiked, feedbackText);
+    },
+    onSuccess: (data, variables) => {
+      // 세션 캐시 무효화 (메시지가 업데이트되었으므로)
+      queryClient.invalidateQueries({ queryKey: ['chatSession'] });
+      queryClient.invalidateQueries({ queryKey: ['publicChatSession'] });
     },
     ...options,
   });

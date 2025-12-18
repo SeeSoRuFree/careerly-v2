@@ -475,6 +475,32 @@ export async function getTrendingSessions(
 }
 
 /**
+ * 메시지 피드백 제출 (좋아요/싫어요)
+ * @param messageId - 메시지 ID
+ * @param isLiked - 좋아요(true) / 싫어요(false)
+ * @param feedbackText - 선택적 피드백 텍스트
+ * @returns 업데이트된 메시지
+ */
+export async function submitMessageFeedback(
+  messageId: string,
+  isLiked: boolean,
+  feedbackText?: string
+): Promise<import('../types/chat.types').MessageFeedbackResponse> {
+  try {
+    const response = await chatClient.patch<import('../types/chat.types').MessageFeedbackResponse>(
+      `/messages/${messageId}/feedback/`,
+      {
+        is_liked: isLiked,
+        ...(feedbackText && { feedback_text: feedbackText }),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
  * URL에서 제목 추출 (간단한 파싱)
  */
 function extractTitleFromUrl(url: string): string {

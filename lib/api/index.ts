@@ -51,6 +51,7 @@ export {
   shareChatSession,
   shareSessionToCommunity,
   getTrendingSessions,
+  submitMessageFeedback,
 } from './services/chat.service';
 
 // User Service
@@ -382,12 +383,14 @@ export {
   useChatSearchAllVersions,
   useShareSession,
   useShareToCommunity,
+  useMessageFeedback,
 } from './hooks/mutations/useChat';
 export type {
   UseChatMutationParams,
   UseChatSearchAllVersionsParams,
   UseShareSessionParams,
   UseShareToCommunityParams,
+  UseMessageFeedbackParams,
 } from './hooks/mutations/useChat';
 
 // Comments Mutations
@@ -511,6 +514,8 @@ export type {
   TrendingSession,
   TrendingSessionAuthor,
   TrendingSessionsResponse,
+  MessageFeedbackRequest,
+  MessageFeedbackResponse,
   ApiVersion,
 
   // SSE Types

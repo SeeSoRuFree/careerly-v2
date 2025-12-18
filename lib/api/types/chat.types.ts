@@ -252,7 +252,30 @@ export interface ChatSessionMessage {
   p2_achieved?: boolean;
   /** LangSmith trace ID (assistant만) */
   langsmith_run_id?: string;
+  /** 사용자 피드백: 좋아요(true)/싫어요(false)/미평가(null) */
+  is_liked?: boolean | null;
+  /** 피드백 텍스트 */
+  feedback_text?: string | null;
+  /** 피드백 제출 시간 */
+  feedback_at?: string | null;
+  /** 피드백 제출 여부 */
+  has_feedback?: boolean;
 }
+
+/**
+ * 메시지 피드백 요청 타입
+ */
+export interface MessageFeedbackRequest {
+  /** 좋아요(true) / 싫어요(false) */
+  is_liked: boolean;
+  /** 선택적 피드백 텍스트 */
+  feedback_text?: string;
+}
+
+/**
+ * 메시지 피드백 응답 타입 (업데이트된 메시지 반환)
+ */
+export type MessageFeedbackResponse = ChatSessionMessage;
 
 /**
  * Chat 세션 타입

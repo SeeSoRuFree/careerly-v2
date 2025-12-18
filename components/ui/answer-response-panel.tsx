@@ -7,16 +7,36 @@ import { Button } from '@/components/ui/button';
 import { Markdown } from '@/components/common/Markdown';
 import { AiLoadingProgress } from '@/components/ui/ai-loading-progress';
 import { AnswerSkeleton } from '@/components/ui/answer-skeleton';
+import { MessageFeedback } from '@/components/ui/message-feedback';
 
 export interface AnswerResponsePanelProps extends React.HTMLAttributes<HTMLDivElement> {
   answerHtml?: string;
   loading?: boolean;
   error?: string;
   onRetry?: () => void;
+  /** 메시지 ID (피드백용) */
+  messageId?: string;
+  /** 현재 피드백 상태 */
+  currentFeedback?: boolean | null;
+  /** 피드백 표시 여부 */
+  showFeedback?: boolean;
 }
 
 const AnswerResponsePanel = React.forwardRef<HTMLDivElement, AnswerResponsePanelProps>(
-  ({ answerHtml, loading = false, error, onRetry, className, ...props }, ref) => {
+  (
+    {
+      answerHtml,
+      loading = false,
+      error,
+      onRetry,
+      messageId,
+      currentFeedback,
+      showFeedback = true,
+      className,
+      ...props
+    },
+    ref
+  ) => {
     return (
       <div
         ref={ref}
@@ -51,10 +71,27 @@ const AnswerResponsePanel = React.forwardRef<HTMLDivElement, AnswerResponsePanel
 
         {/* 답변 내용 - Markdown 컴포넌트 사용 */}
         {!loading && !error && answerHtml && (
-          <Markdown
-            content={answerHtml}
-            className="prose prose-sm prose-slate max-w-none prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-coral-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-code:text-slate-900 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:overflow-x-auto prose-table:block prose-table:overflow-x-auto prose-img:max-w-full prose-img:h-auto prose-ul:list-disc prose-ol:list-decimal"
-          />
+          <>
+            <Markdown
+              content={answerHtml}
+              className="prose prose-sm prose-slate max-w-none prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-coral-500 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-code:text-slate-900 prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:overflow-x-auto prose-table:block prose-table:overflow-x-auto prose-img:max-w-full prose-img:h-auto prose-ul:list-disc prose-ol:list-decimal"
+            />
+
+            {/* 피드백 UI */}
+            {showFeedback && messageId && (
+              <div className="mt-6 pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    이 답변이 도움이 되었나요?
+                  </span>
+                  <MessageFeedback
+                    messageId={messageId}
+                    currentFeedback={currentFeedback}
+                  />
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* 답변 없음 상태 */}
