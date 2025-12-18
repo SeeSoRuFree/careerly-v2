@@ -60,7 +60,6 @@ export function validateApiConfig() {
 if (process.env.NODE_ENV === 'development') {
   try {
     validateApiConfig();
-    console.log('✅ API configuration validated successfully');
   } catch (error) {
     console.error('❌ API configuration validation failed:', error);
   }

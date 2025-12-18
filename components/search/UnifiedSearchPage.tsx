@@ -636,7 +636,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
 
   // 핸들러들
   const handleShare = () => {
-    console.log('Share thread');
+    // TODO: Share 기능 구현
   };
 
   const handleShareToCommunity = () => {

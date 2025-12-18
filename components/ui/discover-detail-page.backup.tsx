@@ -1063,8 +1063,7 @@ export function DiscoverDetailPage({ content }: DiscoverDetailPageProps) {
     }
   };
 
-  const handleAiSubmit = (query: string) => {
-    console.log('AI Query:', query);
+  const handleAiSubmit = (_query: string) => {
     setAiLoading(true);
     // TODO: AI API 호출
     setTimeout(() => {
@@ -1307,7 +1306,7 @@ export function DiscoverDetailPage({ content }: DiscoverDetailPageProps) {
               fileUpload: false,
               modelSelect: true
             }}
-            onModelSelectClick={() => console.log('Model select')}
+            onModelSelectClick={() => {}}
             className="[&_textarea]:min-h-[48px] [&_textarea]:py-2 [&>div]:pb-1.5"
           />
         </div>

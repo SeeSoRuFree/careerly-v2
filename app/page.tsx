@@ -60,9 +60,9 @@ export default function HomePage() {
                 fileUpload: true,
                 modelSelect: true,
               }}
-              onVoiceClick={() => console.log('Voice input')}
-              onFileUploadClick={() => console.log('File upload')}
-              onModelSelectClick={() => console.log('Model select')}
+              onVoiceClick={() => {}}
+              onFileUploadClick={() => {}}
+              onModelSelectClick={() => {}}
             />
 
             {/* Suggested Questions Chips */}
@@ -75,7 +75,7 @@ export default function HomePage() {
       <div className="w-full max-w-5xl mx-auto">
         <TrendingConversationsSection
           onQuestionClick={handleQuestionClick}
-          onLike={(id) => console.log('Like:', id)}
+          onLike={() => {}}
           onAuthorClick={(authorId) => router.push(`/profile/${authorId}`)}
         />
       </div>

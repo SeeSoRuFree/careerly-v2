@@ -295,15 +295,9 @@ export function streamChatMessage(
                 }
                 default:
                   // 알 수 없는 이벤트는 무시
-                  if (process.env.NODE_ENV === 'development') {
-                    console.log('Unknown SSE event:', currentEvent, data);
-                  }
               }
             } catch {
               // JSON 파싱 실패 시 무시 (keep-alive 메시지 등)
-              if (process.env.NODE_ENV === 'development') {
-                console.log('SSE data parse failed:', dataStr);
-              }
             }
 
             currentEvent = '';

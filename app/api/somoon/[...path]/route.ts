@@ -21,8 +21,6 @@ export async function GET(
       url.searchParams.append(key, value);
     });
 
-    console.log('🔄 Proxying to:', url.toString());
-
     // Somoon API 요청 (서버 사이드에서 완전히 새로운 요청)
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -43,8 +41,6 @@ export async function GET(
     }
 
     const data = await response.json();
-
-    console.log('✅ Somoon API success:', response.status);
 
     return NextResponse.json(data);
   } catch (error) {

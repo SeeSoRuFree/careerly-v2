@@ -25,8 +25,6 @@ async function handleRequest(
       url.searchParams.append(key, value);
     });
 
-    console.log(`[Somoon Recruits] ${method} ${url.toString()}`);
-
     const fetchOptions: RequestInit = {
       method,
       headers: {
@@ -54,7 +52,6 @@ async function handleRequest(
     }
 
     const data = await response.json();
-    console.log(`[Somoon Recruits] Success: ${response.status}`);
 
     return NextResponse.json(data);
   } catch (error) {
