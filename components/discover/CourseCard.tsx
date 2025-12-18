@@ -1,6 +1,5 @@
 'use client';
 
-import { Eye, Heart } from 'lucide-react';
 
 export interface CourseCardData {
   id: string;
@@ -53,18 +52,8 @@ export function CourseCard({ course, onClick }: CourseCardProps) {
           {course.title}
         </h4>
         {course.summary && (
-          <p className="text-xs text-slate-500 line-clamp-2 mb-2">{course.summary}</p>
+          <p className="text-xs text-slate-500 line-clamp-2">{course.summary}</p>
         )}
-        <div className="flex items-center gap-3 text-xs text-slate-400">
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {course.views?.toLocaleString() || 0}
-          </span>
-          <span className="flex items-center gap-1">
-            <Heart className="h-3 w-3" />
-            {course.likes || 0}
-          </span>
-        </div>
       </div>
     </div>
   );

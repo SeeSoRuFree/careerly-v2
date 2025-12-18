@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, Eye, Heart, ExternalLink, Bookmark } from 'lucide-react';
+import { X, Heart, ExternalLink, Bookmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -109,18 +109,6 @@ export function ContentDetailDrawer({
                 <h1 className="text-2xl font-bold text-slate-900 mb-4 leading-tight">
                   {content.title}
                 </h1>
-
-                {/* Stats Bar */}
-                <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <Eye className="h-4 w-4" />
-                    <span className="text-sm">{content.views}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-slate-500">
-                    <Heart className="h-4 w-4" />
-                    <span className="text-sm">{content.likes}</span>
-                  </div>
-                </div>
 
                 {/* Summary */}
                 <div className="prose prose-slate max-w-none mb-6">

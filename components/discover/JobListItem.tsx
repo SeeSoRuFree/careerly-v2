@@ -1,6 +1,5 @@
 'use client';
 
-import { Eye, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface JobItemData {
@@ -64,25 +63,7 @@ export function JobListItem({ job, variant = 'slate', onClick }: JobListItemProp
           {job.title}
         </h4>
       </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
-        {(job.views !== undefined || job.likes !== undefined) && (
-          <div className="flex items-center gap-2 text-xs text-slate-400">
-            {job.views !== undefined && (
-              <span className="flex items-center gap-0.5">
-                <Eye className="h-3 w-3" />
-                {job.views}
-              </span>
-            )}
-            {job.likes !== undefined && (
-              <span className="flex items-center gap-0.5">
-                <Heart className="h-3 w-3" />
-                {job.likes}
-              </span>
-            )}
-          </div>
-        )}
-        <span className="text-xs text-slate-500">{job.companyName}</span>
-      </div>
+      <span className="text-xs text-slate-500 flex-shrink-0">{job.companyName}</span>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 'use client';
 
-import { Eye, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type BlogAICategory = 'ai-dev' | 'ai-design' | 'ai-biz' | 'ai-general' | 'other';
@@ -116,17 +115,7 @@ export function BlogCard({ blog, dateLabel, onClick }: BlogCardProps) {
 
           <p className="text-sm text-slate-500 line-clamp-2 mb-2 flex-1">{blog.summary}</p>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {blog.views?.toLocaleString() || 0}
-              </span>
-              <span className="flex items-center gap-1">
-                <Heart className="h-3 w-3" />
-                {blog.likes || 0}
-              </span>
-            </div>
+          <div className="flex items-center justify-end">
             <span
               className={cn(
                 'inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium rounded-full border',
