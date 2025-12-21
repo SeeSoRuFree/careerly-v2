@@ -11,6 +11,13 @@ import { MessageSquare, Sparkles, Users, Settings, LogIn, LogOut, Menu } from 'l
 import { useCurrentUser, useLogout } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
 import { cn } from '@/lib/utils';
+import {
+  setUserId,
+  clearUserId,
+  trackLogout,
+  usePageViewTracking,
+  useSessionTracking,
+} from '@/lib/analytics';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -33,13 +40,28 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   // Get modal state from Zustand store
   const { isLoginModalOpen, openLoginModal, closeLoginModal } = useStore();
 
+  // 페이지뷰 자동 추적
+  usePageViewTracking();
+
+  // 세션 추적 (로그아웃 시 session_duration 계산용)
+  const { getSessionDuration } = useSessionTracking();
+
   // 로그인 상태 확인 (share 페이지에서는 스킵)
   const { data: currentUser, isLoading: isUserLoading } = useCurrentUser({
     enabled: !isSharePage, // share 페이지에서는 호출 안함
   });
+
+  // 로그인 시 User-ID 설정
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      setUserId(String(currentUser.id));
+    }
+  }, [currentUser?.id]);
+
   const logout = useLogout({
     onSuccess: () => {
-      // 로그아웃 성공 시 별도 처리 필요 없음 (useLogout에서 처리)
+      // 로그아웃 성공 시 User-ID 초기화
+      clearUserId();
     },
   });
 
@@ -55,6 +77,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
 
   const handleConfirmLogout = () => {
     setShowLogoutConfirm(false);
+    // 로그아웃 이벤트 트래킹 (session_duration 포함)
+    trackLogout(getSessionDuration());
     logout.mutate();
   };
 

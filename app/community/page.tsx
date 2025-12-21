@@ -24,6 +24,7 @@ import { SidebarFooter } from '@/components/layout/SidebarFooter';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
 import { useImpressionTracker } from '@/lib/hooks/useImpressionTracker';
+import { trackPostDetailView, trackQuestionDetailView, trackContentShare } from '@/lib/analytics';
 
 
 type UserProfile = {
@@ -702,6 +703,8 @@ function CommunityPageContent() {
   const handleOpenPost = (postId: string, userProfile?: UserProfile) => {
     setSelectedContent({ type: 'post', id: postId, userProfile });
     setDrawerOpen(true);
+    // GA4: post_detail_view 이벤트 트래킹
+    trackPostDetailView(postId, userProfile?.id?.toString() || '', 'home');
     // URL 업데이트 (히스토리에 추가)
     const params = new URLSearchParams(searchParams.toString());
     params.set('post', postId);
@@ -713,6 +716,8 @@ function CommunityPageContent() {
     // 먼저 drawer를 열고 로딩 상태로 표시
     setSelectedContent({ type: 'qna', id: qnaId, questionData });
     setDrawerOpen(true);
+    // GA4: question_detail_view 이벤트 트래킹
+    trackQuestionDetailView(qnaId, 'home');
 
     // URL 업데이트 (히스토리에 추가)
     const params = new URLSearchParams(searchParams.toString());
@@ -912,6 +917,8 @@ function CommunityPageContent() {
     const url = `${window.location.origin}/community/post/${postId}`;
     try {
       await navigator.clipboard.writeText(url);
+      // GA4: content_share 이벤트 트래킹
+      trackContentShare('post', postId, 'copy_link');
       toast.success('링크가 클립보드에 복사되었습니다');
     } catch (error) {
       toast.error('링크 복사에 실패했습니다');

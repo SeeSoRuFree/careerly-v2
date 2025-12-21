@@ -21,6 +21,12 @@ import { SearchResultItem } from '@/components/ui/search-result-item';
 import { PopularPostsSlider } from '@/components/ui/popular-posts-slider';
 import { Markdown } from '@/components/common/Markdown';
 import { CommunityShareCTA } from '@/components/ui/community-share-cta';
+import {
+  trackAISearchStart,
+  trackAISearchComplete,
+  trackAISourceClick,
+  trackAIFollowupClick,
+} from '@/lib/analytics';
 
 // 에이전트 카드 최소 표시 시간 (ms)
 const AGENT_MIN_DISPLAY_TIME = 2500;
@@ -326,6 +332,9 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   const [sessionId, setSessionId] = useState<string | null>(initialSessionId || null);
   const [error, setError] = useState<{ message: string; code?: string } | null>(null);
 
+  // GA4 이벤트 추적용 타이머
+  const searchStartTimeRef = useRef<number>(0);
+
   // Agent Progress State
   const [agentProgress, setAgentProgress] = useState<Map<string, AgentProgressItem>>(new Map());
 
@@ -436,6 +445,10 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
     setAgentProgress(new Map());
     setSessionData(null);
 
+    // GA4: ai_search_start 이벤트 트래킹
+    searchStartTimeRef.current = Date.now();
+    trackAISearchStart(trimmedQuery);
+
     // 스트림 시작
     const cleanup = streamChatMessage(queryText.trim(), existingSessionId ?? null, {
       onSession: (newSessionId) => {
@@ -500,6 +513,14 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
         if (metadata.session_id) {
           setSessionId(metadata.session_id);
         }
+
+        // GA4: ai_search_complete 이벤트 트래킹
+        const responseTime = Date.now() - searchStartTimeRef.current;
+        trackAISearchComplete(
+          currentQueryRef.current || '',
+          responseTime,
+          streamingSources.length
+        );
 
         setStreamStatus(null);
         isStreamingRef.current = false;
@@ -663,12 +684,21 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
 
   const handleFollowUpSubmit = () => {
     if (!followUpValue.trim()) return;
+    // GA4: ai_followup_click 이벤트 트래킹
+    trackAIFollowupClick(followUpValue.trim());
     router.push(`/search?q=${encodeURIComponent(followUpValue.trim())}`);
     setFollowUpValue('');
   };
 
   const handleRelatedQueryClick = (relatedQuery: RelatedQuery) => {
+    // GA4: ai_followup_click 이벤트 트래킹
+    trackAIFollowupClick(relatedQuery.queryText);
     router.push(`/search?q=${encodeURIComponent(relatedQuery.queryText)}`);
+  };
+
+  // 출처 클릭 핸들러
+  const handleSourceClick = (sourceUrl: string, position: number) => {
+    trackAISourceClick(sourceUrl, position);
   };
 
   // 표시할 데이터 결정
@@ -927,7 +957,10 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
               {/* CitationSourceList */}
               {!isStreaming && hasCompletedContent && citationSources.length > 0 && (
                 <div className="py-4 border-t border-slate-200">
-                  <CitationSourceList sources={citationSources} />
+                  <CitationSourceList
+                    sources={citationSources}
+                    onSourceClick={handleSourceClick}
+                  />
                 </div>
               )}
 

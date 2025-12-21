@@ -100,6 +100,7 @@ import { QnaDetail } from '@/components/ui/qna-detail';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
+import { trackProfileView } from '@/lib/analytics';
 
 type ContentTab = 'posts' | 'qna' | 'bookmarks' | 'ai-chats';
 
@@ -190,6 +191,13 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     is_current: false,
     description: '',
   });
+
+  // GA4: profile_view 이벤트 트래킹
+  useEffect(() => {
+    if (!isLoadingCurrentUser && profile) {
+      trackProfileView(String(userId), isOwnProfile);
+    }
+  }, [userId, isOwnProfile, isLoadingCurrentUser, profile]);
 
   // 프로필 데이터 로드 시 상태 초기화
   useEffect(() => {

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import { trackSignupStart } from '@/lib/analytics';
 
 const signupSchema = z
   .object({
@@ -47,6 +48,18 @@ export interface SignupModalProps {
 export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps) {
   const signup = useSignup();
   const [isOAuthLoading, setIsOAuthLoading] = React.useState(false);
+  const hasTrackedOpen = React.useRef(false);
+
+  // 모달 오픈 시 signup_start 이벤트 트래킹
+  React.useEffect(() => {
+    if (isOpen && !hasTrackedOpen.current) {
+      trackSignupStart('email'); // 기본값, OAuth 클릭 시 별도 트래킹
+      hasTrackedOpen.current = true;
+    }
+    if (!isOpen) {
+      hasTrackedOpen.current = false;
+    }
+  }, [isOpen]);
 
   const {
     register,
@@ -75,6 +88,8 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
   const handleOAuthLogin = async (provider: OAuthProvider) => {
     try {
       setIsOAuthLoading(true);
+      // OAuth 방식 signup_start 트래킹
+      trackSignupStart(provider as 'apple' | 'kakao');
       const response = await initiateOAuthLogin(provider);
       window.location.href = response.authUrl;
     } catch (error) {

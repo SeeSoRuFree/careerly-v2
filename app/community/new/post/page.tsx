@@ -29,6 +29,7 @@ import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useStore } from '@/hooks/useStore';
 import { toast } from 'sonner';
+import { trackPostCreateStart } from '@/lib/analytics';
 
 
 const DRAFT_KEY = 'careerly_draft_post';
@@ -59,6 +60,13 @@ export default function NewPostPage() {
       openLoginModal();
     }
   }, [user, isUserLoading, router, openLoginModal]);
+
+  // 페이지 진입 시 post_create_start 이벤트 트래킹
+  React.useEffect(() => {
+    if (user) {
+      trackPostCreateStart('community');
+    }
+  }, [user]);
 
   // Tiptap editor setup
   const editor = useEditor({
