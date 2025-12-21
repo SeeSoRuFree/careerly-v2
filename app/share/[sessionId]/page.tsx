@@ -11,6 +11,7 @@ import {
   EngagementBar,
   CTACard,
   RelatedQuestionsCard,
+  CommentSection,
   type AuthorInfo,
   type EngagementStats,
   type RelatedQuestion,
@@ -122,8 +123,6 @@ function SharePageContent() {
     trendingData?.results?.map((trendingSession) => ({
       id: trendingSession.id,
       title: trendingSession.question,
-      viewCount: 0, // 트렌딩에는 viewCount 없음
-      likeCount: trendingSession.likeCount,
     })) || [];
 
   return (
@@ -138,7 +137,7 @@ function SharePageContent() {
           </div>
 
           {/* Question */}
-          <QuestionCard question={question} />
+          <QuestionCard question={question} viewCount={session.shared_post?.view_count} />
 
           {/* Answer */}
           {answer && <AIAnswerSection answer={answer} sources={sources} />}
@@ -149,7 +148,13 @@ function SharePageContent() {
             hasSharedPost={hasSharedPost}
             isOwner={isOwner}
             sessionId={sessionId}
+            postId={session.shared_post?.id}
+            isLiked={session.shared_post?.is_liked}
+            isBookmarked={session.shared_post?.is_saved}
           />
+
+          {/* Comments */}
+          <CommentSection postId={session.shared_post?.id} hasSharedPost={hasSharedPost} />
 
           {/* CTA */}
           <CTACard />
@@ -168,7 +173,7 @@ function SharePageContent() {
             </div>
 
             {/* Question */}
-            <QuestionCard question={question} />
+            <QuestionCard question={question} viewCount={session.shared_post?.view_count} />
 
             {/* Answer */}
             {answer && <AIAnswerSection answer={answer} sources={sources} />}
@@ -179,7 +184,13 @@ function SharePageContent() {
               hasSharedPost={hasSharedPost}
               isOwner={isOwner}
               sessionId={sessionId}
+              postId={session.shared_post?.id}
+              isLiked={session.shared_post?.is_liked}
+              isBookmarked={session.shared_post?.is_saved}
             />
+
+            {/* Comments */}
+            <CommentSection postId={session.shared_post?.id} hasSharedPost={hasSharedPost} />
           </div>
 
           {/* Sidebar - 4 columns */}
