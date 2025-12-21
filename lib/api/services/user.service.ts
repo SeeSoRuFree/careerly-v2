@@ -6,6 +6,7 @@ import { authClient, publicClient, handleApiError } from '../clients/rest-client
 import type { User } from '../types/rest.types';
 import type { PaginatedPostResponse } from '../types/posts.types';
 import type { PaginatedQuestionResponse } from '../types/questions.types';
+import type { ProfileSummaryResponse, ProfileSummaryForAI } from '../types/profile.types';
 
 /**
  * 사용자 프로필 조회
@@ -241,4 +242,74 @@ export async function getRecommendedFollowers(limit: number = 10): Promise<Recom
   } catch (error) {
     throw handleApiError(error);
   }
+}
+
+/**
+ * 내 프로필 요약 조회 (AI 프롬프트용)
+ */
+export async function getMyProfileSummary(): Promise<ProfileSummaryResponse> {
+  try {
+    const response = await authClient.get<ProfileSummaryResponse>('/api/v1/profiles/me/summary/');
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 프로필을 프롬프트 텍스트로 변환
+ */
+export function buildProfilePromptText(profile: ProfileSummaryForAI): string {
+  const parts = [];
+
+  // 이름
+  if (profile.name) {
+    parts.push(profile.name);
+  }
+
+  // 소개
+  if (profile.headline) {
+    parts.push(`\n소개\n${profile.headline}`);
+  }
+  if (profile.description) {
+    parts.push(profile.description);
+  }
+  if (profile.long_description) {
+    parts.push(profile.long_description);
+  }
+
+  // 스킬
+  if (profile.skills && profile.skills.length > 0) {
+    parts.push(`\n스킬\n${profile.skills.join(' ')}`);
+  }
+
+  // 경력 요약
+  if (profile.career_years > 0) {
+    parts.push(`\n경력 요약\n총 경력 ${profile.career_years}년 (${profile.total_experience_months}개월)`);
+  }
+
+  // 경력 상세
+  if (profile.careers && profile.careers.length > 0) {
+    parts.push('\n경력');
+    for (const career of profile.careers) {
+      let careerText = `${career.title}\n${career.company}\n${career.duration}`;
+      if (career.description) {
+        careerText += `\n${career.description}`;
+      }
+      if (career.duration?.includes('현재')) {
+        careerText += '\n재직 중';
+      }
+      parts.push(careerText);
+    }
+  }
+
+  // 학력
+  if (profile.educations && profile.educations.length > 0) {
+    parts.push('\n학력');
+    for (const edu of profile.educations) {
+      parts.push(`${edu.school}\n${edu.major || ''}\n${edu.duration || ''}`);
+    }
+  }
+
+  return parts.join('\n');
 }

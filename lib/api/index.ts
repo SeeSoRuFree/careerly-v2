@@ -70,6 +70,8 @@ export {
   getMySavedPosts,
   getRecommendedFollowers,
   checkFollowStatus,
+  getMyProfileSummary,
+  buildProfilePromptText,
 } from './services/user.service';
 export type { RecommendedFollower, FollowStatus, FollowUser, PaginatedFollowResponse } from './services/user.service';
 
@@ -553,6 +555,7 @@ export type {
   SSECompleteEvent,
   SSEErrorEvent,
   SSEAgentProgressEvent,
+  SSEProfileSummaryEvent,
   AgentProgressType,
   AgentProgressStatus,
   StreamCallbacks,
@@ -593,6 +596,8 @@ export type {
   ProfileSkill,
   ProfileSite,
   CareerDuration,
+  ProfileSummaryForAI,
+  ProfileSummaryResponse,
 
   // Report Types
   ReportRequest,

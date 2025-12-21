@@ -21,6 +21,7 @@ import type {
   SSECompleteEvent,
   SSEErrorEvent,
   SSEAgentProgressEvent,
+  SSEProfileSummaryEvent,
   ChatSession,
   ShareSessionRequest,
   ShareToCommunityResponse,
@@ -177,12 +178,14 @@ function parseSSEEvent(
  * @param content - 사용자 질문
  * @param sessionId - 세션 ID (선택)
  * @param callbacks - SSE 이벤트 콜백
+ * @param options - 추가 옵션 (personalized 등)
  * @returns 스트림 중단을 위한 cleanup 함수
  */
 export function streamChatMessage(
   content: string,
   sessionId: string | null,
-  callbacks: StreamCallbacks
+  callbacks: StreamCallbacks,
+  options?: { personalized?: boolean }
 ): () => void {
   const abortController = new AbortController();
 
@@ -199,6 +202,7 @@ export function streamChatMessage(
         body: JSON.stringify({
           content,
           session_id: sessionId,
+          personalized: options?.personalized ?? false,
         }),
         signal: abortController.signal,
       });
@@ -291,6 +295,11 @@ export function streamChatMessage(
                 case 'agent_progress': {
                   const agentProgressData = data as SSEAgentProgressEvent;
                   callbacks.onAgentProgress?.(agentProgressData);
+                  break;
+                }
+                case 'profile_summary': {
+                  const profileData = data as SSEProfileSummaryEvent;
+                  callbacks.onProfileSummary?.(profileData);
                   break;
                 }
                 default:

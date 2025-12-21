@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Sparkles, TrendingUp, ChevronRight } from 'lucide-react';
+import { Sparkles, TrendingUp, ChevronRight, User, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTrendingSessions } from '@/lib/api';
 import {
@@ -85,36 +85,79 @@ export const SUGGESTED_QUESTIONS = [
   '면접 질문',
   '개발자 성장 로드맵',
   'AI 시대 커리어',
+  'AI 시대 커리어 (프롬프트)',
 ];
+
+// 개인화 질문 목록 (자동 개인화 - 기존)
+export const PERSONALIZED_QUESTIONS = ['AI 시대 커리어'];
+
+// 프롬프트 기반 질문 목록 (새로 추가)
+export const PROMPT_BASED_QUESTIONS = ['AI 시대 커리어 (프롬프트)'];
 
 interface SuggestedQuestionsProps {
   questions?: string[];
-  onQuestionClick?: (query: string) => void;
+  onQuestionClick?: (query: string, isPersonalized?: boolean) => void;
+  onPromptBasedClick?: (query: string) => void;
   className?: string;
 }
 
 export function SuggestedQuestions({
   questions = SUGGESTED_QUESTIONS,
   onQuestionClick,
+  onPromptBasedClick,
   className,
 }: SuggestedQuestionsProps) {
   return (
     <div className={cn('flex flex-wrap justify-center gap-2', className)}>
-      {questions.map((question) => (
-        <button
-          key={question}
-          onClick={() => onQuestionClick?.(question)}
-          className={cn(
-            'inline-flex items-center gap-1.5 px-4 py-2 rounded-full',
-            'bg-white border border-slate-200 text-sm font-medium text-slate-700',
-            'hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700',
-            'transition-all duration-200'
-          )}
-        >
-          <Sparkles className="h-3.5 w-3.5 text-teal-500" />
-          {question}
-        </button>
-      ))}
+      {questions.map((question) => {
+        const isPersonalized = PERSONALIZED_QUESTIONS.includes(question);
+        const isPromptBased = PROMPT_BASED_QUESTIONS.includes(question);
+
+        // 프롬프트 기반 버튼
+        if (isPromptBased) {
+          return (
+            <button
+              key={question}
+              onClick={() => onPromptBasedClick?.(question)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-4 py-2 rounded-full',
+                'bg-white border text-sm font-medium',
+                'border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400',
+                'transition-all duration-200'
+              )}
+            >
+              <Edit className="h-3.5 w-3.5 text-blue-500" />
+              {question}
+            </button>
+          );
+        }
+
+        // 개인화 버튼 (기존)
+        return (
+          <button
+            key={question}
+            onClick={() => onQuestionClick?.(question, isPersonalized)}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-4 py-2 rounded-full',
+              'bg-white border text-sm font-medium',
+              isPersonalized
+                ? 'border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400'
+                : 'border-slate-200 text-slate-700 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700',
+              'transition-all duration-200'
+            )}
+          >
+            {isPersonalized ? (
+              <User className="h-3.5 w-3.5 text-purple-500" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5 text-teal-500" />
+            )}
+            {question}
+            {isPersonalized && (
+              <span className="text-xs text-purple-400 ml-1">(내 프로필 기반)</span>
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

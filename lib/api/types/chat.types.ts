@@ -118,7 +118,7 @@ export interface ChatComparisonResult {
 /**
  * SSE 이벤트 타입
  */
-export type SSEEventType = 'session' | 'status' | 'token' | 'sources' | 'complete' | 'error' | 'agent_progress';
+export type SSEEventType = 'session' | 'status' | 'token' | 'sources' | 'complete' | 'error' | 'agent_progress' | 'profile_summary';
 
 /**
  * SSE Status 이벤트 step 타입
@@ -212,6 +212,30 @@ export interface SSEAgentProgressEvent {
 }
 
 /**
+ * SSE Profile Summary 이벤트 데이터
+ */
+export interface SSEProfileSummaryEvent {
+  summary_text: string;
+  profile_data: {
+    name: string;
+    headline?: string;
+    total_experience_months: number;
+    careers: Array<{
+      title: string;
+      company: string;
+      duration: string;
+      description?: string;
+    }>;
+    skills: string[];
+    educations: Array<{
+      school: string;
+      major?: string;
+    }>;
+  };
+  has_sufficient_profile: boolean;
+}
+
+/**
  * 스트리밍 콜백 인터페이스
  */
 export interface StreamCallbacks {
@@ -222,6 +246,7 @@ export interface StreamCallbacks {
   onComplete?: (metadata: SSECompleteEvent) => void;
   onError?: (error: string, code?: string) => void;
   onAgentProgress?: (data: SSEAgentProgressEvent) => void;
+  onProfileSummary?: (data: SSEProfileSummaryEvent) => void;
 }
 
 /**

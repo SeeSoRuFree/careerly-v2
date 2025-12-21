@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { Loader2, Search, Sparkles, Database, Globe, FileText, CheckCircle2, LogIn, User, Wrench, Brain, Cpu, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { streamChatMessage } from '@/lib/api/services/chat.service';
-import type { SSEStatusStep, SSECompleteEvent, SSEAgentProgressEvent, AgentProgressStatus } from '@/lib/api';
+import type { SSEStatusStep, SSECompleteEvent, SSEAgentProgressEvent, SSEProfileSummaryEvent, AgentProgressStatus } from '@/lib/api';
 import { useChatSessionWithFallback } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/hooks/useStore';
@@ -20,6 +20,7 @@ import { SearchResultItem } from '@/components/ui/search-result-item';
 import { PopularPostsSlider } from '@/components/ui/popular-posts-slider';
 import { Markdown } from '@/components/common/Markdown';
 import { CommunityShareCTA } from '@/components/ui/community-share-cta';
+import { ProfileSummaryBanner } from '@/components/ui/profile-summary-banner';
 import {
   trackAISearchStart,
   trackAISearchComplete,
@@ -355,6 +356,9 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   const [followUpValue, setFollowUpValue] = useState('');
   const [isAgentPanelCollapsed, setIsAgentPanelCollapsed] = useState(false);
 
+  // Profile Summary State
+  const [profileSummary, setProfileSummary] = useState<SSEProfileSummaryEvent | null>(null);
+
   // Streaming State
   const [streamingContent, setStreamingContent] = useState('');
   const [streamingSources, setStreamingSources] = useState<string[]>([]);
@@ -448,7 +452,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   }, [fetchedSession, isSessionMode]);
 
   // 스트리밍 시작 함수
-  const startStreaming = useCallback((queryText: string, existingSessionId?: string | null) => {
+  const startStreaming = useCallback((queryText: string, existingSessionId?: string | null, isPersonalized?: boolean) => {
     const trimmedQuery = queryText.trim();
     if (!trimmedQuery) return;
 
@@ -480,6 +484,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
     setAgentProgress(new Map());
     setSessionData(null);
     setIsAgentPanelCollapsed(false); // 에이전트 패널 펼치기
+    setProfileSummary(null); // 프로필 요약 초기화
 
     // GA4: ai_search_start 이벤트 트래킹
     searchStartTimeRef.current = Date.now();
@@ -655,7 +660,11 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
           });
         }
       },
-    });
+      onProfileSummary: (data: SSEProfileSummaryEvent) => {
+        setProfileSummary(data);
+      },
+    },
+    { personalized: isPersonalized });
 
     cleanupRef.current = cleanup;
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -665,7 +674,10 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   useEffect(() => {
     if (isSessionMode) return; // 세션 모드면 스트리밍 안함
     if (!query || query.trim().length === 0) return;
-    startStreaming(query);
+
+    // URL 파라미터에서 personalized 확인
+    const isPersonalized = searchParams.get('personalized') === 'true';
+    startStreaming(query, null, isPersonalized);
 
     return () => {
       cleanupRef.current?.();
@@ -960,6 +972,9 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
         <div className="space-y-6">
           {viewMode === 'answer' && (
             <>
+              {/* 프로필 요약 배너 (개인화 질문일 때만) */}
+              {profileSummary && <ProfileSummaryBanner profile={profileSummary} />}
+
               {/* 스트리밍 중인 답변 또는 완료된 답변 */}
               {streamingContent ? (
                 <div className="relative">

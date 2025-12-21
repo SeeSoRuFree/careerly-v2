@@ -150,3 +150,34 @@ export interface ProfileImageUploadResponse {
   success: boolean;
   image_url: string;
 }
+
+/**
+ * 프로필 요약 정보 (AI 프롬프트용)
+ */
+export interface ProfileSummaryForAI {
+  name: string;
+  headline: string | null;
+  description: string | null;
+  long_description: string | null;
+  skills: string[];
+  career_years: number;
+  total_experience_months: number;
+  careers: {
+    title: string;
+    company: string;
+    duration: string;
+    description: string | null;
+  }[];
+  educations: {
+    school: string;
+    major: string | null;
+    duration: string | null;
+  }[];
+}
+
+/**
+ * 프로필 요약 API 응답
+ */
+export interface ProfileSummaryResponse {
+  profile_data: ProfileSummaryForAI;
+}

@@ -20,6 +20,8 @@ export interface SearchComposeInputProps extends Omit<React.TextareaHTMLAttribut
   onVoiceClick?: () => void;
   onFileUploadClick?: () => void;
   onModelSelectClick?: () => void;
+  /** 확장 모드 - 높이가 더 커짐 (vh 기반) */
+  expanded?: boolean;
 }
 
 const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeInputProps>(
@@ -36,6 +38,7 @@ const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeIn
       onVoiceClick,
       onFileUploadClick,
       onModelSelectClick,
+      expanded = false,
       ...props
     },
     ref
@@ -108,7 +111,9 @@ const SearchComposeInput = React.forwardRef<HTMLTextAreaElement, SearchComposeIn
               'w-full resize-none px-6 py-4 text-base bg-transparent outline-none',
               'placeholder:text-slate-400',
               'disabled:cursor-not-allowed',
-              'min-h-[80px] max-h-[200px]'
+              expanded
+                ? 'min-h-[50vh] max-h-[60vh]'
+                : 'min-h-[80px] max-h-[200px]'
             )}
             {...props}
           />
