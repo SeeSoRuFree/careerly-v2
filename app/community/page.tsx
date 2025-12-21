@@ -13,13 +13,21 @@ import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers
 import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye } from 'lucide-react';
+import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer, useFollowing } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { SidebarFooter } from '@/components/layout/SidebarFooter';
 import type { QuestionListItem, PaginatedPostResponse, PaginatedQuestionResponse } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
@@ -75,6 +83,7 @@ function PostDetailDrawerContent({
   const unlikeComment = useUnlikeComment();
 
   const [commentLikes, setCommentLikes] = React.useState<Record<number, boolean>>({});
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
 
   // 조회수 증가
   React.useEffect(() => {
@@ -179,6 +188,13 @@ function PostDetailDrawerContent({
       ? `/share/${post.chat_session_id}`
       : `/community/post/${postId}`;
 
+    const isOwnPost = user && post.author && post.author.id === user.id;
+
+    const handleDeleteConfirm = () => {
+      onDelete();
+      setDeleteDialogOpen(false);
+    };
+
     return (
       <div className="p-6 space-y-4">
         {/* AI Agent Profile + Author */}
@@ -210,6 +226,24 @@ function PostDetailDrawerContent({
               </div>
             )}
           </div>
+
+          {/* Delete Menu for own posts */}
+          {isOwnPost && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                aria-label="더보기"
+              >
+                <MoreVertical className="h-4 w-4 text-slate-600" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-red-600">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  삭제하기
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {/* Question */}
@@ -342,37 +376,106 @@ function PostDetailDrawerContent({
                 댓글 {transformedComments.length}
               </h4>
               <div className="divide-y divide-slate-200">
-                {transformedComments.map((comment) => (
-                  <div key={comment.id} className="py-3 first:pt-0">
-                    <div className="flex items-start gap-2">
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarImage src={comment.userImage} alt={comment.userName} />
-                        <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2 mb-1">
-                          <span className="font-semibold text-sm text-slate-900">{comment.userName}</span>
-                          <span className="text-xs text-slate-500">{comment.createdAt}</span>
-                        </div>
-                        <p className="text-sm text-slate-700 leading-relaxed">{comment.content}</p>
-                        <button
-                          onClick={() => handleCommentLike(comment.id)}
-                          className={cn(
-                            'flex items-center gap-1 mt-2 text-xs transition-colors',
-                            comment.liked ? 'text-teal-600' : 'text-slate-400 hover:text-teal-600'
-                          )}
+                {transformedComments.map((comment) => {
+                  const isOwnComment = user && user.id === comment.userId;
+
+                  return (
+                    <div key={comment.id} className="py-3 first:pt-0">
+                      <div className="flex items-start gap-2">
+                        <a
+                          href={`/profile/${comment.userId}`}
+                          className="hover:opacity-80 transition-opacity flex-shrink-0"
                         >
-                          <Heart className={cn('h-3.5 w-3.5', comment.liked && 'fill-current')} />
-                          {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
-                        </button>
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={comment.userImage} alt={comment.userName} />
+                            <AvatarFallback>{comment.userName.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                        </a>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-1">
+                            <div className="flex-1">
+                              <a
+                                href={`/profile/${comment.userId}`}
+                                className="hover:opacity-80 transition-opacity"
+                              >
+                                <span className="font-semibold text-slate-900 text-sm">
+                                  {comment.userName}
+                                </span>
+                                {comment.userHeadline && (
+                                  <p className="text-xs text-slate-600">{comment.userHeadline}</p>
+                                )}
+                              </a>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2 flex-shrink-0">
+                              <button
+                                onClick={() => handleCommentLike(comment.id)}
+                                className={cn(
+                                  'flex items-center gap-1 text-xs transition-colors',
+                                  comment.liked
+                                    ? 'text-teal-600'
+                                    : 'text-slate-400 hover:text-teal-600'
+                                )}
+                              >
+                                <Heart
+                                  className={cn(
+                                    'h-3.5 w-3.5',
+                                    comment.liked && 'fill-current'
+                                  )}
+                                />
+                                {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
+                              </button>
+                              <span className="text-xs text-slate-500">{comment.createdAt}</span>
+                              {/* 본인 댓글인 경우 수정/삭제 메뉴 */}
+                              {isOwnComment && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger
+                                    className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+                                    aria-label="더보기"
+                                  >
+                                    <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem
+                                      onClick={() => handleCommentEdit(comment.id, comment.content)}
+                                      className="text-slate-700"
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      수정하기
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => handleCommentDelete(comment.id)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      삭제하기
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-700 leading-relaxed">{comment.content}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          isOpen={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          onConfirm={handleDeleteConfirm}
+          title="게시글 삭제"
+          description="이 AI 포스트를 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다."
+          confirmText="삭제하기"
+          variant="danger"
+        />
       </div>
     );
   }
