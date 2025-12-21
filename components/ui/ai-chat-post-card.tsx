@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { Heart, MessageCircle, Bot, ArrowRight } from 'lucide-react';
+import { Heart, MessageCircle, Bot, ArrowRight, Clock, Eye } from 'lucide-react';
 
 export interface AIChatPostCardProps extends React.HTMLAttributes<HTMLDivElement> {
   postId: number;
@@ -17,9 +17,14 @@ export interface AIChatPostCardProps extends React.HTMLAttributes<HTMLDivElement
   createdAt: string;          // 생성 시간
   likeCount?: number;
   commentCount?: number;
+  viewCount?: number;
   isLiked?: boolean;
   onLike?: () => void;
   onClick?: () => void;
+  // 작성자 정보
+  authorName?: string;
+  authorImageUrl?: string;
+  authorId?: number;
 }
 
 export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardProps>(
@@ -32,9 +37,13 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
       createdAt,
       likeCount = 0,
       commentCount = 0,
+      viewCount = 0,
       isLiked = false,
       onLike,
       onClick,
+      authorName,
+      authorImageUrl,
+      authorId,
       className,
       ...props
     },
@@ -76,77 +85,112 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
         {...props}
       >
         {/* Header - AI Agent Profile */}
-        <div className="flex items-start gap-3 mb-4">
-          {/* AI Avatar with gradient background */}
-          <div className="relative">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-start gap-3">
+            {/* AI Avatar with gradient background */}
             <Avatar className="h-10 w-10 bg-gradient-to-br from-teal-400 to-teal-600">
               <AvatarFallback className="bg-transparent">
                 <Bot className="h-5 w-5 text-white" />
               </AvatarFallback>
             </Avatar>
-          </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-slate-900">커리어리 AI 에이전트</span>
-              <Badge
-                tone="default"
-                className="bg-teal-50 text-teal-700 border-teal-200 text-xs"
-              >
-                AI
-              </Badge>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-slate-900">커리어리 AI 에이전트</span>
+                <Badge
+                  tone="default"
+                  className="bg-teal-50 text-teal-700 border-teal-200 text-xs"
+                >
+                  AI
+                </Badge>
+              </div>
+              {/* Author Info - by. 작성자 */}
+              {authorName && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className="text-sm text-slate-500">by.</span>
+                  <Link
+                    href={`/profile/${authorId}`}
+                    variant="nav"
+                    className="text-sm text-slate-600 hover:text-teal-600 transition-colors font-medium"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {authorName}
+                  </Link>
+                </div>
+              )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {formatRelativeTime(createdAt)}
-            </p>
           </div>
         </div>
 
-        {/* Question */}
-        <div className="mb-3">
-          <h3 className="text-base font-semibold text-slate-900 leading-snug mb-1">
+        {/* Question Title */}
+        <div className="mb-2">
+          <h3 className="text-base font-semibold text-slate-900 leading-snug">
             Q. {question}
           </h3>
         </div>
 
         {/* Answer Preview */}
-        <div className="mb-4">
-          <p className="text-sm text-slate-600 leading-relaxed line-clamp-3">
+        <div className="mb-2">
+          <p className="text-sm text-slate-700 leading-relaxed line-clamp-3">
             {answerPreview}
           </p>
         </div>
 
-        {/* View Full Conversation Button */}
-        <div className="mb-4">
+        {/* View Full Conversation Link */}
+        <div className="mb-2">
           <Link
             href={shareUrl}
             variant="nav"
-            className="inline-flex items-center gap-2 text-teal-600 hover:text-teal-700 font-medium text-sm transition-colors group"
+            className="inline-flex items-center gap-1.5 text-teal-600 hover:text-teal-700 font-medium text-sm transition-colors group"
             onClick={(e) => e.stopPropagation()}
           >
             <span>전체 대화 보기</span>
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
-        {/* Stats Row */}
-        <div className="flex items-center gap-4 text-sm text-slate-500 pt-3 border-t border-slate-100">
+        {/* Stats Row - 일반 카드와 동일한 스타일 */}
+        <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{formatRelativeTime(createdAt)}</span>
+          </div>
+          {viewCount > 0 && (
+            <div className="flex items-center gap-1">
+              <Eye className="h-3.5 w-3.5" />
+              <span>{viewCount.toLocaleString()} 조회</span>
+            </div>
+          )}
+          {likeCount > 0 && (
+            <div className="flex items-center gap-1">
+              <Heart className="h-3.5 w-3.5" />
+              <span>{likeCount.toLocaleString()} 좋아요</span>
+            </div>
+          )}
+          {commentCount > 0 && (
+            <div className="flex items-center gap-1">
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span>{commentCount.toLocaleString()} 댓글</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions - 일반 카드와 동일한 스타일 */}
+        <div
+          className="flex items-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <button
             onClick={handleLikeClick}
             className={cn(
-              'flex items-center gap-1.5 transition-colors hover:text-teal-600',
+              'flex items-center gap-1.5 text-slate-500 hover:text-teal-600 transition-colors',
               isLiked && 'text-teal-600'
             )}
             aria-label="좋아요"
           >
-            <Heart className={cn('h-4 w-4', isLiked && 'fill-current')} />
-            <span className="font-medium">{likeCount}</span>
+            <Heart className={cn('h-5 w-5', isLiked && 'fill-current')} />
+            <span className="text-sm font-medium">{likeCount}</span>
           </button>
-
-          <div className="flex items-center gap-1.5">
-            <MessageCircle className="h-4 w-4" />
-            <span className="font-medium">{commentCount}</span>
-          </div>
         </div>
       </Card>
     );

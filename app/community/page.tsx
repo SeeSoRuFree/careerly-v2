@@ -13,7 +13,7 @@ import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers
 import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight } from 'lucide-react';
+import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer, useFollowing } from '@/lib/api';
@@ -180,13 +180,13 @@ function PostDetailDrawerContent({
       : `/community/post/${postId}`;
 
     return (
-      <div className="p-6 space-y-6">
-        {/* AI Agent Profile */}
+      <div className="p-6 space-y-4">
+        {/* AI Agent Profile + Author */}
         <div className="flex items-start gap-3">
           <div className="relative">
             <Avatar className="h-12 w-12 bg-gradient-to-br from-teal-400 to-teal-600">
               <AvatarFallback className="bg-transparent">
-                <span className="text-lg font-bold text-white">C</span>
+                <Bot className="h-6 w-6 text-white" />
               </AvatarFallback>
             </Avatar>
           </div>
@@ -197,21 +197,30 @@ function PostDetailDrawerContent({
                 AI
               </span>
             </div>
-            <p className="text-sm text-slate-500 mt-1">
-              {formatRelativeTime(post.createdat)}
-            </p>
+            {/* Author Info - by. 작성자 */}
+            {post.author && (
+              <div className="flex items-center gap-1 mt-0.5">
+                <span className="text-sm text-slate-500">by.</span>
+                <button
+                  onClick={() => router.push(`/profile/${post.author?.id}`)}
+                  className="text-sm text-slate-600 hover:text-teal-600 transition-colors font-medium"
+                >
+                  {post.author.name}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Question */}
         <div>
-          <h3 className="text-lg font-semibold text-slate-900 leading-snug mb-3">
+          <h3 className="text-lg font-semibold text-slate-900 leading-snug mb-2">
             Q. {post.title || '제목 없음'}
           </h3>
 
           {/* Answer Preview with Fade Out */}
           <div className="relative">
-            <div className="text-slate-600 leading-relaxed line-clamp-6">
+            <div className="text-slate-700 text-sm leading-relaxed line-clamp-6">
               {post.description}
             </div>
             {/* Fade out gradient */}
@@ -222,7 +231,7 @@ function PostDetailDrawerContent({
         {/* URL Preview Card - Kakao/Slack style */}
         <button
           onClick={() => router.push(shareUrl)}
-          className="block w-full mt-4 text-left"
+          className="block w-full text-left"
         >
           <div className="border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 transition-colors bg-white">
             {/* URL Display */}
@@ -248,22 +257,44 @@ function PostDetailDrawerContent({
           </div>
         </button>
 
-        {/* Stats */}
-        <div className="flex items-center gap-4 text-sm text-slate-500 pt-4 border-t border-slate-200">
+        {/* Stats Row - 일반 카드와 동일한 스타일 */}
+        <div className="flex items-center gap-3 text-xs text-slate-500 pb-2">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3.5 w-3.5" />
+            <span>{formatRelativeTime(post.createdat)}</span>
+          </div>
+          {(post.view_count || 0) > 0 && (
+            <div className="flex items-center gap-1">
+              <Eye className="h-3.5 w-3.5" />
+              <span>{(post.view_count || 0).toLocaleString()} 조회</span>
+            </div>
+          )}
+          {(post.like_count || 0) > 0 && (
+            <div className="flex items-center gap-1">
+              <Heart className="h-3.5 w-3.5" />
+              <span>{(post.like_count || 0).toLocaleString()} 좋아요</span>
+            </div>
+          )}
+          {(commentsData?.count || post.comment_count || 0) > 0 && (
+            <div className="flex items-center gap-1">
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span>{(commentsData?.count || post.comment_count || 0).toLocaleString()} 댓글</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center pt-2 border-t border-slate-200">
           <button
             onClick={onLike}
             className={cn(
-              'flex items-center gap-1.5 transition-colors hover:text-teal-600',
+              'flex items-center gap-1.5 text-slate-500 hover:text-teal-600 transition-colors',
               isLiked && 'text-teal-600'
             )}
           >
             <Heart className={cn('h-5 w-5', isLiked && 'fill-current')} />
-            <span className="font-medium">{post.like_count || 0}</span>
+            <span className="text-sm font-medium">{post.like_count || 0}</span>
           </button>
-          <div className="flex items-center gap-1.5">
-            <MessageCircle className="h-5 w-5" />
-            <span className="font-medium">{commentsData?.count || post.comment_count || 0}</span>
-          </div>
         </div>
 
         {/* Separator */}
@@ -1195,9 +1226,13 @@ function CommunityPageContent() {
                           createdAt={post.createdat}
                           likeCount={post.like_count || 0}
                           commentCount={post.comment_count || 0}
+                          viewCount={post.view_count || 0}
                           isLiked={likedPosts[post.id] || false}
                           onLike={() => handleLikePost(post.id)}
                           onClick={() => handleOpenPost(post.id.toString())}
+                          authorName={post.author?.name}
+                          authorImageUrl={post.author?.image_url || undefined}
+                          authorId={post.author?.id}
                         />
                       );
                     }
@@ -1326,9 +1361,13 @@ function CommunityPageContent() {
                           createdAt={post.createdat}
                           likeCount={post.like_count || 0}
                           commentCount={post.comment_count || 0}
+                          viewCount={post.view_count || 0}
                           isLiked={likedPosts[post.id] || false}
                           onLike={() => handleLikePost(post.id)}
                           onClick={() => handleOpenPost(post.id.toString())}
+                          authorName={post.author?.name}
+                          authorImageUrl={post.author?.image_url || undefined}
+                          authorId={post.author?.id}
                         />
                       );
                     }
@@ -1436,9 +1475,13 @@ function CommunityPageContent() {
                               createdAt={post.createdat}
                               likeCount={post.like_count || 0}
                               commentCount={post.comment_count || 0}
+                              viewCount={post.view_count || 0}
                               isLiked={likedPosts[post.id] || false}
                               onLike={() => handleLikePost(post.id)}
                               onClick={() => handleOpenPost(post.id.toString())}
+                              authorName={post.author?.name}
+                              authorImageUrl={post.author?.image_url || undefined}
+                              authorId={post.author?.id}
                             />
                           </div>
                         );
