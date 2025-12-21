@@ -403,6 +403,10 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   const isStreamingRef = useRef(false);
   // 에이전트 완료 지연을 위한 타이머 ref
   const agentCompletionTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  // 자동 스크롤용 ref
+  const contentEndRef = useRef<HTMLDivElement>(null);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const lastScrollTopRef = useRef(0);
 
   // 세션 조회 (세션 모드일 때)
   const { data: fetchedSession, isLoading: isSessionLoading, error: sessionError } = useChatSessionWithFallback(
@@ -709,6 +713,38 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, isSessionMode]);
 
+  // 자동 스크롤: 스트리밍 중 컨텐츠가 추가되면 스크롤
+  useEffect(() => {
+    if (isStreaming && streamingContent && autoScrollEnabled && contentEndRef.current) {
+      contentEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [isStreaming, streamingContent, autoScrollEnabled]);
+
+  // 사용자 스크롤 감지: 위로 스크롤하면 자동 스크롤 비활성화
+  useEffect(() => {
+    if (!isStreaming) {
+      setAutoScrollEnabled(true); // 스트리밍 끝나면 리셋
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentScrollTop = window.scrollY;
+      // 위로 50px 이상 스크롤하면 자동 스크롤 비활성화
+      if (lastScrollTopRef.current - currentScrollTop > 50) {
+        setAutoScrollEnabled(false);
+      }
+      // 페이지 끝 근처로 스크롤하면 다시 활성화
+      const isNearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 100;
+      if (isNearBottom) {
+        setAutoScrollEnabled(true);
+      }
+      lastScrollTopRef.current = currentScrollTop;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isStreaming]);
+
   // 브라우저 뒤로가기/앞으로가기 대응
   useEffect(() => {
     const handlePopState = () => {
@@ -1001,6 +1037,8 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
                     className="prose prose-sm prose-slate max-w-none prose-headings:font-semibold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-slate-700 prose-p:leading-relaxed prose-a:text-teal-600 prose-a:no-underline hover:prose-a:underline prose-strong:text-slate-900 prose-ul:list-disc prose-ol:list-decimal"
                   />
                   <span className="inline-block w-0.5 h-5 bg-teal-500 animate-pulse ml-0.5 align-text-bottom" />
+                  {/* 자동 스크롤 앵커 */}
+                  <div ref={contentEndRef} />
                 </div>
               ) : displayAnswer ? (
                 <AnswerResponsePanel

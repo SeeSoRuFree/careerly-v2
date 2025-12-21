@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Users, Check, Loader2, Sparkles } from 'lucide-react';
+import { Users, Check, Loader2, Sparkles, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShareToCommunity } from '@/lib/api';
+import { toast } from 'sonner';
 
 export interface CommunityShareCTAProps extends React.HTMLAttributes<HTMLDivElement> {
   sessionId: string;
@@ -112,30 +113,64 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
               <p className="text-sm text-slate-600 mb-4">
                 이 답변이 도움이 되셨나요? 커뮤니티와 함께 나누고 다른 사용자들에게도 유용한 정보를 공유해보세요
               </p>
-              <button
-                onClick={handleShare}
-                disabled={shareToCommunity.isPending}
-                className={cn(
-                  'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200',
-                  'bg-gradient-to-r from-teal-500 to-cyan-500 text-white',
-                  'hover:from-teal-600 hover:to-cyan-600',
-                  'hover:shadow-lg hover:shadow-teal-500/30',
-                  'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none',
-                  'active:scale-95'
-                )}
-              >
-                {shareToCommunity.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>공유 중...</span>
-                  </>
-                ) : (
-                  <>
-                    <Users className="h-4 w-4" />
-                    <span>커뮤니티에 공유하기</span>
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleShare}
+                  disabled={shareToCommunity.isPending}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200',
+                    'bg-gradient-to-r from-teal-500 to-cyan-500 text-white',
+                    'hover:from-teal-600 hover:to-cyan-600',
+                    'hover:shadow-lg hover:shadow-teal-500/30',
+                    'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none',
+                    'active:scale-95'
+                  )}
+                >
+                  {shareToCommunity.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>공유 중...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Users className="h-4 w-4" />
+                      <span>커뮤니티에 공유하기</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={async () => {
+                    const shareUrl = window.location.href;
+                    const shareData = {
+                      title: '커리어리 AI 검색 결과',
+                      text: '커리어리에서 유용한 정보를 찾았어요!',
+                      url: shareUrl,
+                    };
+
+                    if (navigator.share && navigator.canShare?.(shareData)) {
+                      try {
+                        await navigator.share(shareData);
+                      } catch (error) {
+                        if ((error as Error).name !== 'AbortError') {
+                          console.error('Share failed:', error);
+                        }
+                      }
+                    } else {
+                      await navigator.clipboard.writeText(shareUrl);
+                      toast.success('링크가 복사되었습니다');
+                    }
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200',
+                    'border border-slate-300 bg-white text-slate-700',
+                    'hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50',
+                    'active:scale-95'
+                  )}
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span>공유하기</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
