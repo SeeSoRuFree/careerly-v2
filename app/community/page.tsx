@@ -34,6 +34,21 @@ import { useStore } from '@/hooks/useStore';
 import { useImpressionTracker } from '@/lib/hooks/useImpressionTracker';
 import { trackPostDetailView, trackQuestionDetailView, trackContentShare } from '@/lib/analytics';
 
+// 프롬프트에서 질문과 프로필 분리
+function parsePrompt(text: string): { question: string; profile: string | null } {
+  const separator = '\n---\n';
+  const separatorIndex = text.indexOf(separator);
+
+  if (separatorIndex === -1) {
+    return { question: text, profile: null };
+  }
+
+  const question = text.substring(0, separatorIndex).trim();
+  const profileSection = text.substring(separatorIndex + separator.length).trim();
+  const profile = profileSection.replace(/^내정보:\s*/i, '').trim();
+
+  return { question, profile };
+}
 
 type UserProfile = {
   id: number;
@@ -190,6 +205,9 @@ function PostDetailDrawerContent({
 
     const isOwnPost = user && post.author && post.author.id === user.id;
 
+    // 질문 텍스트 파싱 (프로필 정보 제거)
+    const { question: parsedQuestion } = parsePrompt(post.title || '');
+
     const handleDeleteConfirm = () => {
       onDelete();
       setDeleteDialogOpen(false);
@@ -249,7 +267,7 @@ function PostDetailDrawerContent({
         {/* Question */}
         <div>
           <h3 className="text-lg font-semibold text-slate-900 leading-snug mb-2">
-            Q. {post.title || '제목 없음'}
+            Q. {parsedQuestion || '제목 없음'}
           </h3>
 
           {/* Answer Preview with Fade Out */}
@@ -277,7 +295,7 @@ function PostDetailDrawerContent({
             {/* OG Card Content */}
             <div className="p-4">
               <div className="text-xs text-slate-500 mb-1">커리어리 AI 검색</div>
-              <div className="font-medium text-slate-900 mb-1 line-clamp-1">{post.title || '제목 없음'}</div>
+              <div className="font-medium text-slate-900 mb-1 line-clamp-1">{parsedQuestion || '제목 없음'}</div>
               <div className="text-sm text-slate-600 line-clamp-2">
                 커리어리 AI 에이전트가 답변한 내용입니다
               </div>

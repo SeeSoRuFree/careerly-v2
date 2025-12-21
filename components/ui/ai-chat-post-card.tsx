@@ -9,6 +9,22 @@ import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import { Heart, MessageCircle, Bot, ArrowRight, Clock, Eye } from 'lucide-react';
 
+// 프롬프트에서 질문과 프로필 분리
+function parsePrompt(text: string): { question: string; profile: string | null } {
+  const separator = '\n---\n';
+  const separatorIndex = text.indexOf(separator);
+
+  if (separatorIndex === -1) {
+    return { question: text, profile: null };
+  }
+
+  const question = text.substring(0, separatorIndex).trim();
+  const profileSection = text.substring(separatorIndex + separator.length).trim();
+  const profile = profileSection.replace(/^내정보:\s*/i, '').trim();
+
+  return { question, profile };
+}
+
 export interface AIChatPostCardProps extends React.HTMLAttributes<HTMLDivElement> {
   postId: number;
   question: string;           // post.title (질문)
@@ -68,6 +84,9 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
       onLike?.();
     };
 
+    // 질문 텍스트 파싱 (프로필 정보 제거)
+    const { question: parsedQuestion } = parsePrompt(question);
+
     // sessionId가 없으면 postId를 사용 (임시)
     const shareUrl = sessionId
       ? `/share/${sessionId}`
@@ -125,7 +144,7 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
         {/* Question Title */}
         <div className="mb-2">
           <h3 className="text-base font-semibold text-slate-900 leading-snug">
-            Q. {question}
+            Q. {parsedQuestion}
           </h3>
         </div>
 

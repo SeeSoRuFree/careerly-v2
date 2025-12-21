@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 interface ShareLayoutProps {
@@ -36,13 +34,7 @@ export default function ShareLayout({ children }: ShareLayoutProps) {
               </span>
             </Link>
           </div>
-          <Button
-            variant="coral"
-            size="sm"
-            asChild
-          >
-            <Link href="/chat">질문하기</Link>
-          </Button>
+          {/* 질문하기 버튼 제거 */}
         </div>
       </header>
 
