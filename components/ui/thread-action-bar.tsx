@@ -1,30 +1,27 @@
 'use client';
 
 import * as React from 'react';
-import { Share2, Bookmark, Check, Loader2, Users } from 'lucide-react';
+import { Share2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IconButton } from '@/components/ui/icon-button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useShareSession, useShareToCommunity } from '@/lib/api';
 
 export interface ThreadActionBarProps extends React.HTMLAttributes<HTMLDivElement> {
   sessionId?: string;
   isPublic?: boolean;
   onShare?: () => void;
+  /** @deprecated No longer used - kept for backward compatibility */
   onShareToCommunity?: () => void;
+  /** @deprecated No longer used - kept for backward compatibility */
   onBookmark?: () => void;
+  /** @deprecated No longer used - kept for backward compatibility */
   isBookmarked?: boolean;
-  /** 커뮤니티에 이미 공유됐는지 여부 */
+  /** @deprecated No longer used - kept for backward compatibility */
   isSharedToCommunity?: boolean;
 }
 
 const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
-  ({ sessionId, isPublic = false, onShare, onShareToCommunity, onBookmark, isBookmarked = false, isSharedToCommunity = false, className, ...props }, ref) => {
-    const shareSession = useShareSession();
-    const shareToCommunity = useShareToCommunity();
+  ({ sessionId, onShare, className, ...props }, ref) => {
     const [justCopied, setJustCopied] = React.useState(false);
-    const [shareStatus, setShareStatus] = React.useState<'idle' | 'copying' | 'copied' | 'error'>('idle');
-    const [communityShareStatus, setCommunityShareStatus] = React.useState<'idle' | 'sharing' | 'shared' | 'error'>('idle');
 
     const handleShareClick = async () => {
       if (!sessionId) {
@@ -34,130 +31,50 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
       }
 
       try {
-        setShareStatus('copying');
-
-        // 이미 공개 상태면 바로 URL 복사
-        if (isPublic) {
-          const url = `${window.location.origin}/share/${sessionId}`;
-          await navigator.clipboard.writeText(url);
-          setJustCopied(true);
-          setShareStatus('copied');
-          setTimeout(() => {
-            setJustCopied(false);
-            setShareStatus('idle');
-          }, 2000);
-          return;
-        }
-
-        // 공개 설정 후 URL 복사
-        await shareSession.mutateAsync({ sessionId, isPublic: true });
+        // 바로 share URL 복사
         const url = `${window.location.origin}/share/${sessionId}`;
         await navigator.clipboard.writeText(url);
         setJustCopied(true);
-        setShareStatus('copied');
         setTimeout(() => {
           setJustCopied(false);
-          setShareStatus('idle');
         }, 2000);
       } catch (error) {
         console.error('Share failed:', error);
-        setShareStatus('error');
-        setTimeout(() => setShareStatus('idle'), 3000);
-        // 에러는 전역 에러 핸들러에서 자동으로 토스트 표시
-      }
-    };
-
-    const handleShareToCommunity = async () => {
-      if (!sessionId) {
-        onShareToCommunity?.();
-        return;
-      }
-
-      // 이미 공유된 상태면 무시
-      if (isSharedToCommunity || communityShareStatus === 'shared') {
-        return;
-      }
-
-      try {
-        setCommunityShareStatus('sharing');
-        await shareToCommunity.mutateAsync({ sessionId });
-        setCommunityShareStatus('shared');
-        onShareToCommunity?.();
-      } catch (error) {
-        console.error('Share to community failed:', error);
-        setCommunityShareStatus('error');
-        setTimeout(() => setCommunityShareStatus('idle'), 3000);
       }
     };
 
     return (
       <TooltipProvider>
-        <div ref={ref} className={cn('flex items-center gap-1', className)} {...props}>
+        <div ref={ref} className={cn('flex items-center gap-2', className)} {...props}>
           {(onShare || sessionId) && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <IconButton
-                  variant="ghost"
-                  size="md"
+                <button
                   onClick={handleShareClick}
-                  disabled={shareSession.isPending}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200',
+                    'bg-teal-50 hover:bg-teal-100 text-teal-700 hover:text-teal-800',
+                    'border border-teal-200 hover:border-teal-300',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2',
+                    justCopied && 'bg-teal-100 border-teal-300'
+                  )}
                   aria-label="Share thread"
                 >
-                  {shareSession.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : justCopied ? (
-                    <Check className="h-4 w-4 text-teal-600" />
+                  {justCopied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      <span>복사됨!</span>
+                    </>
                   ) : (
-                    <Share2 className="h-4 w-4" />
+                    <>
+                      <Share2 className="h-4 w-4" />
+                      <span>공유하기</span>
+                    </>
                   )}
-                </IconButton>
+                </button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{justCopied ? '복사됨!' : isPublic ? '링크 복사' : '공유하기'}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {sessionId && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <IconButton
-                  variant="ghost"
-                  size="md"
-                  onClick={handleShareToCommunity}
-                  disabled={shareToCommunity.isPending || isSharedToCommunity || communityShareStatus === 'shared'}
-                  aria-label="커뮤니티에 공유"
-                >
-                  {shareToCommunity.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (isSharedToCommunity || communityShareStatus === 'shared') ? (
-                    <Check className="h-4 w-4 text-teal-600" />
-                  ) : (
-                    <Users className="h-4 w-4" />
-                  )}
-                </IconButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{(isSharedToCommunity || communityShareStatus === 'shared') ? '커뮤니티에 공유됨' : '커뮤니티에 공유'}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {onBookmark && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <IconButton
-                  variant="ghost"
-                  size="md"
-                  pressed={isBookmarked}
-                  onClick={onBookmark}
-                  aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
-                >
-                  <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
-                </IconButton>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isBookmarked ? "Remove bookmark" : "Bookmark"}</p>
+                <p>{justCopied ? '링크가 클립보드에 복사되었습니다' : '공유 링크 복사'}</p>
               </TooltipContent>
             </Tooltip>
           )}

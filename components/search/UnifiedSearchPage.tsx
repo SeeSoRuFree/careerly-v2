@@ -14,7 +14,6 @@ import { SearchQueryHeader } from '@/components/ui/search-query-header';
 import { ThreadActionBar } from '@/components/ui/thread-action-bar';
 import { AnswerResponsePanel } from '@/components/ui/answer-response-panel';
 import { CitationSourceList, type CitationSource } from '@/components/ui/citation-source-list';
-import { RelatedQueriesSection, type RelatedQuery } from '@/components/ui/related-queries-section';
 import { SuggestedFollowUpInput } from '@/components/ui/suggested-follow-up-input';
 import { ViewModeToggle, type ViewMode } from '@/components/ui/view-mode-toggle';
 import { SearchResultItem } from '@/components/ui/search-result-item';
@@ -72,6 +71,8 @@ interface AgentProgressItem {
 interface AgentProgressPanelProps {
   agents: Map<string, AgentProgressItem>;
   isStreaming: boolean;
+  isCollapsed: boolean;
+  onToggle: () => void;
 }
 
 // 개별 에이전트 카드 컴포넌트
@@ -202,7 +203,7 @@ function AgentCard({ agent }: { agent: AgentProgressItem }) {
 }
 
 // 에이전트 진행 상태 패널
-function AgentProgressPanel({ agents, isStreaming }: AgentProgressPanelProps) {
+function AgentProgressPanel({ agents, isStreaming, isCollapsed, onToggle }: AgentProgressPanelProps) {
   const agentList = Array.from(agents.values());
 
   if (agentList.length === 0) return null;
@@ -211,25 +212,56 @@ function AgentProgressPanel({ agents, isStreaming }: AgentProgressPanelProps) {
   const successCount = agentList.filter(a => a.status === 'success').length;
   const failedCount = agentList.filter(a => a.status === 'failed' || a.status === 'timeout').length;
 
+  // 완료 여부
+  const isComplete = !isStreaming && runningCount === 0;
+
   return (
     <div
-      className="mb-6 rounded-xl border border-teal-200 bg-gradient-to-br from-white to-teal-50/30 shadow-sm overflow-hidden"
+      className={cn(
+        "mb-6 rounded-xl border border-teal-200 bg-gradient-to-br from-white to-teal-50/30 shadow-sm overflow-hidden transition-all duration-300",
+        isCollapsed && "shadow-none border-slate-200 bg-slate-50/50"
+      )}
       role="region"
       aria-live="polite"
       aria-label="AI 에이전트 진행 상태"
     >
       {/* 헤더 */}
-      <div className="px-4 py-3 border-b border-teal-100 bg-gradient-to-r from-teal-50 to-white">
+      <button
+        onClick={isComplete ? onToggle : undefined}
+        disabled={!isComplete}
+        className={cn(
+          "w-full px-4 py-3 border-b transition-colors",
+          isComplete
+            ? "cursor-pointer hover:bg-teal-50/50 border-teal-100 bg-gradient-to-r from-teal-50 to-white"
+            : "cursor-default border-teal-100 bg-gradient-to-r from-teal-50 to-white"
+        )}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-100">
-              <Brain className="h-4 w-4 text-teal-600" />
+            <div className={cn(
+              "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+              isCollapsed ? "bg-slate-200" : "bg-teal-100"
+            )}>
+              <Brain className={cn(
+                "h-4 w-4 transition-colors",
+                isCollapsed ? "text-slate-600" : "text-teal-600"
+              )} />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-teal-900">
-                AI 에이전트가 정보를 수집하고 있어요
+            <div className="text-left">
+              <h3 className={cn(
+                "text-sm font-semibold transition-colors",
+                isCollapsed ? "text-slate-700" : "text-teal-900"
+              )}>
+                {isComplete
+                  ? isCollapsed
+                    ? 'AI 에이전트 작업 완료'
+                    : 'AI 에이전트 정보 수집 완료'
+                  : 'AI 에이전트가 정보를 수집하고 있어요'}
               </h3>
-              <p className="text-xs text-teal-600">
+              <p className={cn(
+                "text-xs transition-colors",
+                isCollapsed ? "text-slate-500" : "text-teal-600"
+              )}>
                 {runningCount > 0 && `${runningCount}개 실행 중`}
                 {runningCount > 0 && successCount > 0 && ' · '}
                 {successCount > 0 && `${successCount}개 완료`}
@@ -238,46 +270,48 @@ function AgentProgressPanel({ agents, isStreaming }: AgentProgressPanelProps) {
             </div>
           </div>
 
-          {/* 전체 진행률 */}
-          {isStreaming && (
-            <div className="flex items-center gap-2">
+          {/* 우측 인디케이터 */}
+          <div className="flex items-center gap-2">
+            {isStreaming ? (
               <div className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500"></span>
               </div>
-            </div>
-          )}
+            ) : isComplete ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className={cn(
+                  "h-4 w-4 transition-colors",
+                  isCollapsed ? "text-slate-400" : "text-teal-600"
+                )} />
+                <svg
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-300",
+                    isCollapsed ? "rotate-0" : "rotate-180",
+                    isCollapsed ? "text-slate-400" : "text-teal-600"
+                  )}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            ) : null}
+          </div>
         </div>
-      </div>
+      </button>
 
-      {/* 에이전트 카드 목록 */}
-      <div className="p-4 space-y-3">
-        {agentList.map((agent) => (
-          <AgentCard key={agent.agent_type} agent={agent} />
-        ))}
-      </div>
+      {/* 에이전트 카드 목록 - Collapsible */}
+      {!isCollapsed && (
+        <div className="p-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          {agentList.map((agent) => (
+            <AgentCard key={agent.agent_type} agent={agent} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-// Mock Related Queries
-const MOCK_RELATED_QUERIES: RelatedQuery[] = [
-  {
-    id: 'rq1',
-    queryText: '프론트엔드 개발자 경력별 평균 연봉과 연봉 협상 전략은?',
-    href: '/search?q=프론트엔드+개발자+연봉+협상',
-  },
-  {
-    id: 'rq2',
-    queryText: 'React vs Vue.js 2024년 기준 어떤 프레임워크를 선택해야 할까요?',
-    href: '/search?q=React+vs+Vue+2024',
-  },
-  {
-    id: 'rq3',
-    queryText: '채용 담당자가 주목하는 프론트엔드 포트폴리오 작성법',
-    href: '/search?q=프론트엔드+포트폴리오+작성법',
-  },
-];
 
 // URL에서 제목 추출 헬퍼 함수
 function extractTitleFromUrl(url: string): string {
@@ -319,6 +353,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   const [viewMode, setViewMode] = useState<ViewMode>('answer');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [followUpValue, setFollowUpValue] = useState('');
+  const [isAgentPanelCollapsed, setIsAgentPanelCollapsed] = useState(false);
 
   // Streaming State
   const [streamingContent, setStreamingContent] = useState('');
@@ -444,6 +479,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
     setCompletedMessageId(null);
     setAgentProgress(new Map());
     setSessionData(null);
+    setIsAgentPanelCollapsed(false); // 에이전트 패널 펼치기
 
     // GA4: ai_search_start 이벤트 트래킹
     searchStartTimeRef.current = Date.now();
@@ -527,6 +563,11 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
         setIsStreaming(false);
         cleanupRef.current = null;
         currentQueryRef.current = null;
+
+        // 스트리밍 완료 후 1초 뒤에 에이전트 패널 자동 접기
+        setTimeout(() => {
+          setIsAgentPanelCollapsed(true);
+        }, 1000);
       },
       onError: (errorMsg, errorCode) => {
         console.error('Streaming error:', errorMsg, 'Code:', errorCode);
@@ -690,12 +731,6 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
     setFollowUpValue('');
   };
 
-  const handleRelatedQueryClick = (relatedQuery: RelatedQuery) => {
-    // GA4: ai_followup_click 이벤트 트래킹
-    trackAIFollowupClick(relatedQuery.queryText);
-    router.push(`/search?q=${encodeURIComponent(relatedQuery.queryText)}`);
-  };
-
   // 출처 클릭 핸들러
   const handleSourceClick = (sourceUrl: string, position: number) => {
     trackAISourceClick(sourceUrl, position);
@@ -849,6 +884,8 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
         <AgentProgressPanel
           agents={agentProgress}
           isStreaming={isStreaming}
+          isCollapsed={isAgentPanelCollapsed}
+          onToggle={() => setIsAgentPanelCollapsed(!isAgentPanelCollapsed)}
         />
 
         {/* 에러 표시 */}
@@ -941,6 +978,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
                   className="border-0 shadow-none bg-transparent p-0"
                   messageId={displayMessageId}
                   currentFeedback={displayCurrentFeedback}
+                  showFeedback={true}
                 />
               ) : isLoading ? (
                 <div className="py-6">
@@ -953,6 +991,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
                   />
                 </div>
               ) : null}
+
 
               {/* CitationSourceList */}
               {!isStreaming && hasCompletedContent && citationSources.length > 0 && (
@@ -993,16 +1032,6 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
                   faviconUrl={source.faviconUrl}
                 />
               ))}
-            </div>
-          )}
-
-          {/* RelatedQueriesSection */}
-          {!isStreaming && hasCompletedContent && (
-            <div className="py-6 border-t border-slate-200">
-              <RelatedQueriesSection
-                relatedQueries={MOCK_RELATED_QUERIES}
-                onQueryClick={handleRelatedQueryClick}
-              />
             </div>
           )}
 
