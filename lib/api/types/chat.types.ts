@@ -395,6 +395,8 @@ export interface TrendingSession {
   likeCount: number;
   /** 댓글 수 */
   commentCount: number;
+  /** 조회수 */
+  viewCount: number;
   /** 작성자 정보 */
   author: TrendingSessionAuthor;
   /** 태그 목록 */

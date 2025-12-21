@@ -123,6 +123,7 @@ function SharePageContent() {
     trendingData?.results?.map((trendingSession) => ({
       id: trendingSession.id,
       title: trendingSession.question,
+      viewCount: trendingSession.viewCount,
     })) || [];
 
   return (

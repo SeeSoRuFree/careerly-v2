@@ -3,11 +3,12 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { MessageCircleQuestion } from 'lucide-react';
+import { MessageCircleQuestion, Eye } from 'lucide-react';
 
 export interface RelatedQuestion {
   id: string;
   title: string;
+  viewCount?: number;
   href?: string;
 }
 
@@ -46,9 +47,17 @@ const RelatedQuestionsCard = React.forwardRef<HTMLDivElement, RelatedQuestionsCa
                 className="block group p-4 rounded-lg border border-slate-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all"
               >
                 {/* Question Title */}
-                <h4 className="text-sm font-medium text-slate-900 group-hover:text-teal-700 line-clamp-2">
+                <h4 className="text-sm font-medium text-slate-900 group-hover:text-teal-700 line-clamp-2 mb-2">
                   {question.title}
                 </h4>
+
+                {/* View Count */}
+                {question.viewCount !== undefined && question.viewCount > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-slate-500">
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>{question.viewCount.toLocaleString()}</span>
+                  </div>
+                )}
               </Link>
             );
           })}
