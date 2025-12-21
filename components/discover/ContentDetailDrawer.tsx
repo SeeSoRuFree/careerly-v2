@@ -151,7 +151,7 @@ export function ContentDetailDrawer({
 
                 {/* Summary */}
                 <div className="prose prose-slate max-w-none mb-6">
-                  <p className="text-slate-700 leading-relaxed whitespace-pre-line">{content.summary}</p>
+                  <p className="text-slate-700 leading-relaxed whitespace-pre-line break-keep">{content.summary}</p>
                 </div>
 
                 {/* Action Buttons */}
