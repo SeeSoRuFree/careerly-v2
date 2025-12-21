@@ -183,13 +183,12 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
           <button
             onClick={handleLikeClick}
             className={cn(
-              'flex items-center gap-1.5 text-slate-500 hover:text-teal-600 transition-colors',
+              'text-slate-500 hover:text-teal-600 transition-colors',
               isLiked && 'text-teal-600'
             )}
             aria-label="좋아요"
           >
             <Heart className={cn('h-5 w-5', isLiked && 'fill-current')} />
-            <span className="text-sm font-medium">{likeCount}</span>
           </button>
         </div>
       </Card>

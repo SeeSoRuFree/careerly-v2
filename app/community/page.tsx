@@ -288,12 +288,11 @@ function PostDetailDrawerContent({
           <button
             onClick={onLike}
             className={cn(
-              'flex items-center gap-1.5 text-slate-500 hover:text-teal-600 transition-colors',
+              'text-slate-500 hover:text-teal-600 transition-colors',
               isLiked && 'text-teal-600'
             )}
           >
             <Heart className={cn('h-5 w-5', isLiked && 'fill-current')} />
-            <span className="text-sm font-medium">{post.like_count || 0}</span>
           </button>
         </div>
 
