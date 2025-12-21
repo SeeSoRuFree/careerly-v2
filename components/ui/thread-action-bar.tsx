@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Share2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { trackAIShare } from '@/lib/analytics';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface ThreadActionBarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -35,6 +36,8 @@ const ThreadActionBar = React.forwardRef<HTMLDivElement, ThreadActionBarProps>(
         const url = `${window.location.origin}/share/${sessionId}`;
         await navigator.clipboard.writeText(url);
         setJustCopied(true);
+        // GA4 트래킹
+        trackAIShare(sessionId, 'copy_link');
         setTimeout(() => {
           setJustCopied(false);
         }, 2000);

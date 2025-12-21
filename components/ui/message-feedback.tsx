@@ -4,6 +4,7 @@ import * as React from 'react';
 import { ThumbsUp, ThumbsDown, MessageSquare, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMessageFeedback } from '@/lib/api';
+import { trackAIFeedback } from '@/lib/analytics';
 import { Button } from './button';
 import {
   Dialog,
@@ -77,16 +78,21 @@ export function MessageFeedback({
       messageId,
       isLiked,
     });
+    // GA4 트래킹
+    trackAIFeedback(messageId, isLiked, false);
   };
 
   const handleDetailSubmit = () => {
     if (selectedFeedback === null) return;
 
+    const hasDetail = detailText.trim().length > 0;
     feedbackMutation.mutate({
       messageId,
       isLiked: selectedFeedback,
       feedbackText: detailText.trim() || undefined,
     });
+    // GA4 트래킹
+    trackAIFeedback(messageId, selectedFeedback, hasDetail);
 
     setShowDetailModal(false);
     setDetailText('');
@@ -99,6 +105,8 @@ export function MessageFeedback({
         messageId,
         isLiked: selectedFeedback,
       });
+      // GA4 트래킹
+      trackAIFeedback(messageId, selectedFeedback, false);
     }
     setShowDetailModal(false);
     setSelectedFeedback(null);
@@ -136,22 +144,22 @@ export function MessageFeedback({
 
           {/* 피드백 버튼 */}
           {localFeedback === null ? (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button
                 onClick={() => handleFeedback(true)}
                 disabled={disabled || isLoading}
-                className="flex-1 h-14 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all"
+                className="flex-1 h-12 sm:h-14 bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all text-sm sm:text-base"
               >
-                <ThumbsUp className="h-5 w-5 mr-2" />
+                <ThumbsUp className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 <span className="font-semibold">도움이 되었어요</span>
               </Button>
               <Button
                 onClick={() => handleFeedback(false)}
                 disabled={disabled || isLoading}
                 variant="outline"
-                className="flex-1 h-14 border-2 border-slate-300 hover:border-red-400 hover:bg-red-50 transition-all"
+                className="flex-1 h-12 sm:h-14 border-2 border-slate-300 hover:border-red-400 hover:bg-red-50 transition-all text-sm sm:text-base"
               >
-                <ThumbsDown className="h-5 w-5 mr-2" />
+                <ThumbsDown className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                 <span className="font-semibold">아쉬워요</span>
               </Button>
             </div>
@@ -173,7 +181,7 @@ export function MessageFeedback({
 
         {/* 상세 피드백 모달 */}
         <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md mx-4">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <MessageSquare className="h-5 w-5 text-teal-600" />
@@ -192,13 +200,13 @@ export function MessageFeedback({
                 placeholder={selectedFeedback
                   ? '예: 정확한 정보를 빠르게 찾을 수 있었어요'
                   : '예: 답변이 너무 길어요, 핵심만 알려주면 좋겠어요'}
-                className="min-h-[120px] resize-none"
+                className="min-h-[100px] sm:min-h-[120px] resize-none text-sm"
               />
               <p className="text-xs text-slate-500 mt-2">
                 선택사항입니다. 건너뛰셔도 됩니다.
               </p>
             </div>
-            <DialogFooter className="flex gap-2 sm:gap-2">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
               <Button
                 variant="outline"
                 onClick={handleDetailCancel}
@@ -280,7 +288,7 @@ export function MessageFeedback({
 
       {/* 상세 피드백 모달 */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md mx-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5 text-teal-600" />
@@ -299,13 +307,13 @@ export function MessageFeedback({
               placeholder={selectedFeedback
                 ? '예: 정확한 정보를 빠르게 찾을 수 있었어요'
                 : '예: 답변이 너무 길어요, 핵심만 알려주면 좋겠어요'}
-              className="min-h-[120px] resize-none"
+              className="min-h-[100px] sm:min-h-[120px] resize-none text-sm"
             />
             <p className="text-xs text-slate-500 mt-2">
               선택사항입니다. 건너뛰셔도 됩니다.
             </p>
           </div>
-          <DialogFooter className="flex gap-2 sm:gap-2">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={handleDetailCancel}

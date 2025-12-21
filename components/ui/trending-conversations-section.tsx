@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Sparkles, TrendingUp, ChevronRight, User, Edit } from 'lucide-react';
+import { Sparkles, TrendingUp, User, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTrendingSessions } from '@/lib/api';
 import {
@@ -47,10 +47,6 @@ export function TrendingConversationsSection({
             <p className="text-sm text-slate-500">커리어리 회원들의 인기 질문을 확인해보세요</p>
           </div>
         </div>
-        <button className="flex items-center gap-1 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors">
-          더보기
-          <ChevronRight className="h-4 w-4" />
-        </button>
       </div>
 
       {/* Conversation Cards Grid */}

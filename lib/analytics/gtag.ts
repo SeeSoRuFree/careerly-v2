@@ -264,6 +264,22 @@ export function trackAIShare(
   });
 }
 
+/**
+ * AI 답변 피드백 (좋아요/싫어요)
+ */
+export function trackAIFeedback(
+  messageId: string,
+  isLiked: boolean,
+  hasDetailText: boolean = false
+): void {
+  trackEvent('ai_feedback', {
+    message_id: messageId,
+    is_liked: isLiked,
+    feedback_type: isLiked ? 'positive' : 'negative',
+    has_detail: hasDetailText,
+  });
+}
+
 // ============================================
 // 페이지 이벤트
 // ============================================

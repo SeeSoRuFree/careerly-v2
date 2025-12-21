@@ -5,6 +5,14 @@ import { Users, Check, Loader2, Sparkles, Share2, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShareToCommunity } from '@/lib/api';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export interface CommunityShareCTAProps extends React.HTMLAttributes<HTMLDivElement> {
   sessionId: string;
@@ -18,6 +26,7 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
     const shareToCommunity = useShareToCommunity();
     const [localShared, setLocalShared] = React.useState(isShared);
     const [localPostId, setLocalPostId] = React.useState(sharedPostId);
+    const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 
     React.useEffect(() => {
       setLocalShared(isShared);
@@ -31,9 +40,12 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
         const response = await shareToCommunity.mutateAsync({ sessionId });
         setLocalShared(true);
         setLocalPostId(response.id);
+        setShowConfirmDialog(false);
+        toast.success('커뮤니티에 공유되었습니다');
         onShareSuccess?.();
       } catch (error) {
         console.error('Share to community failed:', error);
+        setShowConfirmDialog(false);
       }
     };
 
@@ -89,7 +101,7 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
       <div
         ref={ref}
         className={cn(
-          'relative overflow-hidden rounded-lg border border-slate-200 bg-gradient-to-r from-white via-teal-50/30 to-cyan-50/30 p-6 hover:border-teal-300 transition-all duration-300',
+          'relative overflow-hidden rounded-lg border border-slate-200 bg-gradient-to-r from-white via-teal-50/30 to-cyan-50/30 p-4 sm:p-6 hover:border-teal-300 transition-all duration-300',
           className
         )}
         {...props}
@@ -99,26 +111,26 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-cyan-100 rounded-full opacity-20 blur-2xl" />
 
         <div className="relative z-10">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-teal-100 to-cyan-100">
-              <Users className="h-6 w-6 text-teal-600" />
+          <div className="flex items-start gap-3 sm:gap-4 mb-4">
+            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-teal-100 to-cyan-100">
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-teal-600" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-slate-900">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900">
                   내 피드에 공유하기
                 </h3>
-                <Sparkles className="h-4 w-4 text-teal-500" />
+                <Sparkles className="h-4 w-4 text-teal-500 flex-shrink-0" />
               </div>
-              <p className="text-sm text-slate-600 mb-4">
+              <p className="text-xs sm:text-sm text-slate-600 mb-3 sm:mb-4">
                 이 답변이 도움이 되셨나요? 커뮤니티와 함께 나누고 다른 사용자들에게도 유용한 정보를 공유해보세요
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
-                  onClick={handleShare}
+                  onClick={() => setShowConfirmDialog(true)}
                   disabled={shareToCommunity.isPending}
                   className={cn(
-                    'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200',
+                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm',
                     'bg-gradient-to-r from-teal-500 to-cyan-500 text-white',
                     'hover:from-teal-600 hover:to-cyan-600',
                     'hover:shadow-lg hover:shadow-teal-500/30',
@@ -126,17 +138,8 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
                     'active:scale-95'
                   )}
                 >
-                  {shareToCommunity.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>공유 중...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Users className="h-4 w-4" />
-                      <span>커뮤니티에 공유하기</span>
-                    </>
-                  )}
+                  <Users className="h-4 w-4" />
+                  <span>커뮤니티에 공유</span>
                 </button>
                 <button
                   onClick={async () => {
@@ -144,7 +147,7 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
                     toast.success('링크가 복사되었습니다');
                   }}
                   className={cn(
-                    'inline-flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-all duration-200',
+                    'inline-flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm',
                     'border border-slate-300 bg-white text-slate-700',
                     'hover:border-slate-400 hover:bg-slate-50',
                     'active:scale-95'
@@ -171,7 +174,7 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
                       }
                     }}
                     className={cn(
-                      'inline-flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-all duration-200',
+                      'inline-flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm',
                       'border border-slate-300 bg-white text-slate-700',
                       'hover:border-slate-400 hover:bg-slate-50',
                       'active:scale-95'
@@ -183,6 +186,40 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
                   </button>
                 )}
               </div>
+
+              {/* 컨펌 다이얼로그 */}
+              <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                <DialogContent className="max-w-sm mx-4">
+                  <DialogHeader>
+                    <DialogTitle>커뮤니티에 공유</DialogTitle>
+                    <DialogDescription>
+                      이 AI 답변이 내 피드에 공유됩니다. 다른 커리어리 사용자들이 볼 수 있습니다.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <button
+                      onClick={() => setShowConfirmDialog(false)}
+                      className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      취소
+                    </button>
+                    <button
+                      onClick={handleShare}
+                      disabled={shareToCommunity.isPending}
+                      className="px-4 py-2 text-sm font-medium text-white bg-teal-500 rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
+                    >
+                      {shareToCommunity.isPending ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          공유 중...
+                        </span>
+                      ) : (
+                        '공유하기'
+                      )}
+                    </button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
