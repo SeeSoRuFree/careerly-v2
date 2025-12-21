@@ -33,6 +33,7 @@ export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   description: string;
   author?: {
     id: number;
+    profile_id?: number;
     name: string;
     email: string;
     image_url: string | null;
@@ -152,7 +153,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
           <div className="flex items-center justify-between">
             {author ? (
               <Link
-                href={`/profile/${author.id}`}
+                href={`/profile/${author.profile_id || author.id}`}
                 className="flex items-center gap-3 hover:opacity-80 transition-opacity no-underline"
                 onClick={(e) => e.stopPropagation()}
               >

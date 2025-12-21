@@ -308,6 +308,8 @@ export type MessageFeedbackResponse = ChatSessionMessage;
 export interface SessionAuthor {
   /** 작성자 ID */
   id: number;
+  /** 프로필 ID */
+  profile_id?: number;
   /** 작성자 이름 */
   name: string;
   /** 작성자 직무 */
@@ -402,6 +404,8 @@ export interface ShareToCommunityResponse {
 export interface TrendingSessionAuthor {
   /** 작성자 ID */
   id: string;
+  /** 프로필 ID */
+  profileId?: number;
   /** 닉네임 */
   nickname: string;
   /** 직무 */

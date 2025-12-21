@@ -52,6 +52,7 @@ function parsePrompt(text: string): { question: string; profile: string | null }
 
 type UserProfile = {
   id: number;
+  profile_id?: number;
   name: string;
   image_url: string;
   headline: string;
@@ -123,6 +124,7 @@ function PostDetailDrawerContent({
     return commentsData.results.map((comment) => ({
       id: comment.id,
       userId: comment.user_id,
+      userProfileId: comment.author_profile_id,
       userName: comment.author_name,
       userImage: comment.author_image_url,
       userHeadline: comment.author_headline,
@@ -236,7 +238,7 @@ function PostDetailDrawerContent({
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="text-sm text-slate-500">by.</span>
                 <button
-                  onClick={() => router.push(`/profile/${post.author?.id}`)}
+                  onClick={() => router.push(`/profile/${post.author?.profile_id || post.author?.id}`)}
                   className="text-sm text-slate-600 hover:text-teal-600 transition-colors font-medium"
                 >
                   {post.author.name}
@@ -401,7 +403,7 @@ function PostDetailDrawerContent({
                     <div key={comment.id} className="py-3 first:pt-0">
                       <div className="flex items-start gap-2">
                         <a
-                          href={`/profile/${comment.userId}`}
+                          href={`/profile/${comment.userProfileId || comment.userId}`}
                           className="hover:opacity-80 transition-opacity flex-shrink-0"
                         >
                           <Avatar className="h-10 w-10">
@@ -413,7 +415,7 @@ function PostDetailDrawerContent({
                           <div className="flex items-start justify-between mb-1">
                             <div className="flex-1">
                               <a
-                                href={`/profile/${comment.userId}`}
+                                href={`/profile/${comment.userProfileId || comment.userId}`}
                                 className="hover:opacity-80 transition-opacity"
                               >
                                 <span className="font-semibold text-slate-900 text-sm">
@@ -502,6 +504,7 @@ function PostDetailDrawerContent({
   const userProfile = post.author
     ? {
         id: post.author.id,
+        profile_id: post.author.profile_id,
         name: post.author.name,
         image_url: post.author.image_url,
         headline: post.author.headline,
@@ -509,6 +512,7 @@ function PostDetailDrawerContent({
       }
     : {
         id: post.userid,
+        profile_id: undefined,
         name: '알 수 없는 사용자',
         image_url: undefined,
         headline: '탈퇴한 사용자',
@@ -583,6 +587,7 @@ function QnaDetailDrawerContent({
   const transformedAnswers = (question as any)?.answers?.map((answer: any) => ({
     id: answer.id,
     userId: answer.user_id,
+    userProfileId: answer.author_profile_id,
     userName: answer.author_name,
     userImage: answer.author_image_url,
     userHeadline: answer.author_headline,
@@ -1234,7 +1239,7 @@ function CommunityPageContent() {
       image_url: follower.image_url || undefined,
       headline: follower.headline || undefined,
       isFollowing: false,
-      href: `/profile/${follower.user_id}`,
+      href: `/profile/${follower.id}`,  // follower.id is profile_id
     }));
   }, [recommendedFollowersCandidates, myFollowingData]);
 
@@ -1360,6 +1365,7 @@ function CommunityPageContent() {
                     // Regular Post
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
+                      profile_id: post.author.profile_id,
                       name: post.author.name,
                       image_url: post.author.image_url || '',
                       headline: post.author.headline || '',
@@ -1367,6 +1373,7 @@ function CommunityPageContent() {
                       small_image_url: post.author.image_url || '',
                     } : {
                       id: post.userid,
+                      profile_id: undefined,
                       name: '알 수 없는 사용자',
                       image_url: '',
                       headline: '',
@@ -1405,6 +1412,7 @@ function CommunityPageContent() {
                     trackImpression(question.id);
                     const author = {
                       id: question.user_id,
+                      profile_id: (question as any).author_profile_id,
                       name: question.author_name,
                       email: '',
                       image_url: (question as any).author_image_url || null,
@@ -1495,6 +1503,7 @@ function CommunityPageContent() {
                     // Regular Post
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
+                      profile_id: post.author.profile_id,
                       name: post.author.name,
                       image_url: post.author.image_url || '',
                       headline: post.author.headline || '',
@@ -1502,6 +1511,7 @@ function CommunityPageContent() {
                       small_image_url: post.author.image_url || '',
                     } : {
                       id: post.userid,
+                      profile_id: undefined,
                       name: '알 수 없는 사용자',
                       image_url: '',
                       headline: '',
@@ -1540,6 +1550,7 @@ function CommunityPageContent() {
                     trackImpression(question.id);
                     const author = {
                       id: question.user_id,
+                      profile_id: (question as any).author_profile_id,
                       name: question.author_name,
                       email: '',
                       image_url: (question as any).author_image_url || null,
@@ -1610,6 +1621,7 @@ function CommunityPageContent() {
                       // Regular Post
                       const userProfile: UserProfile = post.author ? {
                         id: post.author.id,
+                        profile_id: post.author.profile_id,
                         name: post.author.name,
                         image_url: post.author.image_url || '',
                         headline: post.author.headline || '',
@@ -1617,6 +1629,7 @@ function CommunityPageContent() {
                         small_image_url: post.author.image_url || '',
                       } : {
                         id: post.userid,
+                        profile_id: undefined,
                         name: '알 수 없는 사용자',
                         image_url: '',
                         headline: '',
@@ -1656,6 +1669,7 @@ function CommunityPageContent() {
                       trackImpression(question.id);
                       const author = {
                         id: question.user_id,
+                        profile_id: (question as any).author_profile_id,
                         name: question.author_name,
                         email: '',
                         image_url: (question as any).author_image_url || null,
@@ -1737,7 +1751,7 @@ function CommunityPageContent() {
               {selectedContent.type === 'post' && selectedContent.userProfile ? (
                 <div className="flex items-center gap-3 flex-1">
                   <button
-                    onClick={() => window.open(`/profile/${selectedContent.userProfile?.id}`, '_blank')}
+                    onClick={() => window.open(`/profile/${selectedContent.userProfile?.profile_id || selectedContent.userProfile?.id}`, '_blank')}
                     className="flex items-center gap-3 hover:opacity-80 transition-opacity group"
                     aria-label="프로필 보기"
                   >

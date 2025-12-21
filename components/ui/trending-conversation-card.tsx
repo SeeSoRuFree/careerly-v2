@@ -14,6 +14,7 @@ export interface TrendingConversation {
   commentCount?: number;
   author: {
     id?: string;
+    profileId?: number;
     nickname: string;
     avatarUrl?: string;
     jobTitle?: string;
@@ -45,10 +46,11 @@ export function TrendingConversationCard({
   };
 
   const handleAuthorClick = (e: React.MouseEvent) => {
-    if (author.isAnonymous || !author.id) return;
+    const authorProfileId = author.profileId?.toString() || author.id;
+    if (author.isAnonymous || !authorProfileId) return;
     e.preventDefault();
     e.stopPropagation();
-    onAuthorClick?.(author.id);
+    onAuthorClick?.(authorProfileId);
   };
 
   return (

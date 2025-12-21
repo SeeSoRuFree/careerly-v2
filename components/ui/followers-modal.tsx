@@ -12,6 +12,7 @@ export interface FollowUser {
   id: number;
   user: {
     id: number;
+    profile_id: number | null;
     name: string;
     image_url: string | null;
     small_image_url: string | null;
@@ -143,7 +144,7 @@ export function FollowersModal({
                         'flex items-center justify-between p-3 rounded-lg transition-colors',
                         onUserClick && 'hover:bg-slate-50 cursor-pointer active:bg-slate-100'
                       )}
-                      onClick={() => onUserClick?.(user.id)}
+                      onClick={() => onUserClick?.(user.profile_id ?? user.id)}
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         <Avatar className="h-10 w-10 shrink-0">

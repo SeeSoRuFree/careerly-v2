@@ -12,6 +12,7 @@ export interface Comment {
   depth: number;
   user_id: number;
   author_name: string;
+  author_profile_id?: number;
   author_image_url?: string;
   author_headline?: string;
   content: string;

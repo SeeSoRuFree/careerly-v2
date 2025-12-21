@@ -40,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MonthPicker } from '@/components/ui/month-picker';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
-  useProfileByUserId,
+  useProfileById,
   useInfinitePosts,
   useInfiniteQuestions,
   useFollowStatus,
@@ -139,18 +139,18 @@ function ProfileSkeleton() {
   );
 }
 
-export default function UserProfilePage({ params }: { params: { userId: string } }) {
+export default function UserProfilePage({ params }: { params: { profileId: string } }) {
   const router = useRouter();
 
   // API 데이터 가져오기
-  const userId = parseInt(params.userId, 10);
-  const { data: profile, isLoading, error } = useProfileByUserId(userId);
+  const profileId = parseInt(params.profileId, 10);
+  const { data: profile, isLoading, error } = useProfileById(profileId);
   const { data: currentUser, isLoading: isLoadingCurrentUser } = useCurrentUser();
 
-  // 본인 프로필 여부
-  const isOwnProfile = currentUser?.id === userId;
-  // currentUser 로드 완료 후 본인 프로필인지 확인된 상태
-  const isOwnProfileConfirmed = !isLoadingCurrentUser && isOwnProfile;
+  // 본인 프로필 여부 (프로필의 user_id와 현재 사용자 id 비교)
+  const isOwnProfile = profile && currentUser ? currentUser.id === profile.user_id : false;
+  // currentUser와 profile 로드 완료 후 본인 프로필인지 확인된 상태
+  const isOwnProfileConfirmed = !isLoadingCurrentUser && !isLoading && isOwnProfile;
 
   // 탭 상태 (본인 프로필일 때만 사용)
   const [activeTab, setActiveTab] = useState<ContentTab>('posts');
@@ -212,9 +212,9 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   // GA4: profile_view 이벤트 트래킹
   useEffect(() => {
     if (!isLoadingCurrentUser && profile) {
-      trackProfileView(String(userId), isOwnProfile);
+      trackProfileView(String(profile.user_id), isOwnProfile);
     }
-  }, [userId, isOwnProfile, isLoadingCurrentUser, profile]);
+  }, [profile, isOwnProfile, isLoadingCurrentUser]);
 
   // 프로필 데이터 로드 시 상태 초기화
   useEffect(() => {
@@ -235,7 +235,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     fetchNextPage: fetchNextPosts,
     hasNextPage: hasNextPosts,
     isFetchingNextPage: isFetchingNextPosts,
-  } = useInfinitePosts({ user_id: userId });
+  } = useInfinitePosts({ user_id: profile?.user_id });
 
   const {
     data: questionsData,
@@ -243,7 +243,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     fetchNextPage: fetchNextQuestions,
     hasNextPage: hasNextQuestions,
     isFetchingNextPage: isFetchingNextQuestions,
-  } = useInfiniteQuestions({ user_id: userId });
+  } = useInfiniteQuestions({ user_id: profile?.user_id });
 
   // 본인 프로필일 때 북마크 데이터
   const {
@@ -277,7 +277,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
 
   // 팔로우 상태 조회 (로그인한 경우에만, 자기 자신이 아닐 때만)
   const { data: followStatus, isLoading: isLoadingFollowStatus } = useFollowStatus(
-    isOwnProfile ? undefined : userId
+    isOwnProfile ? undefined : profile?.user_id
   );
 
   // 해당 프로필 유저의 팔로워/팔로잉 목록 조회 (무한 스크롤, 모달이 열릴 때만)
@@ -287,7 +287,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     fetchNextPage: fetchNextFollowers,
     hasNextPage: hasNextFollowers,
     isFetchingNextPage: isFetchingNextFollowers,
-  } = useInfiniteUserFollowers(userId, followersModalOpen);
+  } = useInfiniteUserFollowers(profile?.user_id, followersModalOpen);
 
   const {
     data: followingData,
@@ -295,7 +295,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
     fetchNextPage: fetchNextFollowing,
     hasNextPage: hasNextFollowing,
     isFetchingNextPage: isFetchingNextFollowing,
-  } = useInfiniteUserFollowing(userId, followingModalOpen);
+  } = useInfiniteUserFollowing(profile?.user_id, followingModalOpen);
 
   // 내(현재 로그인 유저)의 팔로잉 목록 조회 (모달이 열릴 때만, 타인 프로필일 때만)
   const isModalOpen = followersModalOpen || followingModalOpen;
@@ -381,7 +381,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const blockMutation = useBlockUser();
   const unblockMutation = useUnblockUser();
   const { data: isBlocked, isLoading: isLoadingBlockStatus } = useIsUserBlocked(
-    isOwnProfile ? 0 : userId
+    isOwnProfile ? 0 : (profile?.user_id || 0)
   );
 
   // 본인 프로필 편집 mutations
@@ -725,30 +725,30 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const isBlockLoading = blockMutation.isPending || unblockMutation.isPending;
 
   const handleFollowToggle = () => {
-    if (isFollowLoading) return;
+    if (isFollowLoading || !profile?.user_id) return;
 
     if (isFollowing) {
-      unfollowMutation.mutate(userId);
+      unfollowMutation.mutate(profile.user_id);
     } else {
-      followMutation.mutate(userId);
+      followMutation.mutate(profile.user_id);
     }
   };
 
   const handleReportProfile = () => {
-    if (!currentUser) {
+    if (!currentUser || !profile?.user_id) {
       // TODO: Show login modal
       return;
     }
-    reportMutation.mutate({ contentType: CONTENT_TYPE.PROFILE, contentId: userId });
+    reportMutation.mutate({ contentType: CONTENT_TYPE.PROFILE, contentId: profile.user_id });
   };
 
   const handleBlockToggle = () => {
-    if (isBlockLoading || !currentUser) return;
+    if (isBlockLoading || !currentUser || !profile?.user_id) return;
 
     if (isBlocked) {
-      unblockMutation.mutate(userId);
+      unblockMutation.mutate(profile.user_id);
     } else {
-      blockMutation.mutate(userId);
+      blockMutation.mutate(profile.user_id);
     }
   };
 
@@ -1863,7 +1863,8 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                     <div className="space-y-4">
                       {postsData.pages.flatMap(page => page.results).map((post) => {
                         const userProfile = {
-                          id: profile?.user_id || userId,
+                          id: profile?.user_id || post.author?.id || 0,
+                          profile_id: profile?.id,
                           name: profile?.name || post.author?.name || '',
                           image_url: profile?.image_url || post.author?.image_url || '',
                           headline: profile?.headline || post.author?.headline || '',
@@ -1874,7 +1875,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                           <CommunityFeedCard
                             key={post.id}
                             postId={post.id}
-                            authorId={post.author?.id || userId}
+                            authorId={post.author?.id || profile?.user_id || 0}
                             userProfile={userProfile}
                             title={post.title ?? undefined}
                             content={post.description}
@@ -1949,7 +1950,8 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                         // API에서 반환하는 필드 우선 사용, 없으면 프로필 정보 사용
                         const q = question as any;
                         const author = {
-                          id: q.user_id || Number(userId),
+                          id: q.user_id || profile?.user_id || 0,
+                          profile_id: q.author_profile_id || profile?.id,
                           name: q.author_name || profile?.name || '알 수 없음',
                           email: '',
                           image_url: q.author_image_url || profile?.image_url || '',

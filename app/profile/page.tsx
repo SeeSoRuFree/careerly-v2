@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 
-// /profile -> /profile/[userId] 리다이렉트
+// /profile -> /profile/[profileId] 리다이렉트
 // 로그인한 사용자의 프로필 페이지로 이동
 
 export default function ProfilePage() {
@@ -14,8 +14,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!isLoading) {
-      if (currentUser?.id) {
-        router.replace(`/profile/${currentUser.id}`);
+      if (currentUser?.profile_id) {
+        router.replace(`/profile/${currentUser.profile_id}`);
       } else {
         router.replace('/');
       }

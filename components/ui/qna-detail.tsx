@@ -40,6 +40,7 @@ const linkifyOptions = {
 export interface Answer {
   id: number;
   userId: number;
+  userProfileId?: number;
   userName?: string;
   userImage?: string;
   userHeadline?: string;
@@ -275,7 +276,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
             <div className="p-2 pb-3 pt-3 border-b border-slate-200">
               <div className="flex items-start gap-2">
                 <a
-                  href={`/profile/${acceptedAnswer.userId}`}
+                  href={`/profile/${acceptedAnswer.userProfileId || acceptedAnswer.userId}`}
                   onClick={(e) => e.stopPropagation()}
                   className="hover:opacity-80 transition-opacity flex-shrink-0"
                 >
@@ -291,7 +292,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                   <div className="flex items-start justify-between mb-1">
                     <div className="flex-1">
                       <a
-                        href={`/profile/${acceptedAnswer.userId}`}
+                        href={`/profile/${acceptedAnswer.userProfileId || acceptedAnswer.userId}`}
                         onClick={(e) => e.stopPropagation()}
                         className="hover:opacity-80 transition-opacity"
                       >
@@ -393,7 +394,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                     <div key={answer.id} className="p-2 pb-3 pt-3">
                       <div className="flex items-start gap-2">
                         <a
-                          href={`/profile/${answer.userId}`}
+                          href={`/profile/${answer.userProfileId || answer.userId}`}
                           onClick={(e) => e.stopPropagation()}
                           className="hover:opacity-80 transition-opacity flex-shrink-0"
                         >
@@ -406,7 +407,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                           <div className="flex items-start justify-between mb-1">
                             <div className="flex-1">
                               <a
-                                href={`/profile/${answer.userId}`}
+                                href={`/profile/${answer.userProfileId || answer.userId}`}
                                 onClick={(e) => e.stopPropagation()}
                                 className="hover:opacity-80 transition-opacity"
                               >

@@ -41,6 +41,7 @@ export interface AIChatPostCardProps extends React.HTMLAttributes<HTMLDivElement
   authorName?: string;
   authorImageUrl?: string;
   authorId?: number;
+  authorProfileId?: number;
 }
 
 export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardProps>(
@@ -60,6 +61,7 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
       authorName,
       authorImageUrl,
       authorId,
+      authorProfileId,
       className,
       ...props
     },
@@ -128,7 +130,7 @@ export const AIChatPostCard = React.forwardRef<HTMLDivElement, AIChatPostCardPro
                 <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-sm text-slate-500">by.</span>
                   <Link
-                    href={`/profile/${authorId}`}
+                    href={`/profile/${authorProfileId || authorId}`}
                     variant="nav"
                     className="text-sm text-slate-600 hover:text-teal-600 transition-colors font-medium"
                     onClick={(e) => e.stopPropagation()}

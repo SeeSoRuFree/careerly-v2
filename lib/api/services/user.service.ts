@@ -110,6 +110,7 @@ export interface FollowUser {
   followeeuserid: number;
   user: {
     id: number;
+    profile_id: number | null;
     name: string;
     image_url: string | null;
     small_image_url: string | null;

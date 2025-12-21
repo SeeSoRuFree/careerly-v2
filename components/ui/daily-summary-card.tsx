@@ -169,7 +169,7 @@ export function DailySummaryCard({
           label: (item: any) => {
             if (!weeklyStats) return '';
             const stat = weeklyStats[item.dataIndex];
-            return `${stat.count}건 · ${stat.companies}개 기업`;
+            return `${stat.count.toLocaleString()}건`;
           },
         },
       },

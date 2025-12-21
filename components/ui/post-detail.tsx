@@ -42,6 +42,7 @@ const linkifyOptions = {
 export interface Comment {
   id: number;
   userId: number;
+  userProfileId?: number;
   userName: string;
   userImage?: string;
   userHeadline?: string;
@@ -53,6 +54,7 @@ export interface Comment {
 
 export interface UserProfile {
   id: number;
+  profile_id?: number;
   name: string;
   image_url?: string;
   headline?: string;
@@ -236,7 +238,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           {/* Author Profile */}
           <div className="flex items-start justify-between mb-4">
             <a
-              href={`/profile/${userProfile.id}`}
+              href={`/profile/${userProfile.profile_id || userProfile.id}`}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
               <Avatar className="h-10 w-10">
@@ -470,7 +472,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                   <div key={comment.id} className="p-2 pb-3 pt-3">
                     <div className="flex items-start gap-2">
                       <a
-                        href={`/profile/${comment.userId}`}
+                        href={`/profile/${comment.userProfileId || comment.userId}`}
                         onClick={(e) => e.stopPropagation()}
                         className="hover:opacity-80 transition-opacity flex-shrink-0"
                       >
@@ -483,7 +485,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                         <div className="flex items-start justify-between mb-1">
                           <div className="flex-1">
                             <a
-                              href={`/profile/${comment.userId}`}
+                              href={`/profile/${comment.userProfileId || comment.userId}`}
                               onClick={(e) => e.stopPropagation()}
                               className="hover:opacity-80 transition-opacity"
                             >

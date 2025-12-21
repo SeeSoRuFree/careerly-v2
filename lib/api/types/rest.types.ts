@@ -114,6 +114,7 @@ export interface OAuthCallbackRequest {
  */
 export interface User {
   id: number;
+  profile_id?: number;
   name: string;
   email: string;
   phone?: string;

@@ -90,7 +90,7 @@ export default function SettingsPage() {
             {user && (
               <div
                 className="flex items-center gap-4 cursor-pointer hover:bg-slate-100 -mx-4 px-4 py-4 rounded-lg transition-colors"
-                onClick={() => router.push(`/profile/${user.id}`)}
+                onClick={() => router.push(`/profile/${user.profile_id || user.id}`)}
               >
                 <Avatar className="h-14 w-14">
                   <AvatarImage src={user.image_url} alt={user.name} />

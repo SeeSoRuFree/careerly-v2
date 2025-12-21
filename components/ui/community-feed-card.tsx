@@ -30,6 +30,7 @@ const linkifyOptions = {
 
 export interface UserProfile {
   id: number;
+  profile_id?: number;
   name: string;
   image_url?: string;
   headline?: string;
@@ -294,7 +295,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         {/* Header - User Profile */}
         <div className="flex items-start justify-between mb-2">
           <Link
-            href={`/profile/${userProfile.id}`}
+            href={`/profile/${userProfile.profile_id || userProfile.id}`}
             variant="nav"
             className="flex items-start gap-3 hover:opacity-80 transition-opacity"
             onClick={(e) => e.stopPropagation()}
