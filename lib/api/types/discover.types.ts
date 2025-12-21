@@ -75,4 +75,4 @@ export interface DiscoverContentDetail extends Omit<DiscoverContentCardProps, 'r
 }
 
 // 회사 등록 폼 URL
-export const COMPANY_REGISTRATION_FORM_URL = 'https://forms.gle/example';
+export const COMPANY_REGISTRATION_FORM_URL = 'https://publyco.notion.site/1523c8c5199580a39cb9d854a7dbd767';
