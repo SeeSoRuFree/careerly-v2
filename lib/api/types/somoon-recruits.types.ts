@@ -300,7 +300,118 @@ export interface RecruitsContentRankingResponse {
 // ============================================
 
 /**
- * V2 Main API - 일별 통계
+ * V2 Main API - 일별 통계 (새 API 구조)
+ */
+export interface RecruitsV2DailyJobStats {
+  /** 날짜 (YYYY-MM-DD) */
+  date: string;
+  /** 국내 채용공고 수 */
+  domestic: number;
+  /** 글로벌 채용공고 수 */
+  global_jobs: number;
+  /** 전체 채용공고 수 */
+  total: number;
+}
+
+/**
+ * V2 Main API 응답 (search/v2/main) - 통계 전용
+ */
+export interface RecruitsV2MainResponse {
+  /** 전체 회사 수 */
+  company_count: number;
+  /** 전체 진행중인 채용공고 수 */
+  open_jobs_count: number;
+  /** 일별 채용공고 통계 (최근 8일) */
+  daily_company_jobs: RecruitsV2DailyJobStats[];
+}
+
+// ============================================
+// V2 Jobs List API Types (search/v2/jobs_list)
+// ============================================
+
+/**
+ * V2 Jobs List API - 채용공고 아이템
+ */
+export interface RecruitsV2JobItem {
+  /** 채용공고 ID */
+  id: number;
+  /** 제목 */
+  title: string;
+  /** URL */
+  url: string;
+  /** AI 요약 (빈 문자열일 수 있음) */
+  summary: string;
+  /** 생성일 (YYYY-MM-DD) */
+  created_at: string;
+}
+
+/**
+ * V2 Jobs List API - 회사별 채용공고 그룹
+ */
+export interface RecruitsV2CompanyJobGroup {
+  /** 회사명 */
+  company_name: string;
+  /** 회사 sign */
+  company_sign: string;
+  /** 회사 로고 이미지 URL */
+  company_image: string;
+  /** 위치 (local 또는 global) */
+  location: 'local' | 'global';
+  /** 해당 회사의 채용공고 수 */
+  job_count: number;
+  /** 채용공고 목록 */
+  jobs: RecruitsV2JobItem[];
+}
+
+/**
+ * V2 Jobs List API - 페이지네이션 정보
+ */
+export interface RecruitsV2Pagination {
+  /** 현재 페이지 번호 */
+  page: number;
+  /** 페이지당 아이템 수 */
+  page_size: number;
+  /** 전체 페이지 수 */
+  total_pages: number;
+  /** 전체 아이템 수 */
+  total_count: number;
+}
+
+/**
+ * V2 Jobs List API 요청 파라미터 (search/v2/jobs_list)
+ */
+export interface GetV2JobsListParams {
+  /** 날짜 (YYYY-MM-DD 형식, 기본값: 오늘) */
+  date?: string;
+  /** 페이지 번호 (기본값: 1) */
+  page?: number;
+  /** 페이지당 채용공고 개수 (기본값: 50, 최대: 100) */
+  page_size?: number;
+  /** 대상 ('local': 국내 회사만, 'global': 글로벌 회사만, 기본값: 'local') */
+  target?: 'local' | 'global';
+  /** 회사 필터 (company_sign으로 필터링, 쉼표로 구분 가능) */
+  company?: string;
+}
+
+/**
+ * V2 Jobs List API 응답 (search/v2/jobs_list)
+ */
+export interface RecruitsV2JobsListResponse {
+  /** 전체 채용공고 수 */
+  total_count: number;
+  /** 페이지네이션 정보 */
+  pagination: RecruitsV2Pagination;
+  /** 회사별 채용공고 목록 */
+  jobs: RecruitsV2CompanyJobGroup[];
+}
+
+// ============================================
+// Legacy Types (하위 호환성)
+// ============================================
+
+/**
+ * @deprecated Use RecruitsV2DailyJobStats instead
+ * V2 Main API - 일별 통계 (레거시)
  */
 export interface RecruitsV2DailyStat {
   /** 날짜 (YYYY-MM-DD) */
@@ -310,7 +421,8 @@ export interface RecruitsV2DailyStat {
 }
 
 /**
- * V2 Main API - 회사별 채용공고 (객체 내부 값)
+ * @deprecated Use RecruitsV2CompanyJobCount instead
+ * V2 Main API - 회사별 채용공고 데이터 (레거시)
  */
 export interface RecruitsV2CompanyJobsData {
   /** 회사명 */
@@ -326,32 +438,14 @@ export interface RecruitsV2CompanyJobsData {
 }
 
 /**
- * V2 Main API - 회사별 채용공고 (company_sign을 key로 하는 객체)
+ * @deprecated
+ * V2 Main API - 회사별 채용공고 맵 (레거시)
  */
 export type RecruitsV2CompanyJobsMap = Record<string, RecruitsV2CompanyJobsData>;
 
 /**
- * V2 Main API - 채용공고 아이템
- */
-export interface RecruitsV2JobItem {
-  /** 채용공고 ID */
-  id: number;
-  /** 제목 */
-  title: string;
-  /** URL */
-  url: string;
-  /** 생성일 */
-  created_at: string;
-  /** 수정일 */
-  updated_at: string;
-  /** 요약 */
-  summary?: string | null;
-  /** 분석된 채용공고 속성 */
-  jobs_attributes?: RecruitsJobAttributes;
-}
-
-/**
- * V2 Main API - 일별 회사별 채용공고
+ * @deprecated
+ * V2 Main API - 일별 회사별 채용공고 (레거시)
  */
 export interface RecruitsV2DailyCompanyJobs {
   /** 날짜 (YYYY-MM-DD) */
@@ -360,20 +454,6 @@ export interface RecruitsV2DailyCompanyJobs {
   global_company_jobs: RecruitsV2CompanyJobsMap;
   /** 국내 기업 채용공고 (company_sign을 key로 하는 객체) */
   domestic_company_jobs: RecruitsV2CompanyJobsMap;
-}
-
-/**
- * V2 Main API 응답 (search/v2/main)
- */
-export interface RecruitsV2MainResponse {
-  /** 전체 회사 수 */
-  company_count: number;
-  /** 전체 진행중인 채용공고 수 */
-  open_jobs_count: number;
-  /** 최근 7일 일별 통계 */
-  daily_stats: RecruitsV2DailyStat[];
-  /** 일별 회사별 채용공고 데이터 */
-  daily_company_jobs: RecruitsV2DailyCompanyJobs[];
 }
 
 // ============================================

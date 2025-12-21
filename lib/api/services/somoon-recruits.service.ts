@@ -17,6 +17,8 @@ import type {
   SearchJobsByKeywordParams,
   RecruitsKeywordSearchResponse,
   RecruitsV2MainResponse,
+  RecruitsV2JobsListResponse,
+  GetV2JobsListParams,
   RecruitsJobsByIdsResponse,
   RecruitsContentsByIdsResponse,
 } from '../types/somoon-recruits.types';
@@ -176,13 +178,32 @@ export async function searchJobsByKeyword(
 }
 
 /**
- * V2 메인 데이터 조회 (일별 통계 + 회사별 채용공고)
- * @returns 최근 7일 일별 통계 및 회사별 채용공고 데이터
+ * V2 메인 데이터 조회 (일별 통계)
+ * @returns 전체 회사 수, 채용공고 수, 일별 통계 데이터
  */
 export async function getV2MainData(): Promise<RecruitsV2MainResponse> {
   try {
     const response = await somoonRecruitsClient.get<RecruitsV2MainResponse>(
       '/search/v2/main'
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * V2 채용공고 목록 조회 (날짜별 상세)
+ * @param params 조회 파라미터 (date, page, page_size, priority)
+ * @returns 회사별 채용공고 개수 및 채용공고 목록
+ */
+export async function getV2JobsList(
+  params?: GetV2JobsListParams
+): Promise<RecruitsV2JobsListResponse> {
+  try {
+    const response = await somoonRecruitsClient.get<RecruitsV2JobsListResponse>(
+      '/search/v2/jobs_list',
+      { params }
     );
     return response.data;
   } catch (error) {

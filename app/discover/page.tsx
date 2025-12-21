@@ -36,8 +36,8 @@ import type {
 } from '@/components/discover';
 
 // API 훅
-import { useV2MainData, useRecruitsContents, useContentsRanking } from '@/lib/api/hooks/queries/useSomoonRecruits';
-import type { RecruitsV2CompanyJobsData, RecruitsContentType } from '@/lib/api/types/somoon-recruits.types';
+import { useV2MainData, useInfiniteV2JobsList, useRecruitsContents, useContentsRanking } from '@/lib/api/hooks/queries/useSomoonRecruits';
+import type { RecruitsV2CompanyJobGroup, RecruitsContentType } from '@/lib/api/types/somoon-recruits.types';
 
 // 상수
 import { COMPANY_REGISTRATION_FORM_URL } from '@/lib/api/types/discover.types';
@@ -66,14 +66,71 @@ export default function DiscoverPage() {
   const [selectedBookCompany, setSelectedBookCompany] = React.useState<string>('all');
   const [selectedCourseCompany, setSelectedCourseCompany] = React.useState<string>('all');
 
+  // 기업 필터 상태 (채용공고용)
+  const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string | null>(null);
+
   // Drawer 상태
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<ContentDetailData | null>(null);
 
-  // V2 메인 데이터 API 호출
-  const { data: v2MainData, isLoading: isJobsLoading } = useV2MainData({
+  // V2 메인 데이터 API 호출 (통계 전용)
+  const { data: v2MainData } = useV2MainData({
     enabled: contentType === 'jobs',
   });
+
+  // 선택된 날짜 상태 (API 날짜, YYYY-MM-DD)
+  const [selectedDate, setSelectedDate] = React.useState<string>('');
+
+  // API에서 가져온 날짜 목록 (최신 날짜는 수집 중이므로 제외)
+  const availableDates = React.useMemo(() => {
+    if (!v2MainData?.daily_company_jobs) return generateLast7Days().slice(1);
+    return v2MainData.daily_company_jobs
+      .map((stat) => stat.date)
+      .sort((a, b) => b.localeCompare(a)) // 최신 날짜 먼저
+      .slice(1); // 첫 번째(최신) 제거 - 수집 중
+  }, [v2MainData]);
+
+  // 첫 데이터 로드 시 기본 날짜 선택
+  React.useEffect(() => {
+    if (availableDates.length > 0 && !selectedDate) {
+      // 오늘(KST)을 표시하려면 API 날짜는 어제(UTC)여야 함
+      const today = new Date();
+      const yesterdayApiDate = new Date(today);
+      yesterdayApiDate.setDate(today.getDate() - 1);
+      const targetApiDate = yesterdayApiDate.toISOString().split('T')[0];
+
+      const todayDate = availableDates.find(d => d === targetApiDate);
+      setSelectedDate(todayDate || availableDates[0]);
+    }
+  }, [availableDates, selectedDate]);
+
+  // V2 Jobs List API 호출 (무한스크롤) - 탭에 따라 target 변경
+  const {
+    data: jobsListData,
+    isLoading: isJobsLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteV2JobsList(
+    {
+      date: selectedDate,
+      page_size: 50,
+      target: companyTypeTab === 'domestic' ? 'local' : 'global',
+      company: selectedCompanyFilter || undefined,
+    },
+    { enabled: contentType === 'jobs' && !!selectedDate }
+  );
+
+  // 회사 목록용 API 호출 (필터 없이 전체 목록) - 회사 필터 UI용
+  const { data: companyListData } = useInfiniteV2JobsList(
+    {
+      date: selectedDate,
+      page_size: 100, // 회사 목록만 필요하므로 큰 사이즈
+      target: companyTypeTab === 'domestic' ? 'local' : 'global',
+      // company 파라미터 없음 - 전체 회사 목록
+    },
+    { enabled: contentType === 'jobs' && !!selectedDate }
+  );
 
   // 최근 한달 날짜 계산
   const contentDateRange = React.useMemo(() => {
@@ -115,43 +172,13 @@ export default function DiscoverPage() {
     enabled: contentType === 'courses',
   });
 
-  // API에서 가져온 날짜 목록 (UTC 기준 -> 그대로 사용)
-  // 최신 날짜는 항상 수집 중이므로 제외 (slice(1))
-  const availableDates = React.useMemo(() => {
-    if (!v2MainData?.daily_stats) return generateLast7Days().slice(1);
-    return v2MainData.daily_stats
-      .map((stat) => stat.date)
-      .sort((a, b) => b.localeCompare(a)) // 최신 날짜 먼저
-      .slice(1); // 첫 번째(최신) 제거
-  }, [v2MainData]);
-
-  const [selectedDate, setSelectedDate] = React.useState<string>('');
-
-  // 첫 데이터 로드 시 "오늘" 표시에 해당하는 날짜 선택
-  // 오늘(KST)을 표시하려면 API 날짜는 어제(UTC)여야 함
-  React.useEffect(() => {
-    if (availableDates.length > 0 && !selectedDate) {
-      const today = new Date();
-      const yesterdayApiDate = new Date(today);
-      yesterdayApiDate.setDate(today.getDate() - 1);
-      const targetApiDate = yesterdayApiDate.toISOString().split('T')[0];
-
-      // 오늘에 해당하는 API 날짜가 있으면 선택, 없으면 첫 번째
-      const todayDate = availableDates.find(d => d === targetApiDate);
-      setSelectedDate(todayDate || availableDates[0]);
-    }
-  }, [availableDates]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 선택된 날짜를 그대로 API 날짜로 사용 (UTC 기준)
+  // apiDate는 selectedDate와 동일 (하위 호환을 위해 유지)
   const apiDate = selectedDate;
 
-  // 기업 검색 결과 필터링 (실제 API 데이터에서 검색)
-  // Note: companyFilterList가 설정된 후에 검색하도록 아래로 이동
+  // 통계용 데이터 (필터 없는 companyListData에서 가져옴)
+  const statsPageData = companyListData?.pages?.[0];
 
-  // 기업 필터 상태
-  const [selectedCompanyFilter, setSelectedCompanyFilter] = React.useState<string | null>(null);
-
-  // 선택된 날짜의 회사 목록 (채용공고 수 기준 정렬)
+  // 선택된 날짜의 회사 목록 (채용공고 수 기준 정렬) - 새 API에서 가져옴
   interface CompanyFilterItem {
     sign: string;
     name: string;
@@ -161,11 +188,9 @@ export default function DiscoverPage() {
     updatedAt: string;
   }
 
+  // 회사 목록 (companyListData에서 추출 - 필터 없는 전체 목록)
   const companyFilterList = React.useMemo((): CompanyFilterItem[] => {
-    if (!v2MainData?.daily_company_jobs || !apiDate) return [];
-
-    const dailyData = v2MainData.daily_company_jobs.find(d => d.date === apiDate);
-    if (!dailyData) return [];
+    if (!companyListData?.pages) return [];
 
     // 선택된 날짜 기준 상대 시간 계산
     const displayDate = apiDateToDisplayDate(apiDate);
@@ -184,156 +209,123 @@ export default function DiscoverPage() {
       updatedAtLabel = `${diffDays}일 전`;
     }
 
-    const domesticCompanies: RecruitsV2CompanyJobsData[] = dailyData.domestic_company_jobs
-      ? Object.values(dailyData.domestic_company_jobs)
-      : [];
-    const globalCompanies: RecruitsV2CompanyJobsData[] = dailyData.global_company_jobs
-      ? Object.values(dailyData.global_company_jobs)
-      : [];
+    // 모든 페이지의 회사 목록 합치기 (중복 제거)
+    const companyMap = new Map<string, CompanyFilterItem>();
 
-    const domesticList: CompanyFilterItem[] = domesticCompanies.map(c => ({
-      sign: c.company_sign,
-      name: c.company_title,
-      logo: c.company_image,
-      jobCount: c.jobs.length,
-      type: 'domestic' as const,
-      updatedAt: updatedAtLabel,
-    }));
-
-    const globalList: CompanyFilterItem[] = globalCompanies.map(c => ({
-      sign: c.company_sign,
-      name: c.company_title,
-      logo: c.company_image,
-      jobCount: c.jobs.length,
-      type: 'global' as const,
-      updatedAt: updatedAtLabel,
-    }));
+    companyListData.pages.forEach((page) => {
+      page.jobs.forEach((company: RecruitsV2CompanyJobGroup) => {
+        if (!companyMap.has(company.company_sign)) {
+          companyMap.set(company.company_sign, {
+            sign: company.company_sign,
+            name: company.company_name,
+            logo: company.company_image,
+            jobCount: company.job_count,
+            type: company.location === 'local' ? 'domestic' : 'global',
+            updatedAt: updatedAtLabel,
+          });
+        }
+      });
+    });
 
     // 채용공고 수 기준 내림차순 정렬
-    return [...domesticList, ...globalList].sort((a, b) => b.jobCount - a.jobCount);
-  }, [v2MainData, apiDate]);
+    return Array.from(companyMap.values()).sort((a, b) => b.jobCount - a.jobCount);
+  }, [companyListData, apiDate]);
 
-  // 탭에 따라 필터링된 기업 목록
-  const filteredByTabCompanyList = React.useMemo(() => {
-    return companyFilterList.filter(c => c.type === companyTypeTab);
-  }, [companyFilterList, companyTypeTab]);
+  // 탭에 따라 필터링된 기업 목록 (이미 target으로 필터링되어 있음)
+  const filteredByTabCompanyList = companyFilterList;
 
   // 날짜 변경 시 기업 필터 초기화
   React.useEffect(() => {
     setSelectedCompanyFilter(null);
   }, [apiDate]);
 
-  // 선택된 날짜의 채용공고 데이터를 국내/글로벌로 분리
-  const { domesticJobs, globalJobs } = React.useMemo(() => {
-    if (!v2MainData?.daily_company_jobs || !apiDate) {
-      return { domesticJobs: [] as JobItemData[], globalJobs: [] as JobItemData[] };
-    }
+  // 선택된 날짜의 채용공고 데이터 - 회사별 그룹에서 추출
+  const currentTabJobs = React.useMemo((): JobItemData[] => {
+    if (!jobsListData?.pages) return [];
 
-    // 선택된 날짜의 데이터 찾기
-    const dailyData = v2MainData.daily_company_jobs.find(d => d.date === apiDate);
-    if (!dailyData) {
-      return { domesticJobs: [] as JobItemData[], globalJobs: [] as JobItemData[] };
-    }
+    const allJobs: JobItemData[] = [];
 
-    // API 응답이 객체 형태이므로 Object.values로 배열로 변환
-    const globalCompanies: RecruitsV2CompanyJobsData[] = dailyData.global_company_jobs
-      ? Object.values(dailyData.global_company_jobs)
-      : [];
-    const domesticCompanies: RecruitsV2CompanyJobsData[] = dailyData.domestic_company_jobs
-      ? Object.values(dailyData.domestic_company_jobs)
-      : [];
+    // 모든 페이지의 회사별 채용공고를 flat하게 합침
+    jobsListData.pages.forEach((page) => {
+      page.jobs.forEach((company: RecruitsV2CompanyJobGroup) => {
+        company.jobs.forEach((job) => {
+          allJobs.push({
+            id: String(job.id),
+            title: job.title,
+            summary: job.summary || '',
+            url: job.url,
+            companyName: company.company_name,
+            companyLogo: company.company_image,
+            createdAt: job.created_at,
+          });
+        });
+      });
+    });
 
-    // 기업 필터 적용
-    const filterByCompany = (companies: RecruitsV2CompanyJobsData[]) => {
-      if (!selectedCompanyFilter) return companies;
-      return companies.filter(c => c.company_sign === selectedCompanyFilter);
-    };
+    return allJobs;
+  }, [jobsListData]);
 
-    const mapToJobItems = (companies: RecruitsV2CompanyJobsData[]): JobItemData[] =>
-      companies.flatMap((company) =>
-        company.jobs.map((job) => ({
-          id: String(job.id),
-          title: job.title,
-          summary: job.summary || '',
-          url: job.url,
-          companyName: company.company_title,
-          companyLogo: company.company_image,
-          createdAt: job.created_at,
-        }))
-      );
-
-    return {
-      domesticJobs: mapToJobItems(filterByCompany(domesticCompanies)),
-      globalJobs: mapToJobItems(filterByCompany(globalCompanies)),
-    };
-  }, [v2MainData, apiDate, selectedCompanyFilter]);
+  // 하위 호환을 위해 domesticJobs, globalJobs 유지
+  const domesticJobs = companyTypeTab === 'domestic' ? currentTabJobs : [];
+  const globalJobs = companyTypeTab === 'global' ? currentTabJobs : [];
 
   // 전체 채용공고 (국내 + 글로벌)
   const selectedDateJobs = React.useMemo(() => {
     return [...domesticJobs, ...globalJobs];
   }, [domesticJobs, globalJobs]);
 
-  // 선택된 날짜의 채용공고 총 개수 (daily_stats에서 가져오기)
+  // 선택된 날짜의 채용공고 총 개수 - 국내 + 글로벌 합계 (v2MainData에서 가져옴)
   const totalJobCount = React.useMemo(() => {
-    if (!v2MainData?.daily_stats || !apiDate) return 0;
-    const stat = v2MainData.daily_stats.find(s => s.date === apiDate);
-    return stat?.count || selectedDateJobs.length;
+    if (!v2MainData?.daily_company_jobs || !apiDate) return selectedDateJobs.length;
+    const stat = v2MainData.daily_company_jobs.find(s => s.date === apiDate);
+    // domestic + global_jobs 합계
+    return stat ? (stat.domestic + stat.global_jobs) : selectedDateJobs.length;
   }, [v2MainData, apiDate, selectedDateJobs.length]);
 
-  // 국내/글로벌 채용공고 수 (필터 적용 전 전체)
+  // 국내/글로벌 채용공고 수 - v2MainData에서 가져옴 (target 별로 API 호출하므로)
   const { domesticJobCount, globalJobCount } = React.useMemo(() => {
     if (!v2MainData?.daily_company_jobs || !apiDate) {
       return { domesticJobCount: 0, globalJobCount: 0 };
     }
 
-    const dailyData = v2MainData.daily_company_jobs.find(d => d.date === apiDate);
-    if (!dailyData) {
+    const stat = v2MainData.daily_company_jobs.find(s => s.date === apiDate);
+    if (!stat) {
       return { domesticJobCount: 0, globalJobCount: 0 };
     }
 
-    const domesticCompanies = dailyData.domestic_company_jobs
-      ? Object.values(dailyData.domestic_company_jobs)
-      : [];
-    const globalCompanies = dailyData.global_company_jobs
-      ? Object.values(dailyData.global_company_jobs)
-      : [];
-
     return {
-      domesticJobCount: domesticCompanies.reduce((sum, c) => sum + c.jobs.length, 0),
-      globalJobCount: globalCompanies.reduce((sum, c) => sum + c.jobs.length, 0),
+      domesticJobCount: stat.domestic || 0,
+      globalJobCount: stat.global_jobs || 0,
     };
   }, [v2MainData, apiDate]);
 
-  // 날짜별 통계 (날짜 탭에 개수 표시용)
+  // 날짜별 통계 (날짜 탭에 개수 표시용) - v2MainData의 daily_company_jobs 사용
   const dateStats = React.useMemo(() => {
-    if (!v2MainData?.daily_stats) return {};
+    if (!v2MainData?.daily_company_jobs) return {};
     const stats: Record<string, number> = {};
-    v2MainData.daily_stats.forEach((stat) => {
-      stats[stat.date] = stat.count;
+    v2MainData.daily_company_jobs.forEach((stat) => {
+      stats[stat.date] = stat.total;
     });
     return stats;
   }, [v2MainData]);
 
-  // 주간 통계 (차트용) - daily_stats를 WeeklyStat[] 형태로 변환
+  // 주간 통계 (차트용) - daily_company_jobs를 WeeklyStat[] 형태로 변환
   // 최신 날짜는 항상 수집 중이므로 제외
   const weeklyStats = React.useMemo(() => {
-    if (!v2MainData?.daily_stats || !v2MainData?.daily_company_jobs) return [];
+    if (!v2MainData?.daily_company_jobs) return [];
 
-    const sortedStats = [...v2MainData.daily_stats]
+    const sortedStats = [...v2MainData.daily_company_jobs]
       .sort((a, b) => b.date.localeCompare(a.date)) // 최신 먼저
       .slice(1); // 첫 번째(최신) 제거
 
     return sortedStats
       .map((stat) => {
-        // 해당 날짜의 회사 수 계산
-        const dailyData = v2MainData.daily_company_jobs.find(d => d.date === stat.date);
-        const globalCount = dailyData?.global_company_jobs ? Object.keys(dailyData.global_company_jobs).length : 0;
-        const domesticCount = dailyData?.domestic_company_jobs ? Object.keys(dailyData.domestic_company_jobs).length : 0;
-
         return {
           date: stat.date,
-          count: stat.count,
-          companies: globalCount + domesticCount,
+          count: stat.total,
+          // 회사 수는 jobs_list API에서 가져와야 하지만, 차트에서는 개략적으로 표시
+          // jobsListData가 현재 선택된 날짜만 있으므로 0으로 표시
+          companies: 0,
         };
       })
       .sort((a, b) => a.date.localeCompare(b.date)); // 오래된 날짜 먼저 (차트용)
@@ -1226,6 +1218,26 @@ export default function DiscoverPage() {
                 )}
                 {companyTypeTab === 'global' && globalJobs.length === 0 && (
                   <EmptyState message="글로벌 기업 채용공고가 없습니다" description="다른 날짜나 탭을 선택해보세요." />
+                )}
+
+                {/* 더 불러오기 버튼 */}
+                {hasNextPage && (
+                  <div className="flex justify-center pt-4">
+                    <button
+                      onClick={() => fetchNextPage()}
+                      disabled={isFetchingNextPage}
+                      className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isFetchingNextPage ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          불러오는 중...
+                        </>
+                      ) : (
+                        '더 보기'
+                      )}
+                    </button>
+                  </div>
                 )}
               </div>
             )}

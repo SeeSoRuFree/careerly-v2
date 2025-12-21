@@ -11,6 +11,7 @@ import {
   getContentsRanking,
   searchJobsByKeyword,
   getV2MainData,
+  getV2JobsList,
   getJobsByIds,
   getContentsByIds,
 } from '../../services/somoon-recruits.service';
@@ -27,6 +28,8 @@ import type {
   SearchJobsByKeywordParams,
   RecruitsKeywordSearchResponse,
   RecruitsV2MainResponse,
+  RecruitsV2JobsListResponse,
+  GetV2JobsListParams,
   RecruitsJobsByIdsResponse,
   RecruitsContentsByIdsResponse,
 } from '../../types/somoon-recruits.types';
@@ -47,6 +50,8 @@ export const somoonRecruitsKeys = {
   jobsByIds: (ids: string) =>
     [...somoonRecruitsKeys.jobs(), 'by-ids', ids] as const,
   v2Main: () => [...somoonRecruitsKeys.all, 'v2-main'] as const,
+  v2JobsList: (params?: GetV2JobsListParams) =>
+    [...somoonRecruitsKeys.all, 'v2-jobs-list', params] as const,
   trendReport: (params?: GetTrendReportParams) =>
     [...somoonRecruitsKeys.all, 'trend-report', params] as const,
   companyInfo: (signs: string) =>
@@ -199,7 +204,7 @@ export function useInfiniteSearchJobsByKeyword(
 }
 
 /**
- * V2 메인 데이터 조회 훅 (일별 통계 + 회사별 채용공고)
+ * V2 메인 데이터 조회 훅 (일별 통계)
  */
 export function useV2MainData(
   options?: Omit<UseQueryOptions<RecruitsV2MainResponse>, 'queryKey' | 'queryFn'>
@@ -207,6 +212,48 @@ export function useV2MainData(
   return useQuery({
     queryKey: somoonRecruitsKeys.v2Main(),
     queryFn: getV2MainData,
+    staleTime: 5 * 60 * 1000, // 5분
+    ...options,
+  });
+}
+
+/**
+ * V2 채용공고 목록 조회 훅 (날짜별 상세)
+ * @param params 조회 파라미터 (date, page, page_size, priority)
+ */
+export function useV2JobsList(
+  params?: GetV2JobsListParams,
+  options?: Omit<UseQueryOptions<RecruitsV2JobsListResponse>, 'queryKey' | 'queryFn'>
+) {
+  return useQuery({
+    queryKey: somoonRecruitsKeys.v2JobsList(params),
+    queryFn: () => getV2JobsList(params),
+    staleTime: 5 * 60 * 1000, // 5분
+    ...options,
+  });
+}
+
+/**
+ * V2 채용공고 목록 무한 스크롤 훅 (날짜별 상세)
+ * @param params 조회 파라미터 (date, page_size, priority)
+ */
+export function useInfiniteV2JobsList(
+  params?: Omit<GetV2JobsListParams, 'page'>,
+  options?: { enabled?: boolean }
+) {
+  const pageSize = params?.page_size || 50;
+  return useInfiniteQuery({
+    queryKey: [...somoonRecruitsKeys.v2JobsList(params), 'infinite'],
+    queryFn: ({ pageParam = 1 }) =>
+      getV2JobsList({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedCount = allPages.length * pageSize;
+      if (loadedCount < lastPage.total_count) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
     staleTime: 5 * 60 * 1000, // 5분
     ...options,
   });

@@ -165,6 +165,7 @@ export {
   getContentsRanking,
   searchJobsByKeyword,
   getV2MainData,
+  getV2JobsList,
   getJobsByIds,
   getContentsByIds,
 } from './services/somoon-recruits.service';
@@ -322,6 +323,8 @@ export {
   useContentsRanking,
   useSearchJobsByKeyword,
   useV2MainData,
+  useV2JobsList,
+  useInfiniteV2JobsList,
   useJobsByIds,
   useContentsByIds,
   somoonRecruitsKeys,
@@ -636,12 +639,21 @@ export type {
   RecruitsCompanyInfoResponse,
   RecruitsContentRanking,
   RecruitsContentRankingResponse,
+  // V2 Main API Types (새 구조)
   RecruitsV2MainResponse,
+  RecruitsV2DailyJobStats,
+  // V2 Jobs List API Types (새 API)
+  RecruitsV2JobsListResponse,
+  GetV2JobsListParams,
+  RecruitsV2CompanyJobGroup,
+  RecruitsV2JobItem,
+  RecruitsV2Pagination,
+  // Legacy Types (하위 호환)
   RecruitsV2DailyStat,
   RecruitsV2CompanyJobsData,
   RecruitsV2CompanyJobsMap,
-  RecruitsV2JobItem,
   RecruitsV2DailyCompanyJobs,
+  // Jobs/Contents ID Search
   RecruitsJobDetail,
   RecruitsJobsByIdsResponse,
   RecruitsContentDetail,
