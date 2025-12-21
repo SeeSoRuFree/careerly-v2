@@ -76,8 +76,8 @@ export function useFollowUser(
     onSuccess: (_, userId) => {
       // 팔로우 상태 캐시 무효화
       queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
-      // 내 팔로잉 목록 무효화 (내가 팔로우하는 사람 목록)
-      queryClient.invalidateQueries({ queryKey: ['user', 'following'] });
+      // 모든 팔로잉 관련 쿼리 무효화 (infinite 포함)
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'detail'] });
       // 해당 유저의 프로필 무효화 (팔로워 수 업데이트)
       queryClient.invalidateQueries({ queryKey: ['profile', 'user', userId] });
       // 내 프로필 무효화 (팔로잉 수 업데이트)
@@ -107,8 +107,8 @@ export function useUnfollowUser(
     onSuccess: (_, userId) => {
       // 팔로우 상태 캐시 무효화
       queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
-      // 내 팔로잉 목록 무효화 (내가 팔로우하는 사람 목록)
-      queryClient.invalidateQueries({ queryKey: ['user', 'following'] });
+      // 모든 팔로잉 관련 쿼리 무효화 (infinite 포함)
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'detail'] });
       // 해당 유저의 프로필 무효화 (팔로워 수 업데이트)
       queryClient.invalidateQueries({ queryKey: ['profile', 'user', userId] });
       // 내 프로필 무효화 (팔로잉 수 업데이트)

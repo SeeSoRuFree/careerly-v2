@@ -296,7 +296,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           <div className="mb-3">
             {contentHtml ? (
               <div
-                className="text-slate-900 leading-relaxed prose prose-base max-w-none"
+                className="text-slate-900 leading-relaxed prose prose-base max-w-none prose-p:whitespace-pre-wrap prose-p:my-0"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
               />
             ) : (

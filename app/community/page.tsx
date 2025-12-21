@@ -413,18 +413,20 @@ function QnaDetailDrawerContent({
   const { data: user } = useCurrentUser();
   const { openLoginModal } = useStore();
 
-  // questionId가 있으면 API로 데이터 가져오기
+  const qnaIdNum = questionData?.id || (questionId ? Number(questionId) : 0);
+
+  // 항상 API로 데이터 가져오기 (답변 작성 후 캐시 무효화 시 자동 refetch)
   const { data: fetchedQuestion, isLoading, error } = useQuestion(
-    questionId ? Number(questionId) : 0,
-    { enabled: !!questionId && !questionData }
+    qnaIdNum,
+    { enabled: qnaIdNum > 0 }
   );
 
   const createAnswer = useCreateQuestionAnswer();
   const updateAnswer = useUpdateAnswer();
   const deleteAnswer = useDeleteAnswer();
 
-  // questionData 또는 fetchedQuestion 사용
-  const question = questionData || fetchedQuestion;
+  // API에서 가져온 데이터 우선 사용, 로딩 중에는 questionData 사용
+  const question = fetchedQuestion || questionData;
 
   // 답변 데이터 변환 (question.answers가 있으면 사용, 없으면 빈 배열)
   const transformedAnswers = (question as any)?.answers?.map((answer: any) => ({
@@ -442,8 +444,6 @@ function QnaDetailDrawerContent({
     disliked: false,
   })) || [];
 
-  const questionIdNum = question?.id || (questionId ? Number(questionId) : 0);
-
   const handleAnswerSubmit = async (content: string) => {
     if (!user) {
       openLoginModal();
@@ -451,7 +451,7 @@ function QnaDetailDrawerContent({
     }
     try {
       await createAnswer.mutateAsync({
-        questionId: questionIdNum,
+        questionId: qnaIdNum,
         description: content,
       });
     } catch (error) {
@@ -462,7 +462,7 @@ function QnaDetailDrawerContent({
   const handleAnswerEdit = (answerId: number, content: string) => {
     updateAnswer.mutate({
       id: answerId,
-      questionId: questionIdNum,
+      questionId: qnaIdNum,
       data: { description: content },
     });
   };
@@ -470,11 +470,12 @@ function QnaDetailDrawerContent({
   const handleAnswerDelete = (answerId: number) => {
     deleteAnswer.mutate({
       id: answerId,
-      questionId: questionIdNum,
+      questionId: qnaIdNum,
     });
   };
 
-  if (isLoading) {
+  // 초기 로딩 시에만 로딩 UI 표시 (데이터가 없고 로딩 중일 때)
+  if (isLoading && !question) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
@@ -1627,8 +1628,11 @@ function CommunityPageContent() {
                     handleEditPost(Number(selectedContent.id));
                   }}
                   onDelete={() => {
-                    handleDeletePost(Number(selectedContent.id));
                     handleCloseDrawer();
+                    // drawer가 닫힌 후에 삭제하여 "글을 찾을 수 없습니다" 에러 방지
+                    setTimeout(() => {
+                      handleDeletePost(Number(selectedContent.id));
+                    }, 300);
                   }}
                 />
               )}

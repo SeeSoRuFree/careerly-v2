@@ -76,6 +76,7 @@ import {
   useSavePost,
   useUnsavePost,
   useViewPost,
+  useDeletePost,
   useQuestion,
   useCreateQuestionAnswer,
   useUpdateAnswer,
@@ -396,21 +397,29 @@ export default function UserProfilePage({ params }: { params: { userId: string }
   const savePostMutation = useSavePost();
   const unsavePostMutation = useUnsavePost();
   const viewPostMutation = useViewPost();
+  const deletePostMutation = useDeletePost();
 
   // 게시글 상세 drawer 좋아요/북마크 상태
   const [postLiked, setPostLiked] = useState(false);
   const [postSaved, setPostSaved] = useState(false);
   const [commentLikes, setCommentLikes] = useState<Record<number, boolean>>({});
 
-  // 선택된 게시글 데이터 로드 시 상태 초기화
+  // 선택된 게시글 ID가 변경될 때만 상태 초기화 (Optimistic Update와 충돌 방지)
+  const prevSelectedPostIdRef = useRef<number | null>(null);
   useEffect(() => {
-    if (selectedPost) {
+    if (selectedPostId && selectedPostId !== prevSelectedPostIdRef.current && selectedPost) {
       setPostLiked(selectedPost.is_liked || false);
       setPostSaved(selectedPost.is_saved || false);
       // 조회수 증가
-      viewPostMutation.mutate(selectedPost.id);
+      viewPostMutation.mutate(selectedPostId);
+      prevSelectedPostIdRef.current = selectedPostId;
     }
-  }, [selectedPost]);
+    // 게시글 닫을 때 ref 초기화
+    if (!selectedPostId) {
+      prevSelectedPostIdRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPostId, selectedPost]);
 
   // 댓글 좋아요 상태 초기화
   useEffect(() => {
@@ -1885,7 +1894,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                             }}
                             onEdit={isOwnProfile ? () => router.push(`/community/edit/post/${post.id}`) : undefined}
                             onDelete={isOwnProfile ? () => {
-                              // TODO: 삭제 확인 다이얼로그 추가
+                              deletePostMutation.mutate(post.id);
                             } : undefined}
                             liked={post.is_liked}
                             bookmarked={post.is_saved}
@@ -2285,7 +2294,13 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                           router.push(`/community/edit/post/${selectedPostId}`);
                         }}
                         onDelete={() => {
-                          handleCloseDrawer();
+                          if (selectedPostId) {
+                            deletePostMutation.mutate(selectedPostId, {
+                              onSuccess: () => {
+                                handleCloseDrawer();
+                              },
+                            });
+                          }
                         }}
                         onCommentLike={handleCommentLike}
                         onCommentSubmit={handleCommentSubmit}

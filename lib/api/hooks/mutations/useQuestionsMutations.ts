@@ -165,6 +165,9 @@ export function useCreateQuestionAnswer(
       // 전체 답변 목록 무효화
       queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
 
+      // 질문 목록 무효화 (답변 수, 상태 업데이트를 위해)
+      queryClient.invalidateQueries({ queryKey: questionKeys.lists() });
+
       toast.success('답변이 작성되었습니다.');
     },
     onError: (error) => {
@@ -193,6 +196,9 @@ export function useCreateAnswer(
 
       // 전체 답변 목록 무효화
       queryClient.invalidateQueries({ queryKey: answerKeys.lists() });
+
+      // 질문 목록 무효화 (답변 수, 상태 업데이트를 위해)
+      queryClient.invalidateQueries({ queryKey: questionKeys.lists() });
 
       toast.success('답변이 생성되었습니다.');
     },

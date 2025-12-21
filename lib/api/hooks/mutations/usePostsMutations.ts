@@ -133,6 +133,59 @@ export function useDeletePost(
   });
 }
 
+// 목록 캐시에서 게시물 좋아요 상태를 Optimistic Update하는 헬퍼 함수
+function updatePostLikeInCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  postId: number,
+  isLiked: boolean
+) {
+  // 모든 목록 캐시를 순회하며 해당 게시물의 좋아요 상태 업데이트
+  queryClient.setQueriesData(
+    { queryKey: postsKeys.lists() },
+    (oldData: any) => {
+      if (!oldData) return oldData;
+      // InfiniteQuery 데이터 구조 처리
+      if (oldData.pages) {
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            results: page.results?.map((post: any) =>
+              post.id === postId
+                ? {
+                    ...post,
+                    is_liked: isLiked,
+                    like_count: isLiked
+                      ? (post.like_count || 0) + 1
+                      : Math.max((post.like_count || 0) - 1, 0),
+                  }
+                : post
+            ),
+          })),
+        };
+      }
+      // 일반 쿼리 데이터 구조 처리
+      if (oldData.results) {
+        return {
+          ...oldData,
+          results: oldData.results.map((post: any) =>
+            post.id === postId
+              ? {
+                  ...post,
+                  is_liked: isLiked,
+                  like_count: isLiked
+                    ? (post.like_count || 0) + 1
+                    : Math.max((post.like_count || 0) - 1, 0),
+                }
+              : post
+          ),
+        };
+      }
+      return oldData;
+    }
+  );
+}
+
 /**
  * 게시물 좋아요 mutation
  */
@@ -143,13 +196,38 @@ export function useLikePost(
 
   return useMutation<void, Error, number>({
     mutationFn: likePost,
-    onSuccess: (_, postId) => {
-      // 해당 게시물 상세 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+    onMutate: async (postId) => {
+      // 진행 중인 refetch 취소
+      await queryClient.cancelQueries({ queryKey: postsKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: postsKeys.detail(postId) });
 
+      // Optimistic Update 적용
+      updatePostLikeInCache(queryClient, postId, true);
+
+      // 상세 캐시도 업데이트
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          is_liked: true,
+          like_count: (oldData.like_count || 0) + 1,
+        };
+      });
+    },
+    onSuccess: () => {
       toast.success('게시물을 좋아합니다.');
     },
-    onError: (error) => {
+    onError: (error, postId) => {
+      // 에러 시 롤백
+      updatePostLikeInCache(queryClient, postId, false);
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          is_liked: false,
+          like_count: Math.max((oldData.like_count || 0) - 1, 0),
+        };
+      });
       toast.error(error.message || '좋아요에 실패했습니다.');
     },
     ...options,
@@ -166,17 +244,83 @@ export function useUnlikePost(
 
   return useMutation<void, Error, number>({
     mutationFn: unlikePost,
-    onSuccess: (_, postId) => {
-      // 해당 게시물 상세 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+    onMutate: async (postId) => {
+      // 진행 중인 refetch 취소
+      await queryClient.cancelQueries({ queryKey: postsKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: postsKeys.detail(postId) });
 
+      // Optimistic Update 적용
+      updatePostLikeInCache(queryClient, postId, false);
+
+      // 상세 캐시도 업데이트
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          is_liked: false,
+          like_count: Math.max((oldData.like_count || 0) - 1, 0),
+        };
+      });
+    },
+    onSuccess: () => {
       toast.success('좋아요를 취소했습니다.');
     },
-    onError: (error) => {
+    onError: (error, postId) => {
+      // 에러 시 롤백
+      updatePostLikeInCache(queryClient, postId, true);
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          is_liked: true,
+          like_count: (oldData.like_count || 0) + 1,
+        };
+      });
       toast.error(error.message || '좋아요 취소에 실패했습니다.');
     },
     ...options,
   });
+}
+
+// 목록 캐시에서 게시물 북마크 상태를 Optimistic Update하는 헬퍼 함수
+function updatePostSaveInCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+  postId: number,
+  isSaved: boolean
+) {
+  // 모든 목록 캐시를 순회하며 해당 게시물의 북마크 상태 업데이트
+  queryClient.setQueriesData(
+    { queryKey: postsKeys.lists() },
+    (oldData: any) => {
+      if (!oldData) return oldData;
+      // InfiniteQuery 데이터 구조 처리
+      if (oldData.pages) {
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            results: page.results?.map((post: any) =>
+              post.id === postId
+                ? { ...post, is_saved: isSaved }
+                : post
+            ),
+          })),
+        };
+      }
+      // 일반 쿼리 데이터 구조 처리
+      if (oldData.results) {
+        return {
+          ...oldData,
+          results: oldData.results.map((post: any) =>
+            post.id === postId
+              ? { ...post, is_saved: isSaved }
+              : post
+          ),
+        };
+      }
+      return oldData;
+    }
+  );
 }
 
 /**
@@ -189,13 +333,30 @@ export function useSavePost(
 
   return useMutation<void, Error, number>({
     mutationFn: savePost,
-    onSuccess: (_, postId) => {
-      // 해당 게시물 상세 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+    onMutate: async (postId) => {
+      // 진행 중인 refetch 취소
+      await queryClient.cancelQueries({ queryKey: postsKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: postsKeys.detail(postId) });
 
+      // Optimistic Update 적용
+      updatePostSaveInCache(queryClient, postId, true);
+
+      // 상세 캐시도 업데이트
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, is_saved: true };
+      });
+    },
+    onSuccess: () => {
       toast.success('게시물을 저장했습니다.');
     },
-    onError: (error) => {
+    onError: (error, postId) => {
+      // 에러 시 롤백
+      updatePostSaveInCache(queryClient, postId, false);
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, is_saved: false };
+      });
       toast.error(error.message || '저장에 실패했습니다.');
     },
     ...options,
@@ -212,13 +373,30 @@ export function useUnsavePost(
 
   return useMutation<void, Error, number>({
     mutationFn: unsavePost,
-    onSuccess: (_, postId) => {
-      // 해당 게시물 상세 캐시 무효화
-      queryClient.invalidateQueries({ queryKey: postsKeys.detail(postId) });
+    onMutate: async (postId) => {
+      // 진행 중인 refetch 취소
+      await queryClient.cancelQueries({ queryKey: postsKeys.lists() });
+      await queryClient.cancelQueries({ queryKey: postsKeys.detail(postId) });
 
+      // Optimistic Update 적용
+      updatePostSaveInCache(queryClient, postId, false);
+
+      // 상세 캐시도 업데이트
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, is_saved: false };
+      });
+    },
+    onSuccess: () => {
       toast.success('저장을 취소했습니다.');
     },
-    onError: (error) => {
+    onError: (error, postId) => {
+      // 에러 시 롤백
+      updatePostSaveInCache(queryClient, postId, true);
+      queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, is_saved: true };
+      });
       toast.error(error.message || '저장 취소에 실패했습니다.');
     },
     ...options,

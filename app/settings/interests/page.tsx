@@ -61,13 +61,13 @@ export default function InterestsSettingsPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 bg-slate-50 z-50 safe-pt pb-2">
-        <div className="max-w-3xl mx-auto px-4 flex items-center justify-between">
+      <header className="w-full bg-slate-50 sticky top-0 z-50 safe-pt pb-2">
+        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
-              <ChevronLeft className="h-6 w-6" />
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-slate-200">
+              <ChevronLeft className="h-6 w-6 text-slate-900" />
             </Button>
-            <span className="font-semibold">관심사 설정</span>
+            <span className="font-semibold text-slate-900">관심사 설정</span>
           </div>
           <Button onClick={handleSave} disabled={!hasChanges || updateInterests.isPending}>
             저장

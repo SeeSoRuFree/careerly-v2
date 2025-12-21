@@ -106,7 +106,7 @@ export default function EditPostPage() {
 
   const handleCancel = () => {
     if (confirm('수정을 취소하시겠습니까? 변경사항이 저장되지 않습니다.')) {
-      router.push('/community');
+      router.back();
     }
   };
 
@@ -130,7 +130,7 @@ export default function EditPostPage() {
       });
 
       toast.success('글이 수정되었습니다.');
-      router.push('/community');
+      router.back();
     } catch (error) {
       console.error('Failed to update post:', error);
     }
