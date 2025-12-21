@@ -105,6 +105,22 @@ import { trackProfileView } from '@/lib/analytics';
 
 type ContentTab = 'posts' | 'qna' | 'bookmarks' | 'ai-chats';
 
+// 프롬프트에서 질문과 프로필 분리
+function parsePrompt(text: string): { question: string; profile: string | null } {
+  const separator = '\n---\n';
+  const separatorIndex = text.indexOf(separator);
+
+  if (separatorIndex === -1) {
+    return { question: text, profile: null };
+  }
+
+  const question = text.substring(0, separatorIndex).trim();
+  const profileSection = text.substring(separatorIndex + separator.length).trim();
+  const profile = profileSection.replace(/^내정보:\s*/i, '').trim();
+
+  return { question, profile };
+}
+
 function ProfileSkeleton() {
   return (
     <div className="space-y-6">
@@ -2076,7 +2092,10 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                 ) : (
                   <>
                     <div className="space-y-2">
-                      {chatSessionsData.pages.flatMap(page => page.results || []).map((session) => (
+                      {chatSessionsData.pages.flatMap(page => page.results || []).map((session) => {
+                        // 제목에서 프로필 정보 제거
+                        const { question: parsedTitle } = parsePrompt(session.title || '');
+                        return (
                         <div
                           key={session.id}
                           className="flex items-center justify-between p-4 rounded-lg border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors cursor-pointer group"
@@ -2084,7 +2103,7 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                         >
                           <div className="flex-1 min-w-0 mr-3">
                             <h3 className="text-sm font-medium text-slate-900 truncate">
-                              {session.title || '제목 없음'}
+                              {parsedTitle || '제목 없음'}
                             </h3>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-slate-400">
@@ -2142,7 +2161,8 @@ export default function UserProfilePage({ params }: { params: { userId: string }
                             <ChevronRight className="h-4 w-4 text-slate-400" />
                           </div>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                     <LoadMore
                       hasMore={!!hasNextChatSessions}
