@@ -124,6 +124,8 @@ function SharePageContent() {
       id: trendingSession.id,
       title: trendingSession.question,
       viewCount: trendingSession.viewCount,
+      likeCount: trendingSession.likeCount,
+      commentCount: trendingSession.commentCount,
     })) || [];
 
   return (

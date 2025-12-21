@@ -3,12 +3,14 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { MessageCircleQuestion, Eye } from 'lucide-react';
+import { MessageCircleQuestion, Eye, Heart, MessageCircle } from 'lucide-react';
 
 export interface RelatedQuestion {
   id: string;
   title: string;
   viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
   href?: string;
 }
 
@@ -51,13 +53,32 @@ const RelatedQuestionsCard = React.forwardRef<HTMLDivElement, RelatedQuestionsCa
                   {question.title}
                 </h4>
 
-                {/* View Count */}
-                {question.viewCount !== undefined && question.viewCount > 0 && (
-                  <div className="flex items-center gap-1 text-xs text-slate-500">
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>{question.viewCount.toLocaleString()}</span>
-                  </div>
-                )}
+                {/* Stats */}
+                <div className="flex items-center gap-3 text-xs text-slate-500">
+                  {/* Like Count */}
+                  {question.likeCount !== undefined && question.likeCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Heart className="h-3.5 w-3.5" />
+                      <span>{question.likeCount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* Comment Count */}
+                  {question.commentCount !== undefined && question.commentCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      <span>{question.commentCount.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* View Count */}
+                  {question.viewCount !== undefined && question.viewCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>{question.viewCount.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
               </Link>
             );
           })}
