@@ -407,6 +407,8 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
   const contentEndRef = useRef<HTMLDivElement>(null);
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const lastScrollTopRef = useRef(0);
+  // 스트리밍 컨텐츠 ref (onComplete에서 현재 값 참조용)
+  const streamingContentRef = useRef('');
 
   // 세션 조회 (세션 모드일 때)
   const { data: fetchedSession, isLoading: isSessionLoading, error: sessionError } = useChatSessionWithFallback(
@@ -475,6 +477,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
 
     // 상태 초기화
     isStreamingRef.current = true;
+    streamingContentRef.current = '';
     setIsStreaming(true);
     setStreamingContent('');
     setStreamingSources([]);
@@ -529,53 +532,49 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
       },
       onToken: (token) => {
         setStreamStatus(null);
+        streamingContentRef.current += token;
         setStreamingContent((prev) => prev + token);
       },
       onSources: (sources) => {
         setStreamingSources(sources);
       },
       onComplete: (metadata: SSECompleteEvent) => {
-        // 최종 답변 저장 - 현재 streamingContent를 직접 참조하여 배칭 최적화
-        // 1. streamingContent가 있으면 그것을 사용 (token 스트리밍 방식)
-        // 2. 없으면 metadata.answer 사용 (complete에서 전체 답변 전송 방식)
-        setStreamingContent((currentContent) => {
-          // 최종 답변 결정
-          const finalAnswer = currentContent || metadata.answer || '';
+        // 최종 답변 저장 - ref에서 현재 값을 가져옴
+        const finalAnswer = streamingContentRef.current || metadata.answer || '';
 
-          // 모든 완료 관련 상태를 한 번에 업데이트 (다음 틱에서 배칭됨)
-          // setTimeout을 사용하지 않고 React의 배칭 활용
-          if (finalAnswer) {
-            setCompletedAnswer(finalAnswer);
+        // 모든 상태를 순차적으로 업데이트 (React 18 자동 배칭)
+        setStreamingContent('');
+        streamingContentRef.current = '';
+
+        if (finalAnswer) {
+          setCompletedAnswer(finalAnswer);
+        }
+        setCompletedSources(streamingSources);
+        setCompletedMetadata(metadata);
+
+        // 메시지 ID 저장 (피드백용)
+        if (metadata.message_id) {
+          setCompletedMessageId(metadata.message_id);
+        }
+
+        // 세션 ID 업데이트
+        if (metadata.session_id) {
+          setSessionId(metadata.session_id);
+
+          // message_id가 없으면 세션 조회해서 가져오기
+          if (!metadata.message_id) {
+            getChatSession(metadata.session_id)
+              .then((session) => {
+                const assistantMessage = session.messages.find(m => m.role === 'assistant');
+                if (assistantMessage) {
+                  setCompletedMessageId(assistantMessage.id);
+                }
+              })
+              .catch((err) => {
+                console.error('Failed to fetch session for messageId:', err);
+              });
           }
-          setCompletedSources(streamingSources);
-          setCompletedMetadata(metadata);
-
-          // 메시지 ID 저장 (피드백용)
-          if (metadata.message_id) {
-            setCompletedMessageId(metadata.message_id);
-          }
-
-          // 세션 ID 업데이트
-          if (metadata.session_id) {
-            setSessionId(metadata.session_id);
-
-            // message_id가 없으면 세션 조회해서 가져오기 (백엔드에서 complete에 message_id 안 보내는 경우 대응)
-            if (!metadata.message_id) {
-              getChatSession(metadata.session_id)
-                .then((session) => {
-                  const assistantMessage = session.messages.find(m => m.role === 'assistant');
-                  if (assistantMessage) {
-                    setCompletedMessageId(assistantMessage.id);
-                  }
-                })
-                .catch((err) => {
-                  console.error('Failed to fetch session for messageId:', err);
-                });
-            }
-          }
-
-          return '';
-        });
+        }
 
         // GA4: ai_search_complete 이벤트 트래킹
         const responseTime = Date.now() - searchStartTimeRef.current;
@@ -612,6 +611,7 @@ export function UnifiedSearchPage({ initialSessionId }: UnifiedSearchPageProps) 
 
         setStreamStatus(null);
         setStreamingContent('');
+        streamingContentRef.current = '';
         isStreamingRef.current = false;
         setIsStreaming(false);
         cleanupRef.current = null;
