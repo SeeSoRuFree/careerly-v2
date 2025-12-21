@@ -54,6 +54,11 @@ export function useCreateComment(
         queryKey: postsKeys.recommendedPaginated(),
       });
 
+      // 공유 페이지 세션 캐시 무효화 (댓글 수 업데이트)
+      queryClient.invalidateQueries({
+        queryKey: ['sharePageSession'],
+      });
+
       toast.success('댓글이 작성되었습니다.');
     },
     onError: (error) => {
@@ -167,6 +172,11 @@ export function useDeleteComment(
       });
       queryClient.invalidateQueries({
         queryKey: postsKeys.recommendedPaginated(),
+      });
+
+      // 공유 페이지 세션 캐시 무효화 (댓글 수 업데이트)
+      queryClient.invalidateQueries({
+        queryKey: ['sharePageSession'],
       });
 
       toast.success('댓글이 삭제되었습니다.');

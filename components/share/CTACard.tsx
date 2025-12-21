@@ -68,16 +68,6 @@ const CTACard = React.forwardRef<HTMLDivElement, CTACardProps>(
               ))}
             </ul>
           )}
-
-          {/* CTA Button */}
-          <Button
-            onClick={handleCTA}
-            variant="solid"
-            size="md"
-            className="w-full bg-white text-teal-600 hover:bg-teal-50 font-semibold shadow-md"
-          >
-            {ctaText}
-          </Button>
         </div>
 
         {/* Decorative gradient blobs */}

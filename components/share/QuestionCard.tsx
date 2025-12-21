@@ -2,14 +2,15 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { MessageCircleQuestion } from 'lucide-react';
+import { MessageCircleQuestion, Eye } from 'lucide-react';
 
 export interface QuestionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   question: string;
+  viewCount?: number;
 }
 
 const QuestionCard = React.forwardRef<HTMLDivElement, QuestionCardProps>(
-  ({ question, className, ...props }, ref) => {
+  ({ question, viewCount, className, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -20,9 +21,19 @@ const QuestionCard = React.forwardRef<HTMLDivElement, QuestionCardProps>(
         {...props}
       >
         {/* Question Icon Badge */}
-        <div className="inline-flex items-center gap-2 mb-4 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20">
-          <MessageCircleQuestion className="h-4 w-4 text-teal-600" />
-          <span className="text-xs font-medium text-teal-700">질문</span>
+        <div className="flex items-center justify-between mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20">
+            <MessageCircleQuestion className="h-4 w-4 text-teal-600" />
+            <span className="text-xs font-medium text-teal-700">질문</span>
+          </div>
+          {viewCount !== undefined && (
+            <div className="flex items-center gap-1.5 text-slate-500">
+              <Eye className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                {viewCount.toLocaleString()}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Question Text */}

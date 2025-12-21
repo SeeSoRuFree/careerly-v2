@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { formatRelativeTime } from '@/lib/utils';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, UserCheck } from 'lucide-react';
+import { useFollowUser, useUnfollowUser, useFollowStatus, useCurrentUser } from '@/lib/api';
 
 export interface AuthorInfo {
   name: string;
@@ -28,6 +29,33 @@ const AuthorProfileCard = React.forwardRef<HTMLDivElement, AuthorProfileCardProp
       .toUpperCase()
       .slice(0, 2);
 
+    // 현재 로그인한 사용자 정보
+    const { data: currentUser } = useCurrentUser();
+
+    // 팔로우 상태 조회
+    const authorUserId = author.userId ? parseInt(author.userId, 10) : undefined;
+    const { data: followStatus } = useFollowStatus(authorUserId, {
+      enabled: !!authorUserId && !!currentUser && currentUser.id !== authorUserId,
+    });
+
+    // 팔로우/언팔로우 mutation
+    const followMutation = useFollowUser();
+    const unfollowMutation = useUnfollowUser();
+
+    // 본인 여부 확인
+    const isOwnProfile = currentUser && authorUserId && currentUser.id === authorUserId;
+
+    // 팔로우 토글 핸들러
+    const handleFollowToggle = async () => {
+      if (!authorUserId || !currentUser) return;
+
+      if (followStatus?.is_following) {
+        unfollowMutation.mutate(authorUserId);
+      } else {
+        followMutation.mutate(authorUserId);
+      }
+    };
+
     return (
       <div
         ref={ref}
@@ -49,14 +77,32 @@ const AuthorProfileCard = React.forwardRef<HTMLDivElement, AuthorProfileCardProp
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-shrink-0 hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700"
-        >
-          <UserPlus className="h-4 w-4" />
-          팔로우
-        </Button>
+        {!isOwnProfile && authorUserId && currentUser && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFollowToggle}
+            disabled={followMutation.isPending || unfollowMutation.isPending}
+            className={cn(
+              'flex-shrink-0 gap-1.5',
+              followStatus?.is_following
+                ? 'bg-teal-50 border-teal-300 text-teal-700 hover:bg-teal-100'
+                : 'hover:bg-teal-50 hover:border-teal-300 hover:text-teal-700'
+            )}
+          >
+            {followStatus?.is_following ? (
+              <>
+                <UserCheck className="h-4 w-4" />
+                팔로잉
+              </>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4" />
+                팔로우
+              </>
+            )}
+          </Button>
+        )}
       </div>
     );
   }

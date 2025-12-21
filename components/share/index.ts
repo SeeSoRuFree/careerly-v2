@@ -20,3 +20,6 @@ export type { CTACardProps } from './CTACard';
 
 export { RelatedQuestionsCard } from './RelatedQuestionsCard';
 export type { RelatedQuestion, RelatedQuestionsCardProps } from './RelatedQuestionsCard';
+
+export { CommentSection } from './CommentSection';
+export type { CommentSectionProps } from './CommentSection';

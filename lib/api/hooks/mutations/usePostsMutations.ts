@@ -213,8 +213,26 @@ export function useLikePost(
           like_count: (oldData.like_count || 0) + 1,
         };
       });
+
+      // 공유 페이지 세션 캐시도 업데이트 (Optimistic Update)
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_liked: true,
+              like_count: (oldData.shared_post.like_count || 0) + 1,
+            },
+          };
+        }
+      );
     },
-    onSuccess: () => {
+    onSuccess: (_, postId) => {
+      // 공유 페이지 세션 캐시 무효화 (실제 데이터로 갱신)
+      queryClient.invalidateQueries({ queryKey: ['sharePageSession'] });
       toast.success('게시물을 좋아합니다.');
     },
     onError: (error, postId) => {
@@ -228,6 +246,23 @@ export function useLikePost(
           like_count: Math.max((oldData.like_count || 0) - 1, 0),
         };
       });
+
+      // 공유 페이지 세션 캐시도 롤백
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_liked: false,
+              like_count: Math.max((oldData.shared_post.like_count || 0) - 1, 0),
+            },
+          };
+        }
+      );
+
       toast.error(error.message || '좋아요에 실패했습니다.');
     },
     ...options,
@@ -261,8 +296,26 @@ export function useUnlikePost(
           like_count: Math.max((oldData.like_count || 0) - 1, 0),
         };
       });
+
+      // 공유 페이지 세션 캐시도 업데이트 (Optimistic Update)
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_liked: false,
+              like_count: Math.max((oldData.shared_post.like_count || 0) - 1, 0),
+            },
+          };
+        }
+      );
     },
-    onSuccess: () => {
+    onSuccess: (_, postId) => {
+      // 공유 페이지 세션 캐시 무효화 (실제 데이터로 갱신)
+      queryClient.invalidateQueries({ queryKey: ['sharePageSession'] });
       toast.success('좋아요를 취소했습니다.');
     },
     onError: (error, postId) => {
@@ -276,6 +329,23 @@ export function useUnlikePost(
           like_count: (oldData.like_count || 0) + 1,
         };
       });
+
+      // 공유 페이지 세션 캐시도 롤백
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_liked: true,
+              like_count: (oldData.shared_post.like_count || 0) + 1,
+            },
+          };
+        }
+      );
+
       toast.error(error.message || '좋아요 취소에 실패했습니다.');
     },
     ...options,
@@ -346,8 +416,26 @@ export function useSavePost(
         if (!oldData) return oldData;
         return { ...oldData, is_saved: true };
       });
+
+      // 공유 페이지 세션 캐시도 업데이트 (Optimistic Update)
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_saved: true,
+              save_count: (oldData.shared_post.save_count || 0) + 1,
+            },
+          };
+        }
+      );
     },
-    onSuccess: () => {
+    onSuccess: (_, postId) => {
+      // 공유 페이지 세션 캐시 무효화 (실제 데이터로 갱신)
+      queryClient.invalidateQueries({ queryKey: ['sharePageSession'] });
       toast.success('게시물을 저장했습니다.');
     },
     onError: (error, postId) => {
@@ -357,6 +445,23 @@ export function useSavePost(
         if (!oldData) return oldData;
         return { ...oldData, is_saved: false };
       });
+
+      // 공유 페이지 세션 캐시도 롤백
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_saved: false,
+              save_count: Math.max((oldData.shared_post.save_count || 0) - 1, 0),
+            },
+          };
+        }
+      );
+
       toast.error(error.message || '저장에 실패했습니다.');
     },
     ...options,
@@ -386,8 +491,26 @@ export function useUnsavePost(
         if (!oldData) return oldData;
         return { ...oldData, is_saved: false };
       });
+
+      // 공유 페이지 세션 캐시도 업데이트 (Optimistic Update)
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_saved: false,
+              save_count: Math.max((oldData.shared_post.save_count || 0) - 1, 0),
+            },
+          };
+        }
+      );
     },
-    onSuccess: () => {
+    onSuccess: (_, postId) => {
+      // 공유 페이지 세션 캐시 무효화 (실제 데이터로 갱신)
+      queryClient.invalidateQueries({ queryKey: ['sharePageSession'] });
       toast.success('저장을 취소했습니다.');
     },
     onError: (error, postId) => {
@@ -397,6 +520,23 @@ export function useUnsavePost(
         if (!oldData) return oldData;
         return { ...oldData, is_saved: true };
       });
+
+      // 공유 페이지 세션 캐시도 롤백
+      queryClient.setQueriesData(
+        { queryKey: ['sharePageSession'] },
+        (oldData: any) => {
+          if (!oldData?.shared_post || oldData.shared_post.id !== postId) return oldData;
+          return {
+            ...oldData,
+            shared_post: {
+              ...oldData.shared_post,
+              is_saved: true,
+              save_count: (oldData.shared_post.save_count || 0) + 1,
+            },
+          };
+        }
+      );
+
       toast.error(error.message || '저장 취소에 실패했습니다.');
     },
     ...options,

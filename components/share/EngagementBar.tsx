@@ -5,7 +5,14 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Heart, Bookmark, MessageCircle, Share2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
-import { useShareToCommunity } from '@/lib/api';
+import {
+  useShareToCommunity,
+  useLikePost,
+  useUnlikePost,
+  useSavePost,
+  useUnsavePost,
+  useCurrentUser,
+} from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export interface EngagementStats {
@@ -24,27 +31,48 @@ export interface EngagementBarProps extends React.HTMLAttributes<HTMLDivElement>
   hasSharedPost?: boolean;
   isOwner?: boolean;
   sessionId?: string;
+  postId?: number; // shared_post의 ID
 }
 
 const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
   (
     {
       stats,
-      isLiked = false,
-      isBookmarked = false,
+      isLiked: initialIsLiked = false,
+      isBookmarked: initialIsBookmarked = false,
       onLike,
       onBookmark,
       onShare,
       hasSharedPost = false,
       isOwner = false,
       sessionId,
+      postId,
       className,
       ...props
     },
     ref
   ) => {
     const router = useRouter();
+    const { data: currentUser } = useCurrentUser();
+
+    // Mutations
     const shareSessionMutation = useShareToCommunity();
+    const likePostMutation = useLikePost();
+    const unlikePostMutation = useUnlikePost();
+    const savePostMutation = useSavePost();
+    const unsavePostMutation = useUnsavePost();
+
+    // Local state for optimistic updates
+    const [isLiked, setIsLiked] = React.useState(initialIsLiked);
+    const [isBookmarked, setIsBookmarked] = React.useState(initialIsBookmarked);
+
+    React.useEffect(() => {
+      setIsLiked(initialIsLiked);
+    }, [initialIsLiked]);
+
+    React.useEffect(() => {
+      setIsBookmarked(initialIsBookmarked);
+    }, [initialIsBookmarked]);
 
     const handleShare = () => {
       if (onShare) {
@@ -70,6 +98,68 @@ const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
       } catch (error) {
         // 에러는 자동으로 토스트에 표시됨 (전역 에러 처리)
         console.error('커뮤니티 공유 실패:', error);
+      }
+    };
+
+    const handleLike = async () => {
+      if (!currentUser) {
+        toast.error('로그인이 필요합니다');
+        router.push('/login');
+        return;
+      }
+
+      if (!hasSharedPost || !postId) {
+        return;
+      }
+
+      if (onLike) {
+        onLike();
+        return;
+      }
+
+      // Optimistic update
+      setIsLiked(!isLiked);
+
+      try {
+        if (isLiked) {
+          await unlikePostMutation.mutateAsync(postId);
+        } else {
+          await likePostMutation.mutateAsync(postId);
+        }
+      } catch (error) {
+        // Rollback on error
+        setIsLiked(isLiked);
+      }
+    };
+
+    const handleBookmark = async () => {
+      if (!currentUser) {
+        toast.error('로그인이 필요합니다');
+        router.push('/login');
+        return;
+      }
+
+      if (!hasSharedPost || !postId) {
+        return;
+      }
+
+      if (onBookmark) {
+        onBookmark();
+        return;
+      }
+
+      // Optimistic update
+      setIsBookmarked(!isBookmarked);
+
+      try {
+        if (isBookmarked) {
+          await unsavePostMutation.mutateAsync(postId);
+        } else {
+          await savePostMutation.mutateAsync(postId);
+        }
+      } catch (error) {
+        // Rollback on error
+        setIsBookmarked(isBookmarked);
       }
     };
 
@@ -103,8 +193,8 @@ const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
             <Button
               variant="ghost"
               size="sm"
-              onClick={onLike}
-              disabled={!hasSharedPost}
+              onClick={handleLike}
+              disabled={!hasSharedPost || likePostMutation.isPending || unlikePostMutation.isPending}
               className={cn(
                 'gap-2 hover:bg-red-50',
                 isLiked && 'text-red-600 hover:text-red-700',
@@ -119,8 +209,8 @@ const EngagementBar = React.forwardRef<HTMLDivElement, EngagementBarProps>(
             <Button
               variant="ghost"
               size="sm"
-              onClick={onBookmark}
-              disabled={!hasSharedPost}
+              onClick={handleBookmark}
+              disabled={!hasSharedPost || savePostMutation.isPending || unsavePostMutation.isPending}
               className={cn(
                 'gap-2 hover:bg-amber-50',
                 isBookmarked && 'text-amber-600 hover:text-amber-700',
