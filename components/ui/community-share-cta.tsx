@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Users, Check, Loader2, Sparkles, Share2 } from 'lucide-react';
+import { Users, Check, Loader2, Sparkles, Share2, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useShareToCommunity } from '@/lib/api';
 import { toast } from 'sonner';
@@ -113,7 +113,7 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
               <p className="text-sm text-slate-600 mb-4">
                 이 답변이 도움이 되셨나요? 커뮤니티와 함께 나누고 다른 사용자들에게도 유용한 정보를 공유해보세요
               </p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={handleShare}
                   disabled={shareToCommunity.isPending}
@@ -140,14 +140,28 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
                 </button>
                 <button
                   onClick={async () => {
-                    const shareUrl = window.location.href;
-                    const shareData = {
-                      title: '커리어리 AI 검색 결과',
-                      text: '커리어리에서 유용한 정보를 찾았어요!',
-                      url: shareUrl,
-                    };
-
-                    if (navigator.share && navigator.canShare?.(shareData)) {
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast.success('링크가 복사되었습니다');
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-all duration-200',
+                    'border border-slate-300 bg-white text-slate-700',
+                    'hover:border-slate-400 hover:bg-slate-50',
+                    'active:scale-95'
+                  )}
+                  title="링크 복사"
+                >
+                  <Link2 className="h-4 w-4" />
+                  <span>링크 복사</span>
+                </button>
+                {typeof navigator !== 'undefined' && 'share' in navigator && (
+                  <button
+                    onClick={async () => {
+                      const shareData = {
+                        title: '커리어리 AI 검색 결과',
+                        text: '커리어리에서 유용한 정보를 찾았어요!',
+                        url: window.location.href,
+                      };
                       try {
                         await navigator.share(shareData);
                       } catch (error) {
@@ -155,21 +169,19 @@ const CommunityShareCTA = React.forwardRef<HTMLDivElement, CommunityShareCTAProp
                           console.error('Share failed:', error);
                         }
                       }
-                    } else {
-                      await navigator.clipboard.writeText(shareUrl);
-                      toast.success('링크가 복사되었습니다');
-                    }
-                  }}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200',
-                    'border border-slate-300 bg-white text-slate-700',
-                    'hover:border-teal-400 hover:text-teal-600 hover:bg-teal-50',
-                    'active:scale-95'
-                  )}
-                >
-                  <Share2 className="h-4 w-4" />
-                  <span>공유하기</span>
-                </button>
+                    }}
+                    className={cn(
+                      'inline-flex items-center gap-2 px-3 py-2.5 rounded-lg font-medium transition-all duration-200',
+                      'border border-slate-300 bg-white text-slate-700',
+                      'hover:border-slate-400 hover:bg-slate-50',
+                      'active:scale-95'
+                    )}
+                    title="외부 공유"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span>외부 공유</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
