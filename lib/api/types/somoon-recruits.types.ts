@@ -543,3 +543,79 @@ export interface RecruitsContentsByIdsResponse {
   current_page: number;
   total_count: number;
 }
+
+// ============================================
+// Analysis API Types (analysis/jobs/specific)
+// ============================================
+
+/**
+ * 채용공고 분석 요청 파라미터
+ */
+export interface AnalyzeJobsSpecificParams {
+  /** 분석할 채용공고 ID 목록 */
+  jobs_ids: number[];
+  /** 이미 분석된 채용공고도 강제로 재분석할지 여부 */
+  force_reanalyze?: boolean;
+}
+
+/**
+ * 채용공고 분석 결과 - 분석 데이터
+ */
+export interface AnalyzedJobAnalysis {
+  /** AI 요약 */
+  요약?: string;
+  /** 직무 */
+  직무?: string;
+  /** 회사명 */
+  회사명?: string;
+  /** 주요업무 */
+  주요업무?: string;
+  /** 자격요건 */
+  자격요건?: string;
+  /** 우대사항 */
+  우대사항?: string;
+  /** 경력연차 */
+  경력연차?: string;
+  /** 고용형태 */
+  고용형태?: string;
+  /** 근무방식 */
+  근무방식?: string;
+  /** 근무지역 */
+  근무지역?: string;
+  /** 연봉정보 */
+  연봉정보?: string;
+  /** 지원마감일 */
+  지원마감일?: string;
+  /** 직군 대분류 */
+  '직군 대분류'?: string[];
+}
+
+/**
+ * 채용공고 분석 결과 아이템
+ */
+export interface AnalyzedJobResult {
+  /** 채용공고 ID */
+  jobs_id: number;
+  /** 제목 */
+  title: string;
+  /** 분석 성공 여부 */
+  success: boolean;
+  /** 분석 결과 */
+  analysis?: AnalyzedJobAnalysis;
+  /** 캐시에서 가져왔는지 여부 */
+  from_cache?: boolean;
+  /** 에러 메시지 (실패 시) */
+  error?: string;
+}
+
+/**
+ * 채용공고 분석 응답
+ */
+export interface AnalyzeJobsSpecificResponse {
+  /** 분석 결과 목록 */
+  results: AnalyzedJobResult[];
+  /** 전체 개수 */
+  total_count?: number;
+  /** 전체 처리 시간 */
+  total_processing_time?: number;
+}

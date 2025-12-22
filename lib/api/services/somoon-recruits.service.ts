@@ -21,6 +21,8 @@ import type {
   GetV2JobsListParams,
   RecruitsJobsByIdsResponse,
   RecruitsContentsByIdsResponse,
+  AnalyzeJobsSpecificParams,
+  AnalyzeJobsSpecificResponse,
 } from '../types/somoon-recruits.types';
 
 /**
@@ -244,6 +246,26 @@ export async function getContentsByIds(
     const response = await somoonRecruitsClient.get<RecruitsContentsByIdsResponse>(
       '/search/contents_ids',
       { params: { ids: idsString } }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 특정 채용공고 ID 목록에 대해 AI 분석(요약) 수행
+ * 이미지만 있는 경우 자동으로 OCR 처리
+ * @param params 분석 요청 파라미터
+ * @returns 분석 결과 목록
+ */
+export async function analyzeJobsSpecific(
+  params: AnalyzeJobsSpecificParams
+): Promise<AnalyzeJobsSpecificResponse> {
+  try {
+    const response = await somoonRecruitsClient.post<AnalyzeJobsSpecificResponse>(
+      '/analysis/jobs/specific',
+      params
     );
     return response.data;
   } catch (error) {
