@@ -166,13 +166,16 @@ export function ContentDetailDrawer({
       <div
         className={cn(
           'fixed inset-y-0 right-0 z-50 w-full md:w-[600px] bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto border-l border-slate-100',
+          // Mobile safe area
+          'pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]',
+          'pr-[env(safe-area-inset-right)]',
           open ? 'translate-x-0' : 'translate-x-full'
         )}
       >
         {content && (
           <div className="h-full flex flex-col">
             {/* Header */}
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+            <div className="sticky top-[env(safe-area-inset-top)] z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {content.companyLogo && (
                   <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden">
