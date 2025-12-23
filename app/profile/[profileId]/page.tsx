@@ -32,6 +32,7 @@ import {
   Camera,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -960,6 +961,18 @@ export default function UserProfilePage({ params }: { params: { profileId: strin
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Mobile Header with Back Button */}
+      <header className="w-full bg-slate-50 sticky top-0 z-50 safe-pt md:hidden">
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center">
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="-ml-2 hover:bg-slate-200">
+              <ChevronLeft className="h-6 w-6 text-slate-900" />
+            </Button>
+            <span className="font-semibold text-slate-900">프로필</span>
+          </div>
+        </div>
+      </header>
+
       <div className="max-w-4xl mx-auto px-4 py-4 md:py-6">
         <div className="space-y-5 md:space-y-6">
           {/* Profile Header - 모바일: 세로 중앙정렬, PC: 가로 레이아웃 */}

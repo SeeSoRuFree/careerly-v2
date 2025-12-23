@@ -137,7 +137,7 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   };
 
   // 자체 헤더를 가진 페이지들 (모바일 헤더 숨김)
-  const hasOwnHeader = pathname?.startsWith('/settings') || pathname?.startsWith('/community/new') || pathname?.startsWith('/community/edit');
+  const hasOwnHeader = pathname?.startsWith('/settings') || pathname?.startsWith('/community/new') || pathname?.startsWith('/community/edit') || pathname?.startsWith('/profile/');
 
   // 채팅 페이지는 전체화면 레이아웃 (헤더 없음, 중앙 정렬)
   const isChatPage = pathname === '/chat';
