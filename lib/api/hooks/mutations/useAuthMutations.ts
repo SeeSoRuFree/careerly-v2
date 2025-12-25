@@ -81,6 +81,12 @@ export function useLogout(
       queryClient.clear();
       // 로그아웃 완료 후 플래그 리셋 (다음 로그인을 위해)
       setLoggingOut(false);
+
+      // 앱 WebView 환경이면 앱에 로그아웃 메시지 전송 (앱에서 쿠키 정리)
+      if (typeof window !== 'undefined' && window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'logout' }));
+      }
+
       router.push('/');
     },
     onSuccess: () => {
