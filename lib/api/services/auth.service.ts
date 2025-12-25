@@ -13,6 +13,7 @@ import type {
   OAuthLoginResponse,
   OAuthCallbackRequest,
 } from '../types/rest.types';
+import type { AppleAuthData, KakaoAuthData } from '@/types/global';
 
 /**
  * 로그인
@@ -189,5 +190,64 @@ export async function handleOAuthCallback(data: OAuthCallbackRequest): Promise<L
       throw error;
     }
     throw new Error('OAuth 콜백 처리 중 오류가 발생했습니다.');
+  }
+}
+
+/**
+ * 네이티브 앱 애플 로그인
+ * 앱에서 Apple Sign-In으로 받은 identityToken을 백엔드로 전송
+ */
+export async function nativeAppleAuth(authData: AppleAuthData): Promise<LoginResponse> {
+  try {
+    const response = await publicClient.post<{
+      user: User;
+      tokens: { access: string; refresh: string };
+    }>('/api/v1/auth/oauth/apple/callback/', {
+      id_token: authData.identityToken,
+      user: authData.user,
+      email: authData.email,
+      full_name: authData.fullName,
+    });
+
+    return {
+      user: response.data.user,
+      tokens: {
+        access: response.data.tokens.access,
+        refresh: response.data.tokens.refresh,
+      },
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('애플 로그인 처리 중 오류가 발생했습니다.');
+  }
+}
+
+/**
+ * 네이티브 앱 카카오 로그인
+ * 앱에서 Kakao SDK로 받은 accessToken을 백엔드로 전송
+ */
+export async function nativeKakaoAuth(authData: KakaoAuthData): Promise<LoginResponse> {
+  try {
+    const response = await publicClient.post<{
+      user: User;
+      tokens: { access: string; refresh: string };
+    }>('/api/v1/auth/oauth/kakao/callback/', {
+      access_token: authData.accessToken,
+    });
+
+    return {
+      user: response.data.user,
+      tokens: {
+        access: response.data.tokens.access,
+        refresh: response.data.tokens.refresh,
+      },
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('카카오 로그인 처리 중 오류가 발생했습니다.');
   }
 }

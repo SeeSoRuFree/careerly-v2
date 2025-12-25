@@ -7,7 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
 import { X } from 'lucide-react';
-import { useSignup, initiateOAuthLogin, type OAuthProvider } from '@/lib/api';
+import { useSignup, initiateOAuthLogin, nativeAppleAuth, nativeKakaoAuth, type OAuthProvider } from '@/lib/api';
+import type { AppleAuthData, KakaoAuthData } from '@/types/global';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,9 +109,41 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
     }
   };
 
-  // 앱에서 네이티브 로그인 결과 수신
+  // 앱에서 네이티브 로그인 결과 수신 및 핸들러 등록
   React.useEffect(() => {
     if (!isInApp()) return;
+
+    // 앱에서 호출하는 네이티브 애플 로그인 핸들러
+    window.handleNativeAppleAuth = async (authData: AppleAuthData) => {
+      try {
+        setIsOAuthLoading(true);
+        await nativeAppleAuth(authData);
+        toast.success('로그인되었습니다.');
+        onClose();
+        window.location.reload();
+      } catch (error) {
+        console.error('Native Apple auth failed:', error);
+        toast.error('애플 로그인에 실패했습니다.');
+      } finally {
+        setIsOAuthLoading(false);
+      }
+    };
+
+    // 앱에서 호출하는 네이티브 카카오 로그인 핸들러
+    window.handleNativeKakaoAuth = async (authData: KakaoAuthData) => {
+      try {
+        setIsOAuthLoading(true);
+        await nativeKakaoAuth(authData);
+        toast.success('로그인되었습니다.');
+        onClose();
+        window.location.reload();
+      } catch (error) {
+        console.error('Native Kakao auth failed:', error);
+        toast.error('카카오 로그인에 실패했습니다.');
+      } finally {
+        setIsOAuthLoading(false);
+      }
+    };
 
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -146,7 +179,12 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      // 핸들러 정리
+      delete window.handleNativeAppleAuth;
+      delete window.handleNativeKakaoAuth;
+    };
   }, [onClose]);
 
   const isLoading = isSubmitting || signup.isPending || isOAuthLoading;

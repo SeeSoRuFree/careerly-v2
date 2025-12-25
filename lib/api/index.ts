@@ -27,6 +27,8 @@ export {
   verifyPasswordReset,
   initiateOAuthLogin,
   handleOAuthCallback,
+  nativeAppleAuth,
+  nativeKakaoAuth,
 } from './services/auth.service';
 
 // Search Service
