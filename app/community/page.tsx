@@ -1372,6 +1372,7 @@ function CommunityPageContent() {
                           authorName={post.author?.name}
                           authorImageUrl={post.author?.image_url || undefined}
                           authorId={post.author?.id}
+                          authorProfileId={post.author?.profile_id}
                         />
                       );
                     }
@@ -1510,6 +1511,7 @@ function CommunityPageContent() {
                           authorName={post.author?.name}
                           authorImageUrl={post.author?.image_url || undefined}
                           authorId={post.author?.id}
+                          authorProfileId={post.author?.profile_id}
                         />
                       );
                     }
@@ -1627,6 +1629,7 @@ function CommunityPageContent() {
                               authorName={post.author?.name}
                               authorImageUrl={post.author?.image_url || undefined}
                               authorId={post.author?.id}
+                              authorProfileId={post.author?.profile_id}
                             />
                           </div>
                         );
