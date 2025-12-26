@@ -116,7 +116,7 @@ function SharePageContent() {
   const hasSharedPost = !!session.shared_post;
 
   // 본인 세션 여부 확인
-  const isOwner = currentUser && session.author && currentUser.id === session.author.id;
+  const isOwner = !!(currentUser && session.author && currentUser.id === session.author.id);
 
   // 트렌딩 세션을 RelatedQuestion 형식으로 변환
   const relatedQuestions: RelatedQuestion[] =
