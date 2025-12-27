@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: '커리어리 | 요즘 개발자들의 필수 커뮤니티',
+    default: 'AI 시대의 커리어 - 커리어리',
     template: '%s | Careerly',
   },
   description:
@@ -55,13 +55,13 @@ export const metadata: Metadata = {
     locale: 'ko_KR',
     url: 'https://careerly.co.kr',
     siteName: '커리어리',
-    title: '커리어리 | 요즘 개발자들의 필수 커뮤니티',
+    title: 'AI 시대의 커리어 - 커리어리',
     description:
       '개발자, 디자이너, PM을 위한 커리어 성장 커뮤니티. 업계 인사이트를 공유하고 성장하세요.',
     images: [
       {
         url: '/og-image.png',
-        alt: '커리어리 | 요즘 개발자들의 필수 커뮤니티',
+        alt: 'AI 시대의 커리어 - 커리어리',
       },
     ],
   },
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
   // Twitter Card
   twitter: {
     card: 'summary',
-    title: '커리어리 | 요즘 개발자들의 필수 커뮤니티',
+    title: 'AI 시대의 커리어 - 커리어리',
     description:
       '개발자, 디자이너, PM을 위한 커리어 성장 커뮤니티. 업계 인사이트를 공유하고 성장하세요.',
     images: ['/og-image.png'],
