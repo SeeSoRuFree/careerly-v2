@@ -76,7 +76,7 @@ export function ImageViewer({
           {/* Close button */}
           <Dialog.Close asChild>
             <button
-              className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+              className="absolute top-[calc(env(safe-area-inset-top)+1rem)] right-4 z-10 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
               aria-label="닫기"
               onClick={(e) => {
                 e.stopPropagation();
@@ -89,7 +89,7 @@ export function ImageViewer({
 
           {/* Image counter */}
           {images.length > 1 && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
+            <div className="absolute top-[calc(env(safe-area-inset-top)+1rem)] left-1/2 -translate-x-1/2 z-10 px-3 py-1 rounded-full bg-black/50 text-white text-sm">
               {currentIndex + 1} / {images.length}
             </div>
           )}
@@ -131,7 +131,7 @@ export function ImageViewer({
 
           {/* Thumbnail indicators */}
           {images.length > 1 && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex gap-2">
+            <div className="absolute bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] left-1/2 -translate-x-1/2 z-10 flex gap-2">
               {images.map((_, idx) => (
                 <button
                   key={idx}
