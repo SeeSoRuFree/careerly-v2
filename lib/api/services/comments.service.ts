@@ -118,3 +118,52 @@ export async function unlikeComment(commentId: number): Promise<void> {
     throw handleApiError(error);
   }
 }
+
+/**
+ * 댓글 좋아요한 사용자 목록 조회 파라미터
+ */
+export interface GetCommentLikersParams {
+  page?: number;
+  page_size?: number;
+}
+
+/**
+ * 댓글 좋아요한 사용자 목록 응답
+ */
+export interface CommentLiker {
+  id: number;
+  user: {
+    id: number;
+    profile_id: number | null;
+    name: string | null;
+    image_url: string | null;
+    small_image_url: string | null;
+    headline: string | null;
+  } | null;
+}
+
+export interface PaginatedCommentLikersResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: CommentLiker[];
+}
+
+/**
+ * 댓글 좋아요한 사용자 목록 조회
+ * 인증 불필요 (공개 API)
+ */
+export async function getCommentLikers(
+  commentId: number,
+  params?: GetCommentLikersParams
+): Promise<PaginatedCommentLikersResponse> {
+  try {
+    const response = await publicClient.get<PaginatedCommentLikersResponse>(
+      `/api/v1/comments/${commentId}/likers/`,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}

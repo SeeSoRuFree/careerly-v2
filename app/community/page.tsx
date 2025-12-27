@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer, useFollowing } from '@/lib/api';
+import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
@@ -759,10 +759,6 @@ function CommunityPageContent() {
     isLoading: isLoadingRecommendedFollowers,
   } = useRecommendedFollowers(30, { enabled: !!user });
 
-  // 내 팔로잉 목록 (추천 팔로워 필터링용)
-  const { data: myFollowingData } = useFollowing(user?.id || 0, {
-    enabled: !!user?.id,
-  });
 
   // Following Posts (팔로잉하는 사람의 포스트) - 로그인 사용자만
   const {
@@ -1225,37 +1221,18 @@ function CommunityPageContent() {
           : hasNextPosts || hasNextQuestions;
 
   // Transform recommended followers data for RecommendedFollowersPanel
-  // 30명 후보군에서 팔로우 중인 유저 제외 → 랜덤 셔플 → 5명 선택
   const recommendedFollowers = React.useMemo(() => {
     if (!recommendedFollowersCandidates || recommendedFollowersCandidates.length === 0) return [];
 
-    // 내가 팔로우 중인 유저 ID 목록
-    const myFollowingIds = new Set(
-      myFollowingData?.results?.map((f) => f.id) || []
-    );
-
-    // 이미 팔로우 중인 유저 제외
-    const filtered = recommendedFollowersCandidates.filter(
-      (follower) => !myFollowingIds.has(follower.id)
-    );
-
-    // Fisher-Yates 셔플 (랜덤 정렬)
-    const shuffled = [...filtered];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-
-    // 상위 5명만 선택
-    return shuffled.slice(0, 5).map((follower) => ({
+    return recommendedFollowersCandidates.slice(0, 5).map((follower) => ({
       id: follower.user_id.toString(),
       name: follower.name,
       image_url: follower.image_url || undefined,
       headline: follower.headline || undefined,
-      isFollowing: false,
-      href: `/profile/${follower.id}`,  // follower.id is profile_id
+      isFollowing: follower.is_following || false,
+      href: `/profile/${follower.id}`,
     }));
-  }, [recommendedFollowersCandidates, myFollowingData]);
+  }, [recommendedFollowersCandidates]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">

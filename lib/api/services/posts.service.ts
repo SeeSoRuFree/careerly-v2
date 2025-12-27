@@ -10,6 +10,7 @@ import type {
   PostUpdateRequest,
   PaginatedPostResponse,
   ImageUploadResponse,
+  PaginatedLikersResponse,
 } from '../types/posts.types';
 
 /**
@@ -316,6 +317,30 @@ export async function uploadPostImage(file: File): Promise<ImageUploadResponse> 
 export async function recordImpressionsBatch(postIds: number[]): Promise<void> {
   try {
     await publicClient.post('/api/v1/posts/impressions/batch/', { post_ids: postIds });
+  } catch (error) {
+    throw handleApiError(error);
+  }
+}
+
+/**
+ * 게시물 좋아요한 사용자 목록 조회
+ * 인증 불필요 (공개 API)
+ */
+export interface GetPostLikersParams {
+  page?: number;
+  page_size?: number;
+}
+
+export async function getPostLikers(
+  postId: number,
+  params?: GetPostLikersParams
+): Promise<PaginatedLikersResponse> {
+  try {
+    const response = await publicClient.get<PaginatedLikersResponse>(
+      `/api/v1/posts/${postId}/likers/`,
+      { params }
+    );
+    return response.data;
   } catch (error) {
     throw handleApiError(error);
   }

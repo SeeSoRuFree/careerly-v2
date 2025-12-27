@@ -533,7 +533,14 @@
     @apply max-w-full h-auto;
   }
 
-  /* Prose styles */
+  /* Prose styles - URL 줄바꿈 처리 */
+  .prose a,
+  .prose-sm a,
+  .prose-base a {
+    word-break: break-all !important;
+    overflow-wrap: break-word !important;
+  }
+
   .prose s,
   .prose del,
   .prose strike {

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -9,6 +9,7 @@ import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { LikesModal, LikeUser } from '@/components/ui/likes-modal';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
 import {
@@ -19,11 +20,14 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/lib/api';
+import { useInfinitePostLikers } from '@/lib/api/hooks/queries/usePosts';
 import { useStore } from '@/hooks/useStore';
+import { useRouter } from 'next/navigation';
 import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
+import { ImageViewer } from '@/components/ui/image-viewer';
 
 const linkifyOptions = {
-  className: 'text-coral-500 hover:text-coral-600 underline',
+  className: 'text-coral-500 hover:text-coral-600 underline break-all',
   target: '_blank',
   rel: 'noopener noreferrer',
 };
@@ -101,13 +105,52 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [blockDialogOpen, setBlockDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [likesModalOpen, setLikesModalOpen] = useState(false);
+    const [imageViewerOpen, setImageViewerOpen] = useState(false);
+    const [imageViewerIndex, setImageViewerIndex] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
     const MAX_HEIGHT = 96; // 약 4줄 높이 (line-height: 1.625 * font-size: 14px * 4줄)
+    const router = useRouter();
 
     // Auth & Report/Block hooks
     const { data: currentUser } = useCurrentUser();
     const reportMutation = useReportContent();
     const blockMutation = useBlockUser();
+
+    // Post likers query (only fetch when modal is open)
+    const {
+      data: likersData,
+      isLoading: likersLoading,
+      hasNextPage: likersHasNextPage,
+      isFetchingNextPage: likersFetchingNextPage,
+      fetchNextPage: likersFetchNextPage,
+      refetch: refetchLikers,
+    } = useInfinitePostLikers(postId, undefined, {
+      enabled: likesModalOpen,
+    });
+
+    // Refetch when modal opens to get fresh data
+    useEffect(() => {
+      if (likesModalOpen) {
+        refetchLikers();
+      }
+    }, [likesModalOpen, refetchLikers]);
+
+    // Flatten likers data for modal
+    const likers: LikeUser[] = React.useMemo(() => {
+      if (!likersData?.pages) return [];
+      return likersData.pages.flatMap(page => page.results);
+    }, [likersData]);
+
+    const handleLikesClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setLikesModalOpen(true);
+    };
+
+    const handleUserClick = (profileId: number) => {
+      setLikesModalOpen(false);
+      router.push(`/profile/${profileId}`);
+    };
 
     const isOwnPost = currentUser?.id === authorId;
 
@@ -157,6 +200,15 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     const handleDeleteConfirm = () => {
       onDelete?.();
       setDeleteDialogOpen(false);
+    };
+
+    const handleImageClick = (e: React.MouseEvent, index: number) => {
+      e.stopPropagation();
+      // standaloneImageUrls의 인덱스를 allImageUrls 기준으로 변환
+      // allImageUrls = htmlImageUrls + standaloneImageUrls
+      const actualIndex = htmlImageUrls.length + index;
+      setImageViewerIndex(actualIndex);
+      setImageViewerOpen(true);
     };
 
     // title이 있으면 content에서 title 부분 제거
@@ -241,6 +293,32 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
       const htmlPaths = new Set(htmlImageUrls.map(getPath));
       return imageUrls.filter(url => !htmlPaths.has(getPath(url)));
     }, [imageUrls, htmlImageUrls]);
+
+    // 모든 이미지 URL (HTML 내 이미지 + 별도 이미지)
+    const allImageUrls = React.useMemo(() => {
+      return [...htmlImageUrls, ...standaloneImageUrls];
+    }, [htmlImageUrls, standaloneImageUrls]);
+
+    // contentHtml 내의 이미지 클릭 이벤트 처리 (이벤트 위임 방식)
+    const handleContentClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        e.stopPropagation();
+        const img = target as HTMLImageElement;
+        const src = img.src;
+        const index = allImageUrls.findIndex(url => {
+          try {
+            return new URL(url, window.location.origin).href === new URL(src, window.location.origin).href;
+          } catch {
+            return url === src;
+          }
+        });
+        if (index !== -1) {
+          setImageViewerIndex(index);
+          setImageViewerOpen(true);
+        }
+      }
+    }, [allImageUrls]);
 
     const actions = [];
 
@@ -378,14 +456,17 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             <div
               ref={contentRef}
               className={cn(
-                'text-slate-900 text-sm leading-relaxed break-words whitespace-pre-wrap',
-                contentHtml && 'prose prose-sm max-w-none',
-                !isExpanded && 'overflow-hidden'
+                'text-slate-900 text-sm leading-relaxed whitespace-pre-wrap break-all overflow-hidden',
+                contentHtml && 'prose prose-sm max-w-none'
               )}
               style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
             >
               {contentHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+                <div
+                  dangerouslySetInnerHTML={{ __html: contentHtml }}
+                  onClick={handleContentClick}
+                  className="[&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity"
+                />
               ) : (
                 <Linkify options={linkifyOptions}>
                   {displayContent}
@@ -438,18 +519,19 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
               <div
                 key={idx}
                 className={cn(
-                  'relative aspect-video bg-slate-100',
+                  'relative aspect-video bg-slate-100 cursor-pointer',
                   standaloneImageUrls.length === 1 && 'aspect-[16/10]',
                   standaloneImageUrls.length === 3 && idx === 0 && 'col-span-2'
                 )}
+                onClick={(e) => handleImageClick(e, idx)}
               >
                 <img
                   src={url}
                   alt={`이미지 ${idx + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                 />
                 {idx === 3 && standaloneImageUrls.length > 4 && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                     <span className="text-white font-semibold text-lg">
                       +{standaloneImageUrls.length - 4}
                     </span>
@@ -462,7 +544,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
 
         {/* Stats Row */}
         {stats && (stats.viewCount !== undefined || stats.likeCount || stats.replyCount) && (
-          <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2">
+          <div className="flex items-center gap-3 text-xs text-slate-500 mb-2 pb-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
               <span>{formatRelativeTime(createdAt)}</span>
@@ -474,10 +556,13 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
               </div>
             )}
             {stats.likeCount !== undefined && stats.likeCount > 0 && (
-              <div className="flex items-center gap-1">
+              <button
+                onClick={handleLikesClick}
+                className="flex items-center gap-1 hover:text-coral-500 transition-colors"
+              >
                 <Heart className="h-3.5 w-3.5" />
                 <span>{stats.likeCount.toLocaleString()} 좋아요</span>
-              </div>
+              </button>
             )}
             {stats.replyCount !== undefined && stats.replyCount > 0 && (
               <div className="flex items-center gap-1">
@@ -539,6 +624,27 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
           description="이 게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다."
           confirmText="삭제하기"
           variant="danger"
+        />
+
+        {/* Likes Modal */}
+        <LikesModal
+          isOpen={likesModalOpen}
+          onClose={() => setLikesModalOpen(false)}
+          users={likers}
+          isLoading={likersLoading}
+          onUserClick={handleUserClick}
+          hasNextPage={likersHasNextPage}
+          isFetchingNextPage={likersFetchingNextPage}
+          fetchNextPage={likersFetchNextPage}
+          totalCount={likersData?.pages?.[0]?.count}
+        />
+
+        {/* Image Viewer */}
+        <ImageViewer
+          isOpen={imageViewerOpen}
+          onClose={() => setImageViewerOpen(false)}
+          images={allImageUrls}
+          initialIndex={imageViewerIndex}
         />
       </Card>
     );

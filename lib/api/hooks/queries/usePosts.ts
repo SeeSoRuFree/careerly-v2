@@ -5,9 +5,9 @@
 'use client';
 
 import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';
-import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, getRecommendedPostsPaginated, getFollowingPosts, isPostLiked, isPostSaved } from '../../services/posts.service';
-import type { TopPostsPeriod, GetPostsParams } from '../../services/posts.service';
-import type { Post, PostListItem, PaginatedPostResponse } from '../../types/posts.types';
+import { getPosts, getPost, getPopularPosts, getTopPosts, getRecommendedPosts, getRecommendedPostsPaginated, getFollowingPosts, isPostLiked, isPostSaved, getPostLikers } from '../../services/posts.service';
+import type { TopPostsPeriod, GetPostsParams, GetPostLikersParams } from '../../services/posts.service';
+import type { Post, PostListItem, PaginatedPostResponse, PaginatedLikersResponse } from '../../types/posts.types';
 
 /**
  * Posts 쿼리 키
@@ -25,6 +25,7 @@ export const postsKeys = {
   detail: (id: number) => [...postsKeys.details(), id] as const,
   likeStatus: (id: number) => [...postsKeys.all, 'like-status', id] as const,
   saveStatus: (id: number) => [...postsKeys.all, 'save-status', id] as const,
+  likers: (id: number) => [...postsKeys.all, 'likers', id] as const,
 };
 
 /**
@@ -205,6 +206,31 @@ export function useInfiniteRecommendedPosts(
       return undefined;
     },
     initialPageParam: 1,
+    staleTime: 2 * 60 * 1000, // 2분
+    gcTime: 10 * 60 * 1000, // 10분
+    ...options,
+  });
+}
+
+/**
+ * 게시물 좋아요한 사용자 목록 무한 스크롤 훅
+ */
+export function useInfinitePostLikers(
+  postId: number,
+  params?: Omit<GetPostLikersParams, 'page'>,
+  options?: Omit<UseInfiniteQueryOptions<PaginatedLikersResponse, Error, InfiniteData<PaginatedLikersResponse>, readonly unknown[], number>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+) {
+  return useInfiniteQuery<PaginatedLikersResponse, Error, InfiniteData<PaginatedLikersResponse>, readonly unknown[], number>({
+    queryKey: postsKeys.likers(postId),
+    queryFn: ({ pageParam }) => getPostLikers(postId, { ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.next) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    enabled: !!postId && postId > 0,
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
     ...options,

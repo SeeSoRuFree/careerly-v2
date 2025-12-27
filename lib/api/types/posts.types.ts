@@ -108,3 +108,34 @@ export interface PaginatedPostResponse {
   previous: string | null;
   results: PostListItem[];
 }
+
+/**
+ * 좋아요한 사용자 정보
+ */
+export interface LikerUser {
+  id: number;
+  profile_id: number | null;
+  name: string | null;
+  image_url: string | null;
+  small_image_url: string | null;
+  headline: string | null;
+}
+
+/**
+ * 좋아요한 사용자 항목
+ */
+export interface Liker {
+  id: number;
+  user: LikerUser | null;
+  createdat?: string;
+}
+
+/**
+ * 좋아요한 사용자 목록 페이지네이션 응답
+ */
+export interface PaginatedLikersResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Liker[];
+}

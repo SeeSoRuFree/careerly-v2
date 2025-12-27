@@ -21,6 +21,7 @@ import {
   uploadPostImage,
 } from '../../services/posts.service';
 import { postsKeys } from '../queries/usePosts';
+import { userKeys } from '../queries/useUser';
 import type { Post, PostCreateRequest, PostUpdateRequest, ImageUploadResponse } from '../../types/posts.types';
 
 /**
@@ -393,20 +394,26 @@ function updatePostSaveInCache(
   );
 }
 
+// 북마크 mutation context 타입
+type BookmarkMutationContext = {
+  previousSavedPosts: unknown;
+};
+
 /**
  * 게시물 북마크 mutation
  */
 export function useSavePost(
-  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<void, Error, number, BookmarkMutationContext>, 'mutationFn'>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
+  return useMutation<void, Error, number, BookmarkMutationContext>({
     mutationFn: savePost,
     onMutate: async (postId) => {
       // 진행 중인 refetch 취소
       await queryClient.cancelQueries({ queryKey: postsKeys.lists() });
       await queryClient.cancelQueries({ queryKey: postsKeys.detail(postId) });
+      await queryClient.cancelQueries({ queryKey: [...userKeys.all, 'savedPosts'] });
 
       // Optimistic Update 적용
       updatePostSaveInCache(queryClient, postId, true);
@@ -416,6 +423,44 @@ export function useSavePost(
         if (!oldData) return oldData;
         return { ...oldData, is_saved: true };
       });
+
+      // savedPosts 캐시에서 해당 포스트의 is_saved 상태를 true로 변경 (Optimistic Update)
+      // 롤백을 위해 이전 데이터 저장
+      const savedPostsKey = [...userKeys.all, 'savedPosts', 'infinite'];
+      const previousSavedPosts = queryClient.getQueryData(savedPostsKey);
+
+      // 정확한 쿼리 키로 캐시 업데이트 (카운트 즉시 반영)
+      queryClient.setQueryData(
+        savedPostsKey,
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          // InfiniteQuery 데이터 구조 처리
+          if (oldData.pages) {
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any, pageIndex: number) => ({
+                ...page,
+                // 첫 페이지의 count만 증가
+                count: pageIndex === 0 ? (page.count || 0) + 1 : page.count,
+                results: page.results?.map((post: any) =>
+                  post.id === postId ? { ...post, is_saved: true } : post
+                ),
+              })),
+            };
+          }
+          // 일반 쿼리 데이터 구조 처리
+          if (oldData.results) {
+            return {
+              ...oldData,
+              count: (oldData.count || 0) + 1,
+              results: oldData.results.map((post: any) =>
+                post.id === postId ? { ...post, is_saved: true } : post
+              ),
+            };
+          }
+          return oldData;
+        }
+      );
 
       // 공유 페이지 세션 캐시도 업데이트 (Optimistic Update)
       queryClient.setQueriesData(
@@ -432,19 +477,26 @@ export function useSavePost(
           };
         }
       );
+
+      return { previousSavedPosts };
     },
     onSuccess: (_, postId) => {
       // 공유 페이지 세션 캐시 무효화 (실제 데이터로 갱신)
       queryClient.invalidateQueries({ queryKey: ['sharePageSession'] });
       toast.success('게시물을 저장했습니다.');
     },
-    onError: (error, postId) => {
+    onError: (error, postId, context) => {
       // 에러 시 롤백
       updatePostSaveInCache(queryClient, postId, false);
       queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
         if (!oldData) return oldData;
         return { ...oldData, is_saved: false };
       });
+
+      // savedPosts 캐시 롤백
+      if (context?.previousSavedPosts) {
+        queryClient.setQueryData([...userKeys.all, 'savedPosts', 'infinite'], context.previousSavedPosts);
+      }
 
       // 공유 페이지 세션 캐시도 롤백
       queryClient.setQueriesData(
@@ -472,16 +524,17 @@ export function useSavePost(
  * 게시물 북마크 취소 mutation
  */
 export function useUnsavePost(
-  options?: Omit<UseMutationOptions<void, Error, number>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<void, Error, number, BookmarkMutationContext>, 'mutationFn'>
 ) {
   const queryClient = useQueryClient();
 
-  return useMutation<void, Error, number>({
+  return useMutation<void, Error, number, BookmarkMutationContext>({
     mutationFn: unsavePost,
     onMutate: async (postId) => {
       // 진행 중인 refetch 취소
       await queryClient.cancelQueries({ queryKey: postsKeys.lists() });
       await queryClient.cancelQueries({ queryKey: postsKeys.detail(postId) });
+      await queryClient.cancelQueries({ queryKey: [...userKeys.all, 'savedPosts'] });
 
       // Optimistic Update 적용
       updatePostSaveInCache(queryClient, postId, false);
@@ -491,6 +544,44 @@ export function useUnsavePost(
         if (!oldData) return oldData;
         return { ...oldData, is_saved: false };
       });
+
+      // savedPosts 캐시에서 해당 포스트의 is_saved 상태를 false로 변경 (Optimistic Update)
+      // 롤백을 위해 이전 데이터 저장
+      const savedPostsKey = [...userKeys.all, 'savedPosts', 'infinite'];
+      const previousSavedPosts = queryClient.getQueryData(savedPostsKey);
+
+      // 정확한 쿼리 키로 캐시 업데이트 (카운트 즉시 반영)
+      queryClient.setQueryData(
+        savedPostsKey,
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          // InfiniteQuery 데이터 구조 처리
+          if (oldData.pages) {
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any, pageIndex: number) => ({
+                ...page,
+                // 첫 페이지의 count만 감소
+                count: pageIndex === 0 ? Math.max((page.count || 0) - 1, 0) : page.count,
+                results: page.results?.map((post: any) =>
+                  post.id === postId ? { ...post, is_saved: false } : post
+                ),
+              })),
+            };
+          }
+          // 일반 쿼리 데이터 구조 처리
+          if (oldData.results) {
+            return {
+              ...oldData,
+              count: Math.max((oldData.count || 0) - 1, 0),
+              results: oldData.results.map((post: any) =>
+                post.id === postId ? { ...post, is_saved: false } : post
+              ),
+            };
+          }
+          return oldData;
+        }
+      );
 
       // 공유 페이지 세션 캐시도 업데이트 (Optimistic Update)
       queryClient.setQueriesData(
@@ -507,19 +598,26 @@ export function useUnsavePost(
           };
         }
       );
+
+      return { previousSavedPosts };
     },
     onSuccess: (_, postId) => {
       // 공유 페이지 세션 캐시 무효화 (실제 데이터로 갱신)
       queryClient.invalidateQueries({ queryKey: ['sharePageSession'] });
       toast.success('저장을 취소했습니다.');
     },
-    onError: (error, postId) => {
+    onError: (error, postId, context) => {
       // 에러 시 롤백
       updatePostSaveInCache(queryClient, postId, true);
       queryClient.setQueryData(postsKeys.detail(postId), (oldData: any) => {
         if (!oldData) return oldData;
         return { ...oldData, is_saved: true };
       });
+
+      // savedPosts 캐시 롤백
+      if (context?.previousSavedPosts) {
+        queryClient.setQueryData([...userKeys.all, 'savedPosts', 'infinite'], context.previousSavedPosts);
+      }
 
       // 공유 페이지 세션 캐시도 롤백
       queryClient.setQueriesData(

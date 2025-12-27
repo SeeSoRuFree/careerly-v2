@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { cn, isInApp, postMessageToApp } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { trackSignupStart } from '@/lib/analytics';
-import { toast } from 'sonner';
 
 const signupSchema = z
   .object({
@@ -90,14 +89,6 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
     // OAuth 방식 signup_start 트래킹
     trackSignupStart(provider as 'apple' | 'kakao');
 
-    // 앱 환경이면 네이티브 로그인 요청
-    if (isInApp()) {
-      const messageType = provider === 'apple' ? 'apple-login' : 'kakao-login';
-      postMessageToApp({ type: messageType });
-      return;
-    }
-
-    // 웹 브라우저: 기존 OAuth 로그인
     try {
       setIsOAuthLoading(true);
       const response = await initiateOAuthLogin(provider);
@@ -107,48 +98,6 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
       setIsOAuthLoading(false);
     }
   };
-
-  // 앱에서 네이티브 로그인 결과 수신 (postMessage 방식 - 레거시 지원)
-  // 참고: window.handleNativeAppleAuth/handleNativeKakaoAuth는 NativeAuthHandler에서 전역 등록됨
-  React.useEffect(() => {
-    if (!isInApp()) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-
-        switch (data.type) {
-          case 'native-login-success':
-            // 로그인 성공 - 페이지 새로고침
-            toast.success('로그인되었습니다.');
-            onClose();
-            window.location.reload();
-            break;
-
-          case 'native-login-error':
-            // 로그인 실패
-            if (data.error !== 'cancelled') {
-              toast.error(`${data.provider} 로그인에 실패했습니다.`);
-            }
-            break;
-
-          case 'native-login-unsupported':
-            // 네이티브 미지원 (Android 애플 로그인) → 웹 폴백
-            if (data.provider === 'apple') {
-              initiateOAuthLogin('apple').then((response) => {
-                window.location.href = response.authUrl;
-              });
-            }
-            break;
-        }
-      } catch {
-        // JSON 파싱 실패 무시
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [onClose]);
 
   const isLoading = isSubmitting || signup.isPending || isOAuthLoading;
 

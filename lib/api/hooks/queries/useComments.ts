@@ -4,8 +4,9 @@
 
 'use client';
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { getComments, getComment } from '../../services/comments.service';
+import { useQuery, useInfiniteQuery, UseQueryOptions, UseInfiniteQueryOptions, InfiniteData } from '@tanstack/react-query';
+import { getComments, getComment, getCommentLikers } from '../../services/comments.service';
+import type { GetCommentLikersParams, PaginatedCommentLikersResponse } from '../../services/comments.service';
 import type { Comment, PaginatedCommentResponse } from '../../types/comments.types';
 
 /**
@@ -17,6 +18,7 @@ export const commentKeys = {
   list: (filters: { postId?: number; page?: number }) => [...commentKeys.lists(), filters] as const,
   details: () => [...commentKeys.all, 'detail'] as const,
   detail: (id: number) => [...commentKeys.details(), id] as const,
+  likers: (id: number) => [...commentKeys.all, 'likers', id] as const,
 };
 
 /**
@@ -50,6 +52,32 @@ export function useComment(
     queryFn: () => getComment(id),
     enabled: !!id,
     staleTime: 3 * 60 * 1000, // 3분
+    gcTime: 10 * 60 * 1000, // 10분
+    ...options,
+  });
+}
+
+/**
+ * 댓글 좋아요한 사용자 목록 무한 스크롤 훅
+ * @param commentId - 댓글 ID
+ */
+export function useInfiniteCommentLikers(
+  commentId: number,
+  params?: Omit<GetCommentLikersParams, 'page'>,
+  options?: Omit<UseInfiniteQueryOptions<PaginatedCommentLikersResponse, Error, InfiniteData<PaginatedCommentLikersResponse>, readonly unknown[], number>, 'queryKey' | 'queryFn' | 'getNextPageParam' | 'initialPageParam'>
+) {
+  return useInfiniteQuery<PaginatedCommentLikersResponse, Error, InfiniteData<PaginatedCommentLikersResponse>, readonly unknown[], number>({
+    queryKey: commentKeys.likers(commentId),
+    queryFn: ({ pageParam }) => getCommentLikers(commentId, { ...params, page: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.next) {
+        return allPages.length + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 1,
+    enabled: !!commentId && commentId > 0,
+    staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
     ...options,
   });

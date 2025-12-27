@@ -5,7 +5,7 @@ import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
@@ -32,7 +32,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 const linkifyOptions = {
-  className: 'text-coral-500 hover:text-coral-600 underline',
+  className: 'text-coral-500 hover:text-coral-600 underline break-all',
   target: '_blank',
   rel: 'noopener noreferrer',
 };
@@ -172,7 +172,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
           </h1>
 
           {/* Description */}
-          <div className="text-slate-700 leading-relaxed whitespace-pre-wrap mb-4">
+          <div className="text-slate-700 leading-relaxed whitespace-pre-wrap break-all overflow-hidden mb-4">
             <Linkify options={linkifyOptions}>
               {description}
             </Linkify>
@@ -245,21 +245,33 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                     {currentUser?.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 flex gap-2">
-                  <Input
+                <div className="flex-1 space-y-2">
+                  <Textarea
                     value={answerInput}
                     onChange={(e) => setAnswerInput(e.target.value)}
-                    placeholder="답변을 입력하세요..."
-                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        if (answerInput.trim()) {
+                          onAnswerSubmit?.(answerInput.trim());
+                          setAnswerInput('');
+                        }
+                      }
+                    }}
+                    placeholder="답변을 입력하세요... (Cmd/Ctrl+Enter로 전송)"
+                    className="flex-1 min-h-[80px] resize-none"
                   />
-                  <Button
-                    type="submit"
-                    variant="solid"
-                    size="md"
-                    disabled={!answerInput.trim()}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      variant="solid"
+                      size="md"
+                      disabled={!answerInput.trim()}
+                    >
+                      <Send className="h-4 w-4 mr-1" />
+                      답변 작성
+                    </Button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -365,7 +377,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                       })()}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-all overflow-hidden">
                       <Linkify options={linkifyOptions}>
                         {acceptedAnswer.content}
                       </Linkify>
@@ -435,14 +447,14 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                               </span>
                               {/* 본인 답변인 경우 수정/삭제 메뉴 */}
                               {isOwnAnswer && (onAnswerEdit || onAnswerDelete) && !isEditing && (
-                                <DropdownMenu>
+                                <DropdownMenu modal={false}>
                                   <DropdownMenuTrigger
                                     className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
                                     aria-label="더보기"
                                   >
                                     <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
+                                  <DropdownMenuContent align="end" className="z-[9999]">
                                     {onAnswerEdit && (
                                       <DropdownMenuItem
                                         onClick={() => handleAnswerEditStart(answer)}
@@ -471,10 +483,16 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                           {/* 수정 모드 */}
                           {isEditing ? (
                             <div className="space-y-2">
-                              <Input
+                              <Textarea
                                 value={editingAnswerContent}
                                 onChange={(e) => setEditingAnswerContent(e.target.value)}
-                                className="text-sm"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    handleAnswerEditSave();
+                                  }
+                                }}
+                                className="text-sm min-h-[80px] resize-none"
                                 autoFocus
                               />
                               <div className="flex items-center gap-2">
@@ -552,7 +570,7 @@ export const QnaDetail = React.forwardRef<HTMLDivElement, QnaDetailProps>(
                                   })()}
                                 </div>
                               ) : (
-                                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-all overflow-hidden">
                                   <Linkify options={linkifyOptions}>
                                     {answer.content}
                                   </Linkify>

@@ -5,7 +5,7 @@ import Linkify from 'linkify-react';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ActionBar } from '@/components/ui/action-bar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -31,10 +31,15 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { LikesModal, LikeUser } from '@/components/ui/likes-modal';
+import { ImageViewer } from '@/components/ui/image-viewer';
 import { formatRelativeTime } from '@/lib/utils/date';
+import { useInfinitePostLikers } from '@/lib/api/hooks/queries/usePosts';
+import { useInfiniteCommentLikers } from '@/lib/api/hooks/queries/useComments';
+import { useRouter } from 'next/navigation';
 
 const linkifyOptions = {
-  className: 'text-coral-500 hover:text-coral-600 underline',
+  className: 'text-coral-500 hover:text-coral-600 underline break-all',
   target: '_blank',
   rel: 'noopener noreferrer',
 };
@@ -140,6 +145,78 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
     const [editingCommentContent, setEditingCommentContent] = React.useState('');
     const [deleteCommentDialogOpen, setDeleteCommentDialogOpen] = React.useState(false);
     const [commentToDelete, setCommentToDelete] = React.useState<number | null>(null);
+    const [likesModalOpen, setLikesModalOpen] = React.useState(false);
+    const [commentLikesModalOpen, setCommentLikesModalOpen] = React.useState(false);
+    const [selectedCommentId, setSelectedCommentId] = React.useState<number | null>(null);
+    const [imageViewerOpen, setImageViewerOpen] = React.useState(false);
+    const [imageViewerIndex, setImageViewerIndex] = React.useState(0);
+    const contentRef = React.useRef<HTMLDivElement>(null);
+    const router = useRouter();
+
+    const numericPostId = typeof postId === 'string' ? parseInt(postId, 10) : postId;
+
+    // Post likers query (only fetch when modal is open)
+    const {
+      data: likersData,
+      isLoading: likersLoading,
+      hasNextPage: likersHasNextPage,
+      isFetchingNextPage: likersFetchingNextPage,
+      fetchNextPage: likersFetchNextPage,
+      refetch: refetchLikers,
+    } = useInfinitePostLikers(numericPostId, undefined, {
+      enabled: likesModalOpen && !isNaN(numericPostId),
+    });
+
+    // Comment likers query (only fetch when modal is open)
+    const {
+      data: commentLikersData,
+      isLoading: commentLikersLoading,
+      hasNextPage: commentLikersHasNextPage,
+      isFetchingNextPage: commentLikersFetchingNextPage,
+      fetchNextPage: commentLikersFetchNextPage,
+      refetch: refetchCommentLikers,
+    } = useInfiniteCommentLikers(selectedCommentId || 0, undefined, {
+      enabled: commentLikesModalOpen && selectedCommentId !== null,
+    });
+
+    // Refetch when modals open to get fresh data
+    React.useEffect(() => {
+      if (likesModalOpen) {
+        refetchLikers();
+      }
+    }, [likesModalOpen, refetchLikers]);
+
+    React.useEffect(() => {
+      if (commentLikesModalOpen && selectedCommentId) {
+        refetchCommentLikers();
+      }
+    }, [commentLikesModalOpen, selectedCommentId, refetchCommentLikers]);
+
+    // Flatten likers data for modal
+    const likers: LikeUser[] = React.useMemo(() => {
+      if (!likersData?.pages) return [];
+      return likersData.pages.flatMap(page => page.results);
+    }, [likersData]);
+
+    const commentLikers: LikeUser[] = React.useMemo(() => {
+      if (!commentLikersData?.pages) return [];
+      return commentLikersData.pages.flatMap(page => page.results);
+    }, [commentLikersData]);
+
+    const handlePostLikesClick = () => {
+      setLikesModalOpen(true);
+    };
+
+    const handleCommentLikesClick = (commentId: number) => {
+      setSelectedCommentId(commentId);
+      setCommentLikesModalOpen(true);
+    };
+
+    const handleUserClick = (profileId: number) => {
+      setLikesModalOpen(false);
+      setCommentLikesModalOpen(false);
+      router.push(`/profile/${profileId}`);
+    };
 
     const isOwnPost = currentUser?.id !== undefined && (authorId === currentUser.id || userProfile.id === currentUser.id);
 
@@ -178,6 +255,51 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
         setDeleteCommentDialogOpen(false);
       }
     };
+
+    // contentHtml에 포함된 이미지 URL 추출
+    const htmlImageUrls = React.useMemo(() => {
+      if (!contentHtml) return [];
+      const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+      const urls: string[] = [];
+      let match;
+      while ((match = imgRegex.exec(contentHtml)) !== null) {
+        urls.push(match[1]);
+      }
+      return urls;
+    }, [contentHtml]);
+
+    // 모든 이미지 URL (HTML 내 이미지 + 별도 이미지)
+    const allImageUrls = React.useMemo(() => {
+      return [...htmlImageUrls, ...imageUrls];
+    }, [htmlImageUrls, imageUrls]);
+
+    const handleImageClick = (index: number) => {
+      // imageUrls의 인덱스를 allImageUrls 기준으로 변환
+      const actualIndex = htmlImageUrls.length + index;
+      setImageViewerIndex(actualIndex);
+      setImageViewerOpen(true);
+    };
+
+    // contentHtml 내의 이미지 클릭 이벤트 처리 (이벤트 위임 방식)
+    const handleContentClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        e.stopPropagation();
+        const img = target as HTMLImageElement;
+        const src = img.src;
+        const index = allImageUrls.findIndex(url => {
+          try {
+            return new URL(url, window.location.origin).href === new URL(src, window.location.origin).href;
+          } catch {
+            return url === src;
+          }
+        });
+        if (index !== -1) {
+          setImageViewerIndex(index);
+          setImageViewerOpen(true);
+        }
+      }
+    }, [allImageUrls]);
 
     React.useEffect(() => {
       if (sharedAiContent) {
@@ -298,11 +420,13 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           <div className="mb-3">
             {contentHtml ? (
               <div
-                className="text-slate-900 leading-relaxed prose prose-base max-w-none prose-p:whitespace-pre-wrap prose-p:my-0"
+                ref={contentRef}
+                className="text-slate-900 leading-relaxed prose prose-base max-w-none prose-p:whitespace-pre-wrap prose-p:my-0 [&_img]:cursor-pointer [&_img]:hover:opacity-90 [&_img]:transition-opacity"
                 dangerouslySetInnerHTML={{ __html: contentHtml }}
+                onClick={handleContentClick}
               />
             ) : (
-              <p className="text-slate-900 leading-relaxed whitespace-pre-wrap">
+              <p className="text-slate-900 leading-relaxed whitespace-pre-wrap break-all overflow-hidden">
                 <Linkify options={linkifyOptions}>
                   {content}
                 </Linkify>
@@ -324,18 +448,19 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                 <div
                   key={idx}
                   className={cn(
-                    'relative aspect-video bg-slate-100',
+                    'relative aspect-video bg-slate-100 cursor-pointer',
                     imageUrls.length === 1 && 'aspect-[16/10]',
                     imageUrls.length === 3 && idx === 0 && 'col-span-2'
                   )}
+                  onClick={() => handleImageClick(idx)}
                 >
                   <img
                     src={url}
                     alt={`이미지 ${idx + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover hover:opacity-90 transition-opacity"
                   />
                   {idx === 3 && imageUrls.length > 4 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center pointer-events-none">
                       <span className="text-white font-semibold text-lg">
                         +{imageUrls.length - 4}
                       </span>
@@ -360,10 +485,13 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                 </div>
               )}
               {stats.likeCount !== undefined && stats.likeCount > 0 && (
-                <div className="flex items-center gap-1">
+                <button
+                  onClick={handlePostLikesClick}
+                  className="flex items-center gap-1 hover:text-coral-500 transition-colors"
+                >
                   <Heart className="h-3.5 w-3.5" />
                   <span>{stats.likeCount.toLocaleString()} 좋아요</span>
-                </div>
+                </button>
               )}
               {stats.replyCount !== undefined && stats.replyCount > 0 && (
                 <div className="flex items-center gap-1">
@@ -436,21 +564,33 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                     {currentUser?.name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 flex gap-2">
-                  <Input
+                <div className="flex-1 space-y-2">
+                  <Textarea
                     value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
-                    placeholder="댓글을 입력하세요..."
-                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        if (commentInput.trim()) {
+                          onCommentSubmit?.(commentInput.trim());
+                          setCommentInput('');
+                        }
+                      }
+                    }}
+                    placeholder="댓글을 입력하세요... (Cmd/Ctrl+Enter로 전송)"
+                    className="flex-1 min-h-[80px] resize-none"
                   />
-                  <Button
-                    type="submit"
-                    variant="solid"
-                    size="md"
-                    disabled={!commentInput.trim()}
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      variant="solid"
+                      size="md"
+                      disabled={!commentInput.trim()}
+                    >
+                      <Send className="h-4 w-4 mr-1" />
+                      댓글 작성
+                    </Button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -501,7 +641,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                             <button
                               onClick={() => onCommentLike?.(comment.id)}
                               className={cn(
-                                'flex items-center gap-1 text-xs transition-colors',
+                                'flex items-center text-xs transition-colors',
                                 comment.liked
                                   ? 'text-coral-500'
                                   : 'text-slate-400 hover:text-coral-500'
@@ -513,19 +653,26 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                                   comment.liked && 'fill-current'
                                 )}
                               />
-                              {comment.likeCount > 0 && <span>{comment.likeCount}</span>}
                             </button>
+                            {comment.likeCount > 0 && (
+                              <button
+                                onClick={() => handleCommentLikesClick(comment.id)}
+                                className="text-xs text-slate-400 hover:text-coral-500 transition-colors"
+                              >
+                                {comment.likeCount}
+                              </button>
+                            )}
                             <span className="text-xs text-slate-500">{comment.createdAt}</span>
                             {/* 본인 댓글인 경우 수정/삭제 메뉴 */}
                             {isOwnComment && (onCommentEdit || onCommentDelete) && !isEditing && (
-                              <DropdownMenu>
+                              <DropdownMenu modal={false}>
                                 <DropdownMenuTrigger
                                   className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
                                   aria-label="더보기"
                                 >
                                   <MoreVertical className="h-3.5 w-3.5 text-slate-400" />
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                <DropdownMenuContent align="end" className="z-[9999]">
                                   {onCommentEdit && (
                                     <DropdownMenuItem
                                       onClick={() => handleCommentEditStart(comment)}
@@ -554,10 +701,16 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                         {/* 수정 모드 */}
                         {isEditing ? (
                           <div className="space-y-2">
-                            <Input
+                            <Textarea
                               value={editingCommentContent}
                               onChange={(e) => setEditingCommentContent(e.target.value)}
-                              className="text-sm"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                                  e.preventDefault();
+                                  handleCommentEditSave();
+                                }
+                              }}
+                              className="text-sm min-h-[80px] resize-none"
                               autoFocus
                             />
                             <div className="flex items-center gap-2">
@@ -635,7 +788,7 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
                                 })()}
                               </div>
                             ) : (
-                              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                              <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-all overflow-hidden">
                                 <Linkify options={linkifyOptions}>
                                   {comment.content}
                                 </Linkify>
@@ -675,6 +828,43 @@ export const PostDetail = React.forwardRef<HTMLDivElement, PostDetailProps>(
           description="이 댓글을 삭제하시겠습니까? 삭제된 댓글은 복구할 수 없습니다."
           confirmText="삭제하기"
           variant="danger"
+        />
+
+        {/* Post Likes Modal */}
+        <LikesModal
+          isOpen={likesModalOpen}
+          onClose={() => setLikesModalOpen(false)}
+          users={likers}
+          isLoading={likersLoading}
+          onUserClick={handleUserClick}
+          hasNextPage={likersHasNextPage}
+          isFetchingNextPage={likersFetchingNextPage}
+          fetchNextPage={likersFetchNextPage}
+          totalCount={likersData?.pages?.[0]?.count}
+        />
+
+        {/* Comment Likes Modal */}
+        <LikesModal
+          isOpen={commentLikesModalOpen}
+          onClose={() => {
+            setCommentLikesModalOpen(false);
+            setSelectedCommentId(null);
+          }}
+          users={commentLikers}
+          isLoading={commentLikersLoading}
+          onUserClick={handleUserClick}
+          hasNextPage={commentLikersHasNextPage}
+          isFetchingNextPage={commentLikersFetchingNextPage}
+          fetchNextPage={commentLikersFetchNextPage}
+          totalCount={commentLikersData?.pages?.[0]?.count}
+        />
+
+        {/* Image Viewer */}
+        <ImageViewer
+          isOpen={imageViewerOpen}
+          onClose={() => setImageViewerOpen(false)}
+          images={allImageUrls}
+          initialIndex={imageViewerIndex}
         />
       </div>
     );

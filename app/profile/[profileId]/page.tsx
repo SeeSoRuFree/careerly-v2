@@ -2062,10 +2062,14 @@ export default function UserProfilePage({ params }: { params: { profileId: strin
                             }}
                             onBookmark={() => {
                               if (!currentUser) return;
-                              unsavePostMutation.mutate(post.id);
+                              if (post.is_saved) {
+                                unsavePostMutation.mutate(post.id);
+                              } else {
+                                savePostMutation.mutate(post.id);
+                              }
                             }}
                             liked={post.is_liked}
-                            bookmarked={true}
+                            bookmarked={post.is_saved}
                           />
                         );
                       })}

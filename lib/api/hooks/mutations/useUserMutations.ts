@@ -76,13 +76,13 @@ export function useFollowUser(
     onSuccess: (_, userId) => {
       // 팔로우 상태 캐시 무효화
       queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
-      // 모든 팔로잉 관련 쿼리 무효화 (infinite 포함)
+      // 모든 팔로잉 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'detail'] });
       // 해당 유저의 프로필 무효화 (팔로워 수 업데이트)
       queryClient.invalidateQueries({ queryKey: ['profile', 'user', userId] });
       // 내 프로필 무효화 (팔로잉 수 업데이트)
       queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
-      // 추천 팔로워 캐시 무효화 (팔로우한 유저가 다음 방문 시 추천 목록에서 제외되도록)
+      // 추천 팔로워 캐시 무효화
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'recommended'] });
 
       toast.success('팔로우했습니다.');
@@ -107,12 +107,14 @@ export function useUnfollowUser(
     onSuccess: (_, userId) => {
       // 팔로우 상태 캐시 무효화
       queryClient.invalidateQueries({ queryKey: userKeys.followStatus(userId) });
-      // 모든 팔로잉 관련 쿼리 무효화 (infinite 포함)
+      // 모든 팔로잉 관련 쿼리 무효화
       queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'detail'] });
       // 해당 유저의 프로필 무효화 (팔로워 수 업데이트)
       queryClient.invalidateQueries({ queryKey: ['profile', 'user', userId] });
       // 내 프로필 무효화 (팔로잉 수 업데이트)
       queryClient.invalidateQueries({ queryKey: ['profile', 'me'] });
+      // 추천 팔로워 캐시 무효화
+      queryClient.invalidateQueries({ queryKey: [...userKeys.all, 'recommended'] });
 
       toast.success('언팔로우했습니다.');
     },

@@ -22,7 +22,7 @@ import { useStore } from '@/hooks/useStore';
 import { MessageCircle, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
 
 const linkifyOptions = {
-  className: 'text-coral-500 hover:text-coral-600 underline',
+  className: 'text-coral-500 hover:text-coral-600 underline break-all',
   target: '_blank',
   rel: 'noopener noreferrer',
 };
@@ -322,8 +322,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
           <p
             ref={contentRef}
             className={cn(
-              'text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-words',
-              !isExpanded && 'overflow-hidden'
+              'text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-all overflow-hidden'
             )}
             style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
           >
