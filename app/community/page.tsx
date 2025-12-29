@@ -12,9 +12,13 @@ import { Chip } from '@/components/ui/chip';
 import { Button } from '@/components/ui/button';
 import { RecommendedFollowersPanel } from '@/components/ui/recommended-followers-panel';
 import { TopPostsPanel } from '@/components/ui/top-posts-panel';
+import { TopPostsFeedCard } from '@/components/ui/top-posts-feed-card';
+import { RecommendedFollowersFeedCard } from '@/components/ui/recommended-followers-feed-card';
+import { CompanyUpdateFeedCard, MOCK_COMPANY_CONTENTS } from '@/components/ui/company-update-feed-card';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye, MoreVertical, Pencil, Trash2, EyeOff } from 'lucide-react';
+import { AdBanner } from '@/components/ui/ad-banner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,11 +65,18 @@ type UserProfile = {
   small_image_url: string;
 };
 
+type CompanyContentData = {
+  type: 'blog' | 'jobs';
+  company: { name: string; logoUrl: string; siteUrl: string };
+  item: { title: string; url: string; summary: string; aiAnalysis: string };
+};
+
 type SelectedContent = {
-  type: 'post' | 'qna';
+  type: 'post' | 'qna' | 'company';
   id: string;
   userProfile?: UserProfile;
   questionData?: QuestionListItem;
+  companyData?: CompanyContentData;
 };
 
 // Post 상세 Drawer 컨텐츠 컴포넌트
@@ -675,13 +686,19 @@ function CommunityPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // URL 파라미터에서 탭 읽기 (기본값: 'recent')
-  const currentTab = (searchParams.get('tab') as 'recent' | 'recommend' | 'qna' | 'following') || 'recent';
+  // URL 파라미터에서 탭 읽기
+  // 기존 'recent' URL은 'explore'로 매핑 (하위 호환)
+  const tabParam = searchParams.get('tab');
+  const mappedTab = tabParam === 'recent' ? 'explore' : tabParam;
+
   const postIdFromUrl = searchParams.get('post');
   const qnaIdFromUrl = searchParams.get('qna');
 
   const [selectedInterests, setSelectedInterests] = React.useState<string[]>([]);
-  const [contentFilter, setContentFilter] = React.useState<'recent' | 'recommend' | 'qna' | 'following'>(currentTab);
+  // user는 아직 로드 안됐을 수 있으므로 초기값은 'explore', useEffect에서 조정
+  const [contentFilter, setContentFilter] = React.useState<'explore' | 'recommend' | 'qna' | 'following'>(
+    (mappedTab as 'explore' | 'recommend' | 'qna' | 'following') || 'explore'
+  );
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [selectedContent, setSelectedContent] = React.useState<SelectedContent | null>(null);
 
@@ -710,20 +727,61 @@ function CommunityPageContent() {
   // Q&A 좋아요 상태 관리
   const [questionLikes, setQuestionLikes] = React.useState<Record<number, { liked: boolean; disliked: boolean }>>({});
 
+  // 광고 표시 상태 (테스트용) - 각 광고별 개별 상태
+  const [hiddenAds, setHiddenAds] = React.useState<Record<string, boolean>>({});
+  const showAds = Object.keys(hiddenAds).length < 6; // 전체 토글용
+
+  const hideAd = (adKey: string) => {
+    setHiddenAds(prev => ({ ...prev, [adKey]: true }));
+  };
+
+  const toggleAllAds = () => {
+    if (Object.keys(hiddenAds).length > 0) {
+      setHiddenAds({}); // 모두 보이기
+    } else {
+      setHiddenAds({ feedNative: true, mobileScroll: true }); // 모두 숨기기
+    }
+  };
+
+  // 샘플 광고 데이터
+  const sampleAds = {
+    feedNative: {
+      variant: 'native' as const,
+      imageUrl: 'https://placehold.co/400x300/4ECDC4/FFFFFF?text=Native+AD',
+      title: '개발자를 위한 최고의 도구',
+      description: '생산성을 200% 높이는 개발 도구를 지금 무료로 시작해보세요',
+      linkUrl: 'https://example.com',
+    },
+    mobileScroll: {
+      variant: 'card' as const,
+      imageUrl: 'https://placehold.co/320x200/F38181/FFFFFF?text=Mobile+AD',
+      title: '취업 성공 가이드',
+      description: '이력서 작성부터 면접까지 완벽 대비',
+      linkUrl: 'https://example.com',
+    },
+  };
+
   // Get current user and login modal state
   const { data: user } = useCurrentUser();
   const { openLoginModal } = useStore();
 
   // 탭 변경 핸들러
-  const handleTabChange = (tab: 'recent' | 'recommend' | 'qna' | 'following') => {
+  const handleTabChange = (tab: 'explore' | 'recommend' | 'qna' | 'following') => {
     setContentFilter(tab);
-    // URL 업데이트
-    if (tab === 'recent') {
+    // URL 업데이트 - explore는 기본값이므로 파라미터 없이
+    if (tab === 'explore') {
       router.push('/community');
     } else {
       router.push(`/community?tab=${tab}`);
     }
   };
+
+  // 로그인 사용자: URL 파라미터 없이 접근 시 '팔로잉' 탭을 기본값으로
+  React.useEffect(() => {
+    if (user && !tabParam) {
+      setContentFilter('following');
+    }
+  }, [user, tabParam]);
 
   // API Hooks
   const {
@@ -779,10 +837,29 @@ function CommunityPageContent() {
   const followUser = useFollowUser();
   const unfollowUser = useUnfollowUser();
 
+  // Follow/Unfollow handlers for feed cards
+  const handleFollowUser = (userId: string) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    followUser.mutate(parseInt(userId, 10));
+  };
+
+  const handleUnfollowUser = (userId: string) => {
+    if (!user) {
+      openLoginModal();
+      return;
+    }
+    unfollowUser.mutate(parseInt(userId, 10));
+  };
+
   // URL과 상태 동기화
   React.useEffect(() => {
-    setContentFilter(currentTab);
-  }, [currentTab]);
+    if (mappedTab) {
+      setContentFilter(mappedTab as 'explore' | 'recommend' | 'qna' | 'following');
+    }
+  }, [mappedTab]);
 
   // URL 파라미터로 drawer 열기
   // 이미 같은 콘텐츠가 선택되어 있으면 userProfile을 보존하기 위해 덮어쓰지 않음
@@ -1114,7 +1191,7 @@ function CommunityPageContent() {
   };
 
   const handleLoadMore = () => {
-    if (contentFilter === 'recent') {
+    if (contentFilter === 'explore') {
       if (hasNextPosts && !isFetchingNextPosts) {
         fetchNextPosts();
       }
@@ -1197,8 +1274,9 @@ function CommunityPageContent() {
     if (contentFilter === 'recommend') {
       return allContent.recommendedItems;
     }
-    if (contentFilter === 'recent') {
-      return allContent.allItems.filter(item => item.type === 'feed');
+    if (contentFilter === 'explore') {
+      // 전체 탭에서는 feed와 qna 모두 표시
+      return allContent.allItems;
     }
     return allContent.allItems.filter(item => item.type === contentFilter);
   }, [allContent, contentFilter, followingPostsData]);
@@ -1210,7 +1288,7 @@ function CommunityPageContent() {
   const hasError = postsError || recommendedPostsError || questionsError || (contentFilter === 'following' && followingPostsError);
 
   // Check if there's more data to load
-  const hasMoreData = contentFilter === 'recent'
+  const hasMoreData = contentFilter === 'explore'
     ? hasNextPosts
     : contentFilter === 'recommend'
       ? hasNextRecommendedPosts
@@ -1220,12 +1298,13 @@ function CommunityPageContent() {
           ? false // Following uses single page for now
           : hasNextPosts || hasNextQuestions;
 
-  // Transform recommended followers data for RecommendedFollowersPanel
+  // Transform recommended followers data for RecommendedFollowersPanel and FeedCard
   const recommendedFollowers = React.useMemo(() => {
     if (!recommendedFollowersCandidates || recommendedFollowersCandidates.length === 0) return [];
 
     return recommendedFollowersCandidates.slice(0, 5).map((follower) => ({
       id: follower.user_id.toString(),
+      profileId: follower.id,
       name: follower.name,
       image_url: follower.image_url || undefined,
       headline: follower.headline || undefined,
@@ -1235,65 +1314,54 @@ function CommunityPageContent() {
   }, [recommendedFollowersCandidates]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 overflow-x-hidden">
+    <div className="max-w-7xl mx-auto px-4 overflow-x-hidden">
       {/* Main Content */}
-      <main className="lg:col-span-9 min-w-0">
+      <main className="min-w-0">
         <div className="space-y-4">
           {/* Header Section */}
           <div className="pt-2 md:pt-16 pb-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              {/* 타이틀 - PC에서만 표시 (모바일은 AppLayout 헤더에 표시) */}
-              <div className="hidden md:flex items-center gap-3">
-                <MessageSquare className="h-10 w-10 text-slate-700" />
-                <h1 className="text-3xl font-bold text-slate-900">Community</h1>
-              </div>
-
-              <div className="flex items-center justify-between md:justify-end gap-3 min-w-0">
-                <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
+                {/* 로그인 사용자: 팔로잉 탭 먼저 표시 */}
+                {user && (
                   <Chip
-                    variant={contentFilter === 'recent' ? 'selected' : 'default'}
-                    onClick={() => handleTabChange('recent')}
+                    variant={contentFilter === 'following' ? 'selected' : 'default'}
+                    onClick={() => handleTabChange('following')}
                     className="shrink-0"
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    최신
+                    팔로잉
                   </Chip>
-                  <Chip
-                    variant={contentFilter === 'recommend' ? 'selected' : 'default'}
-                    onClick={() => handleTabChange('recommend')}
-                    className="shrink-0"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    추천
-                  </Chip>
-                  <Chip
-                    variant={contentFilter === 'qna' ? 'selected' : 'default'}
-                    onClick={() => handleTabChange('qna')}
-                    className="shrink-0"
-                  >
-                    <HelpCircle className="h-4 w-4" />
-                    Q&A
-                  </Chip>
-                  {user && (
-                    <Chip
-                      variant={contentFilter === 'following' ? 'selected' : 'default'}
-                      onClick={() => handleTabChange('following')}
-                      className="shrink-0"
-                    >
-                      <Users className="h-4 w-4" />
-                      팔로잉
-                    </Chip>
-                  )}
-                </div>
-                <Button
-                  variant="coral"
-                  onClick={handleWriteClick}
-                  className="flex items-center gap-2 shrink-0"
+                )}
+                <Chip
+                  variant={contentFilter === 'explore' ? 'selected' : 'default'}
+                  onClick={() => handleTabChange('explore')}
+                  className="shrink-0"
                 >
-                  <PenSquare className="h-4 w-4" />
-                  <span className="hidden sm:inline">글쓰기</span>
-                </Button>
+                  둘러보기
+                </Chip>
+                <Chip
+                  variant={contentFilter === 'recommend' ? 'selected' : 'default'}
+                  onClick={() => handleTabChange('recommend')}
+                  className="shrink-0"
+                >
+                  추천
+                </Chip>
+                <Chip
+                  variant={contentFilter === 'qna' ? 'selected' : 'default'}
+                  onClick={() => handleTabChange('qna')}
+                  className="shrink-0"
+                >
+                  Q&A
+                </Chip>
               </div>
+              <Button
+                variant="coral"
+                onClick={handleWriteClick}
+                className="flex items-center gap-2 shrink-0"
+              >
+                <PenSquare className="h-4 w-4" />
+                <span className="hidden sm:inline">글쓰기</span>
+              </Button>
             </div>
           </div>
 
@@ -1435,45 +1503,104 @@ function CommunityPageContent() {
                 })}
               </div>
 
-              {/* 모바일: 가로 스크롤 추천 섹션 */}
-              <div className="lg:hidden my-4">
-                <div className="border-t border-slate-200 mb-4" />
-                <div className="-mx-4 px-4 overflow-x-auto scrollbar-hide">
-                <div className="flex gap-4 pb-2" style={{ width: 'max-content' }}>
-                  <div className="w-[320px] shrink-0">
-                    <TopPostsPanel
-                      maxItems={5}
-                      onPostClick={(postId) => handleOpenPost(postId)}
-                    />
-                  </div>
-                  {recommendedFollowers.length > 0 && (
-                    <div className="w-[320px] shrink-0">
-                      <RecommendedFollowersPanel
+              {/* 모바일: 나머지 피드 (광고, 인기글, 추천 팔로워 카드 혼합) */}
+              <div className="lg:hidden space-y-4">
+                {filteredContent.slice(1).flatMap((item, index) => {
+                  const elements: React.ReactNode[] = [];
+                  const realIndex = index + 1; // slice(1)이므로 실제 인덱스는 +1
+
+                  // 3번째 아이템 후에 Sponsored 광고 삽입
+                  if (realIndex === 3 && !hiddenAds['feedNative']) {
+                    elements.push(
+                      <AdBanner
+                        key="mobile-sponsored-ad"
+                        {...sampleAds.feedNative}
+                        onClose={() => hideAd('feedNative')}
+                      />
+                    );
+                  }
+
+                  // 6번째 아이템 후에 인기글 카드 삽입
+                  if (realIndex === 6) {
+                    elements.push(
+                      <TopPostsFeedCard
+                        key="mobile-top-posts-card"
+                        maxItems={5}
+                        onPostClick={(postId) => handleOpenPost(postId)}
+                      />
+                    );
+                  }
+
+                  // 9번째 아이템 후에 추천 팔로워 카드 삽입 (로그인 사용자만)
+                  if (realIndex === 9 && user && recommendedFollowers.length > 0) {
+                    elements.push(
+                      <RecommendedFollowersFeedCard
+                        key="mobile-recommended-followers-card"
                         followers={recommendedFollowers}
                         maxItems={5}
-                        onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
-                        onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
+                        onFollow={handleFollowUser}
+                        onUnfollow={handleUnfollowUser}
                       />
-                    </div>
-                  )}
-                </div>
-                </div>
-                <div className="border-t border-slate-200 mt-4" />
-              </div>
+                    );
+                  }
 
-              {/* 모바일: 나머지 피드 */}
-              <div className="lg:hidden space-y-4">
-                {filteredContent.slice(1).map((item) => {
+                  // 12번째 아이템 후에 기업 블로그 카드 삽입
+                  if (realIndex === 12) {
+                    elements.push(
+                      <CompanyUpdateFeedCard
+                        key="mobile-company-blog-card"
+                        type="blog"
+                        company={MOCK_COMPANY_CONTENTS.blog.company}
+                        item={MOCK_COMPANY_CONTENTS.blog.item}
+                        onCardClick={() => {
+                          setSelectedContent({
+                            type: 'company',
+                            id: 'blog-toss',
+                            companyData: {
+                              type: 'blog',
+                              company: MOCK_COMPANY_CONTENTS.blog.company,
+                              item: MOCK_COMPANY_CONTENTS.blog.item,
+                            },
+                          });
+                          setDrawerOpen(true);
+                        }}
+                      />
+                    );
+                  }
+
+                  // 18번째 아이템 후에 채용공고 카드 삽입
+                  if (realIndex === 18) {
+                    elements.push(
+                      <CompanyUpdateFeedCard
+                        key="mobile-company-jobs-card"
+                        type="jobs"
+                        company={MOCK_COMPANY_CONTENTS.jobs.company}
+                        item={MOCK_COMPANY_CONTENTS.jobs.item}
+                        onCardClick={() => {
+                          setSelectedContent({
+                            type: 'company',
+                            id: 'jobs-kakao',
+                            companyData: {
+                              type: 'jobs',
+                              company: MOCK_COMPANY_CONTENTS.jobs.company,
+                              item: MOCK_COMPANY_CONTENTS.jobs.item,
+                            },
+                          });
+                          setDrawerOpen(true);
+                        }}
+                      />
+                    );
+                  }
+
+                  // 피드 아이템 렌더링
                   if (item.type === 'feed') {
                     const post = item.data;
-                    // Track impression
                     trackImpression(post.id);
 
-                    // AI Chat Session Post (posttype=10)
                     if (post.posttype === 10) {
-                      return (
+                      elements.push(
                         <AIChatPostCard
-                          key={`mobile-rest-ai-${post.id}`}
+                          key={`mobile-ai-${post.id}`}
                           postId={post.id}
                           question={post.title || '제목 없음'}
                           answerPreview={post.description}
@@ -1491,9 +1618,9 @@ function CommunityPageContent() {
                           authorProfileId={post.author?.profile_id}
                         />
                       );
+                      return elements;
                     }
 
-                    // Regular Post
                     const userProfile: UserProfile = post.author ? {
                       id: post.author.id,
                       profile_id: post.author.profile_id,
@@ -1511,9 +1638,9 @@ function CommunityPageContent() {
                       description: '',
                       small_image_url: '',
                     };
-                    return (
+                    elements.push(
                       <CommunityFeedCard
-                        key={`mobile-rest-feed-${post.id}`}
+                        key={`mobile-feed-${post.id}`}
                         postId={post.id}
                         authorId={post.author?.id || post.userid}
                         userProfile={userProfile}
@@ -1539,7 +1666,6 @@ function CommunityPageContent() {
                     );
                   } else if (item.type === 'qna') {
                     const question = item.data;
-                    // Track impression for Q&A
                     trackImpression(question.id, { type: 'question' });
                     const author = {
                       id: question.user_id,
@@ -1549,9 +1675,9 @@ function CommunityPageContent() {
                       image_url: (question as any).author_image_url || null,
                       headline: (question as any).author_headline || null,
                     };
-                    return (
+                    elements.push(
                       <QnaCard
-                        key={`mobile-rest-qna-${question.id}`}
+                        key={`mobile-qna-${question.id}`}
                         title={question.title}
                         description={(question as any).description || question.title}
                         author={author}
@@ -1570,18 +1696,109 @@ function CommunityPageContent() {
                       />
                     );
                   }
-                  return null;
+                  return elements;
                 })}
               </div>
 
-              {/* PC: 기존 Masonry 레이아웃 */}
+              {/* PC: 3열 Masonry 레이아웃 */}
               <div className="hidden lg:block">
                 <Masonry
-                  breakpointCols={{ default: 2, 768: 1 }}
+                  breakpointCols={{ default: 3, 1280: 3, 1024: 2, 768: 1 }}
                   className="flex -ml-6 w-auto"
                   columnClassName="pl-6 bg-clip-padding"
                 >
-                  {filteredContent.map((item) => {
+                  {filteredContent.flatMap((item, index) => {
+                    const elements: React.ReactNode[] = [];
+
+                    // 3번째 아이템 후에 Sponsored 광고 삽입
+                    if (index === 3 && !hiddenAds['feedNative']) {
+                      elements.push(
+                        <div key="sponsored-ad" className="mb-6">
+                          <AdBanner
+                            {...sampleAds.feedNative}
+                            onClose={() => hideAd('feedNative')}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // 6번째 아이템 후에 인기글 카드 삽입
+                    if (index === 6) {
+                      elements.push(
+                        <div key="top-posts-card" className="mb-6">
+                          <TopPostsFeedCard
+                            maxItems={5}
+                            onPostClick={(postId) => handleOpenPost(postId)}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // 9번째 아이템 후에 추천 팔로워 카드 삽입 (로그인 사용자만)
+                    if (index === 9 && user && recommendedFollowers.length > 0) {
+                      elements.push(
+                        <div key="recommended-followers-card" className="mb-6">
+                          <RecommendedFollowersFeedCard
+                            followers={recommendedFollowers}
+                            maxItems={5}
+                            onFollow={handleFollowUser}
+                            onUnfollow={handleUnfollowUser}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // 12번째 아이템 후에 기업 블로그 카드 삽입
+                    if (index === 12) {
+                      elements.push(
+                        <div key="company-blog-card" className="mb-6">
+                          <CompanyUpdateFeedCard
+                            type="blog"
+                            company={MOCK_COMPANY_CONTENTS.blog.company}
+                            item={MOCK_COMPANY_CONTENTS.blog.item}
+                            onCardClick={() => {
+                              setSelectedContent({
+                                type: 'company',
+                                id: 'blog-toss',
+                                companyData: {
+                                  type: 'blog',
+                                  company: MOCK_COMPANY_CONTENTS.blog.company,
+                                  item: MOCK_COMPANY_CONTENTS.blog.item,
+                                },
+                              });
+                              setDrawerOpen(true);
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // 18번째 아이템 후에 채용공고 카드 삽입
+                    if (index === 18) {
+                      elements.push(
+                        <div key="company-jobs-card" className="mb-6">
+                          <CompanyUpdateFeedCard
+                            type="jobs"
+                            company={MOCK_COMPANY_CONTENTS.jobs.company}
+                            item={MOCK_COMPANY_CONTENTS.jobs.item}
+                            onCardClick={() => {
+                              setSelectedContent({
+                                type: 'company',
+                                id: 'jobs-kakao',
+                                companyData: {
+                                  type: 'jobs',
+                                  company: MOCK_COMPANY_CONTENTS.jobs.company,
+                                  item: MOCK_COMPANY_CONTENTS.jobs.item,
+                                },
+                              });
+                              setDrawerOpen(true);
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+
+                    // 피드 아이템 렌더링
                     if (item.type === 'feed') {
                       const post = item.data;
                       // Track impression
@@ -1589,7 +1806,7 @@ function CommunityPageContent() {
 
                       // AI Chat Session Post (posttype=10)
                       if (post.posttype === 10) {
-                        return (
+                        elements.push(
                           <div key={`ai-${post.id}`} className="mb-6">
                             <AIChatPostCard
                               postId={post.id}
@@ -1610,6 +1827,7 @@ function CommunityPageContent() {
                             />
                           </div>
                         );
+                        return elements;
                       }
 
                       // Regular Post
@@ -1630,7 +1848,7 @@ function CommunityPageContent() {
                         description: '',
                         small_image_url: '',
                       };
-                      return (
+                      elements.push(
                         <div key={`feed-${post.id}`} className="mb-6">
                           <CommunityFeedCard
                             postId={post.id}
@@ -1669,7 +1887,7 @@ function CommunityPageContent() {
                         image_url: (question as any).author_image_url || null,
                         headline: (question as any).author_headline || null,
                       };
-                      return (
+                      elements.push(
                         <div key={`qna-${question.id}`} className="mb-6">
                           <QnaCard
                             title={question.title}
@@ -1691,7 +1909,7 @@ function CommunityPageContent() {
                         </div>
                       );
                     }
-                    return null;
+                    return elements;
                   })}
                 </Masonry>
               </div>
@@ -1709,27 +1927,6 @@ function CommunityPageContent() {
         </div>
       </main>
 
-      {/* Right Sidebar - 데스크톱에서만 표시 */}
-      <aside className="hidden lg:block lg:col-span-3">
-        <div className="space-y-4 pt-16">
-          {/* Top Posts (인기글 - 주간/월간) */}
-          <TopPostsPanel
-            maxItems={10}
-            onPostClick={(postId) => handleOpenPost(postId)}
-          />
-
-          {/* Recommended Followers (추천 팔로워) */}
-          <RecommendedFollowersPanel
-            followers={recommendedFollowers}
-            maxItems={5}
-            onFollow={(userId) => followUser.mutate(parseInt(userId, 10))}
-            onUnfollow={(userId) => unfollowUser.mutate(parseInt(userId, 10))}
-          />
-
-          {/* Footer */}
-          <SidebarFooter />
-        </div>
-      </aside>
 
       {/* Right Drawer - z-index를 높여서 pull-to-refresh 스피너(z-50) 위에 표시 */}
       <div
@@ -1743,7 +1940,7 @@ function CommunityPageContent() {
             {/* Drawer Header */}
             <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">
-                {selectedContent.type === 'post' ? '게시글' : '질문'}
+                {selectedContent.type === 'post' ? '게시글' : selectedContent.type === 'qna' ? '질문' : 'AI 추천'}
               </h2>
               <button
                 onClick={handleCloseDrawer}
@@ -1781,6 +1978,117 @@ function CommunityPageContent() {
                   questionData={selectedContent.questionData}
                   questionId={selectedContent.id}
                 />
+              )}
+              {selectedContent.type === 'company' && selectedContent.companyData && (
+                <div className="p-6">
+                  {/* 기업 + AI 헤더 */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="relative">
+                      <div
+                        className="h-12 w-12 rounded-xl flex items-center justify-center"
+                        style={{ backgroundColor: selectedContent.companyData.company.brandColor }}
+                      >
+                        <span className="text-xl font-bold text-white">
+                          {selectedContent.companyData.company.name.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-coral-500 flex items-center justify-center ring-2 ring-white">
+                        <Bot className="h-3.5 w-3.5 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-slate-900">{selectedContent.companyData.company.name}</span>
+                        <span className="text-slate-300">×</span>
+                        <span className="text-coral-500 font-medium">커리어리 AI</span>
+                      </div>
+                      <span className="text-sm text-slate-400">
+                        {selectedContent.companyData.type === 'blog' ? '기술 블로그 분석' : '채용 공고 분석'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 콘텐츠 제목 */}
+                  <h2 className="text-xl font-bold text-slate-900 mb-4 leading-snug">
+                    {selectedContent.companyData.item.title}
+                  </h2>
+
+                  {/* AI 분석 내용 */}
+                  <div className="bg-gradient-to-br from-slate-50 to-coral-50/30 rounded-xl p-5 mb-6 border border-slate-100">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-8 w-8 rounded-full bg-coral-500 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="font-medium text-slate-700">커리어리 AI의 분석</span>
+                    </div>
+                    <div className="prose prose-sm prose-slate max-w-none">
+                      {selectedContent.companyData.item.aiAnalysis.split('\n\n').map((paragraph, idx) => {
+                        // 볼드 처리된 제목 감지
+                        if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                          return (
+                            <h4 key={idx} className="text-base font-semibold text-slate-800 mt-4 mb-2">
+                              {paragraph.replace(/\*\*/g, '')}
+                            </h4>
+                          );
+                        }
+                        // 리스트 항목 감지
+                        if (paragraph.includes('\n-') || paragraph.startsWith('-')) {
+                          const lines = paragraph.split('\n');
+                          return (
+                            <div key={idx}>
+                              {lines.map((line, lineIdx) => {
+                                if (line.startsWith('-')) {
+                                  return (
+                                    <p key={lineIdx} className="text-slate-600 leading-relaxed pl-4 my-1">
+                                      • {line.substring(1).trim()}
+                                    </p>
+                                  );
+                                }
+                                if (line.startsWith('**') && line.endsWith('**')) {
+                                  return (
+                                    <h4 key={lineIdx} className="text-base font-semibold text-slate-800 mt-4 mb-2">
+                                      {line.replace(/\*\*/g, '')}
+                                    </h4>
+                                  );
+                                }
+                                return line ? (
+                                  <p key={lineIdx} className="text-slate-600 leading-relaxed my-2">
+                                    {line}
+                                  </p>
+                                ) : null;
+                              })}
+                            </div>
+                          );
+                        }
+                        // 번호 리스트 감지
+                        if (/^\d+\./.test(paragraph)) {
+                          return (
+                            <p key={idx} className="text-slate-600 leading-relaxed my-2 pl-4">
+                              {paragraph}
+                            </p>
+                          );
+                        }
+                        // 일반 문단
+                        return (
+                          <p key={idx} className="text-slate-600 leading-relaxed my-3">
+                            {paragraph.replace(/\*\*/g, '')}
+                          </p>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 원문 보기 버튼 */}
+                  <a
+                    href={selectedContent.companyData.item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {selectedContent.companyData.type === 'blog' ? '원문 보러가기' : '채용 공고 보러가기'}
+                  </a>
+                </div>
               )}
             </div>
           </div>

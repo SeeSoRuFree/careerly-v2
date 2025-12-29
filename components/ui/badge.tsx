@@ -8,11 +8,12 @@ const badgeVariants = cva(
   {
     variants: {
       tone: {
-        default: "bg-slate-100 text-slate-700 border border-slate-200",
-        slate: "bg-slate-700 text-white border border-slate-700",
-        coral: "bg-coral-100 text-coral-600 border border-coral-200",
-        success: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-        warning: "bg-amber-100 text-amber-700 border border-amber-200",
+        default: "bg-slate-100 text-slate-600 border border-slate-200",
+        slate: "bg-slate-800 text-white border border-slate-800",
+        coral: "bg-coral-50 text-coral-600 border border-coral-200",
+        // 기존 success/warning을 slate 계열로 통일
+        success: "bg-slate-800 text-white border border-slate-800",
+        warning: "bg-slate-100 text-slate-600 border border-slate-200",
       },
     },
     defaultVariants: {

@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useState, useRef, useEffect } from 'react';
-import Linkify from 'linkify-react';
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from '@/components/ui/link';
@@ -19,13 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
-import { MessageCircle, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
-
-const linkifyOptions = {
-  className: 'text-coral-500 hover:text-coral-600 underline break-all',
-  target: '_blank',
-  rel: 'noopener noreferrer',
-};
+import { MessageCircle, Eye, Clock, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
 
 export interface QnaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   qnaId: number;
@@ -77,13 +70,9 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
     },
     ref
   ) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [isTruncated, setIsTruncated] = useState(false);
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [blockDialogOpen, setBlockDialogOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const contentRef = useRef<HTMLParagraphElement>(null);
-    const MAX_HEIGHT = 96; // 약 4줄 높이 (line-height: 1.625 * font-size: 14px * 4줄)
 
     // Auth & Report/Block hooks
     const { data: currentUser } = useCurrentUser();
@@ -126,16 +115,7 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
       });
     };
 
-    // 높이 기반 truncate 체크
-    useEffect(() => {
-      const el = contentRef.current;
-      if (el) {
-        setIsTruncated(el.scrollHeight > MAX_HEIGHT);
-      }
-    }, [description]);
-
     const tags = hashTagNames ? hashTagNames.split(' ').filter(Boolean) : [];
-    const hasAnswer = answerCount > 0;
 
     return (
       <Card
@@ -143,11 +123,12 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         onClick={onClick}
         className={cn(
           'p-6 transition-all duration-200',
-          onClick && 'cursor-pointer hover:shadow-md hover:border-coral-200',
+          onClick && 'cursor-pointer hover:shadow-md hover:border-slate-300',
           className
         )}
         {...props}
       >
+
         {/* Author Profile with Status Badges */}
         <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
           <div className="flex items-center justify-between">
@@ -313,48 +294,14 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
         )}
 
         {/* Title */}
-        <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">
+        <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-2 leading-snug tracking-tight">
           {title}
         </h3>
 
         {/* Description */}
-        <div className="mb-2">
-          <p
-            ref={contentRef}
-            className={cn(
-              'text-sm text-slate-700 leading-relaxed whitespace-pre-wrap break-all overflow-hidden'
-            )}
-            style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
-          >
-            <Linkify options={linkifyOptions}>
-              {description}
-            </Linkify>
-          </p>
-
-          {/* More/Less Button */}
-          {isTruncated && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-              }}
-              className="inline-flex items-center gap-1 text-coral-500 hover:text-coral-600 transition-colors text-sm font-medium mt-2 group"
-              aria-label={isExpanded ? '접기' : '더보기'}
-            >
-              {isExpanded ? (
-                <>
-                  <span>접기</span>
-                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[-2px] transition-transform rotate-180" />
-                </>
-              ) : (
-                <>
-                  <span>더보기</span>
-                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[2px] transition-transform" />
-                </>
-              )}
-            </button>
-          )}
-        </div>
+        <p className="text-sm text-slate-600 leading-relaxed line-clamp-4 mb-2">
+          {description}
+        </p>
 
         {/* Meta Info */}
         <div className="flex items-center justify-between pt-2">
@@ -375,12 +322,9 @@ export const QnaCard = React.forwardRef<HTMLDivElement, QnaCardProps>(
             )}
           </div>
 
-          {/* Answer Status Text */}
-          <span className={cn(
-            'text-xs font-medium',
-            hasAnswer ? 'text-green-600' : 'text-coral-500'
-          )}>
-            {hasAnswer ? `답변 ${answerCount}` : '미답변'}
+          {/* Answer Count or 미답변 */}
+          <span className="text-xs text-slate-500">
+            {answerCount > 0 ? `답변 ${answerCount}` : '미답변'}
           </span>
         </div>
 

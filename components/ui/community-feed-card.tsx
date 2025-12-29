@@ -23,11 +23,11 @@ import { useReportContent, useBlockUser, useCurrentUser, CONTENT_TYPE } from '@/
 import { useInfinitePostLikers } from '@/lib/api/hooks/queries/usePosts';
 import { useStore } from '@/hooks/useStore';
 import { useRouter } from 'next/navigation';
-import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, ChevronDown, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Bookmark, Eye, Clock, MoreVertical, Flag, Ban, Pencil, Trash2 } from 'lucide-react';
 import { ImageViewer } from '@/components/ui/image-viewer';
 
 const linkifyOptions = {
-  className: 'text-coral-500 hover:text-coral-600 underline break-all',
+  className: 'text-slate-700 hover:text-slate-900 underline break-all',
   target: '_blank',
   rel: 'noopener noreferrer',
 };
@@ -100,7 +100,6 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     },
     ref
   ) => {
-    const [isExpanded, setIsExpanded] = useState(false);
     const [isTruncated, setIsTruncated] = useState(false);
     const [reportDialogOpen, setReportDialogOpen] = useState(false);
     const [blockDialogOpen, setBlockDialogOpen] = useState(false);
@@ -109,7 +108,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
     const [imageViewerOpen, setImageViewerOpen] = useState(false);
     const [imageViewerIndex, setImageViewerIndex] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
-    const MAX_HEIGHT = 96; // 약 4줄 높이 (line-height: 1.625 * font-size: 14px * 4줄)
+    const MAX_HEIGHT = 400; // 약 15줄 높이
     const router = useRouter();
 
     // Auth & Report/Block hooks
@@ -355,8 +354,8 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
         ref={ref}
         onClick={onClick}
         className={cn(
-          'p-6 transition-all duration-200',
-          onClick && 'cursor-pointer hover:shadow-md hover:border-coral-200',
+          'p-8 transition-all duration-200',
+          onClick && 'cursor-pointer hover:border-slate-200',
           className
         )}
         {...props}
@@ -445,7 +444,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
 
         {/* Title */}
         {title && (
-          <h3 className="text-base font-semibold text-slate-900 mb-2 leading-snug">
+          <h3 className="text-lg sm:text-xl font-semibold text-slate-900 mb-4 leading-snug tracking-tight">
             {title}
           </h3>
         )}
@@ -456,10 +455,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             <div
               ref={contentRef}
               className={cn(
-                'text-slate-900 text-sm leading-relaxed whitespace-pre-wrap break-all overflow-hidden',
-                contentHtml && 'prose prose-sm max-w-none'
+                'text-slate-900 text-[15px] sm:text-base leading-[1.7] tracking-[-0.01em] whitespace-pre-wrap break-all overflow-hidden',
+                contentHtml && 'prose prose-sm sm:prose-base max-w-none prose-community'
               )}
-              style={!isExpanded ? { maxHeight: MAX_HEIGHT } : undefined}
+              style={{ maxHeight: MAX_HEIGHT }}
             >
               {contentHtml ? (
                 <div
@@ -474,37 +473,10 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
               )}
             </div>
             {/* Fade effect when truncated */}
-            {isTruncated && !isExpanded && (
-              <div
-                className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent pointer-events-none"
-                aria-hidden="true"
-              />
+            {isTruncated && (
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
             )}
           </div>
-
-          {/* More/Less Button */}
-          {isTruncated && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
-              }}
-              className="inline-flex items-center gap-1 text-coral-500 hover:text-coral-600 transition-colors text-sm font-medium mt-2 group"
-              aria-label={isExpanded ? '접기' : '더보기'}
-            >
-              {isExpanded ? (
-                <>
-                  <span>접기</span>
-                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[-2px] transition-transform rotate-180" />
-                </>
-              ) : (
-                <>
-                  <span>더보기</span>
-                  <ChevronDown className="h-4 w-4 group-hover:translate-y-[2px] transition-transform" />
-                </>
-              )}
-            </button>
-          )}
         </div>
 
         {/* Images - contentHtml에 포함되지 않은 이미지만 별도 표시 */}
@@ -558,7 +530,7 @@ export const CommunityFeedCard = React.forwardRef<HTMLDivElement, CommunityFeedC
             {stats.likeCount !== undefined && stats.likeCount > 0 && (
               <button
                 onClick={handleLikesClick}
-                className="flex items-center gap-1 hover:text-coral-500 transition-colors"
+                className="flex items-center gap-1 hover:text-slate-700 transition-colors"
               >
                 <Heart className="h-3.5 w-3.5" />
                 <span>{stats.likeCount.toLocaleString()} 좋아요</span>
