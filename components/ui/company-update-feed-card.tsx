@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { Bot } from 'lucide-react';
+import { Bot, Newspaper, Briefcase } from 'lucide-react';
 
 export interface CompanyContentItem {
   title: string;
@@ -127,6 +127,19 @@ export const CompanyUpdateFeedCard = React.forwardRef<HTMLDivElement, CompanyUpd
         )}
         {...props}
       >
+        {/* Header - 태그 스타일 */}
+        <div className="mb-4">
+          <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+            type === 'blog'
+              ? "bg-blue-50 text-blue-600"
+              : "bg-emerald-50 text-emerald-600"
+          )}>
+            {type === 'blog' ? <Newspaper className="h-3 w-3" /> : <Briefcase className="h-3 w-3" />}
+            {type === 'blog' ? 'Tech Blog' : 'Job Opening'}
+          </span>
+        </div>
+
         {/* 헤더 - 기업 + AI 프로필 */}
         <div className="flex items-start gap-3 mb-4">
           {/* 기업 로고 + AI 아이콘 */}
@@ -155,17 +168,17 @@ export const CompanyUpdateFeedCard = React.forwardRef<HTMLDivElement, CompanyUpd
         </div>
 
         {/* 콘텐츠 제목 */}
-        <h3 className="text-base sm:text-lg font-semibold text-slate-900 leading-snug tracking-tight mb-2">
+        <h3 className="text-lg sm:text-xl font-semibold text-slate-900 leading-snug tracking-tight mb-3">
           {item.title}
         </h3>
 
         {/* 콘텐츠 요약 */}
-        <p className="text-sm text-slate-600 leading-relaxed line-clamp-6 mb-3">
+        <p className="text-[15px] sm:text-base text-slate-600 leading-relaxed line-clamp-6 mb-4">
           {item.contentSummary}
         </p>
 
         {/* 개인화 분석 받기 버튼 */}
-        <p className="text-sm text-coral-500 font-medium">
+        <p className="text-[15px] sm:text-base text-coral-500 font-medium">
           내 프로필 기반으로 분석 받기 →
         </p>
       </Card>

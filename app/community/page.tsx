@@ -18,7 +18,7 @@ import { CompanyUpdateFeedCard, MOCK_COMPANY_CONTENTS } from '@/components/ui/co
 import { RecommendedUserPairContainer, type RecentPost, type ProfileInfo } from '@/components/ui/recommended-user-card';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye, MoreVertical, Pencil, Trash2, EyeOff } from 'lucide-react';
+import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye, MoreVertical, Pencil, Trash2, EyeOff, FileText } from 'lucide-react';
 import { AdBanner } from '@/components/ui/ad-banner';
 import {
   DropdownMenu,
@@ -68,8 +68,8 @@ type UserProfile = {
 
 type CompanyContentData = {
   type: 'blog' | 'jobs';
-  company: { name: string; logoUrl: string; siteUrl: string };
-  item: { title: string; url: string; summary: string; aiAnalysis: string };
+  company: { name: string; logoUrl: string; siteUrl: string; brandColor: string };
+  item: { title: string; url: string; publishedAt: string; contentSummary: string; aiAnalysis: string };
 };
 
 type SelectedContent = {
@@ -683,6 +683,141 @@ function QnaDetailDrawerContent({
   );
 }
 
+// 블로그/채용공고 상세 콘텐츠 컴포넌트
+function CompanyDetailContent({ companyData }: { companyData: { type: 'blog' | 'jobs'; company: { name: string; brandColor: string }; item: { title: string; url: string; contentSummary: string; aiAnalysis: string } } }) {
+  const [showAiAnalysis, setShowAiAnalysis] = React.useState(false);
+
+  return (
+    <div className="p-6">
+      {/* 기업 헤더 */}
+      <div className="flex items-center gap-3 mb-6">
+        <div
+          className="h-12 w-12 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: companyData.company.brandColor }}
+        >
+          <span className="text-xl font-bold text-white">
+            {companyData.company.name.charAt(0)}
+          </span>
+        </div>
+        <div>
+          <span className="font-semibold text-slate-900">{companyData.company.name}</span>
+          <p className="text-sm text-slate-400">
+            {companyData.type === 'blog' ? '기술 블로그' : '채용 공고'}
+          </p>
+        </div>
+      </div>
+
+      {/* 콘텐츠 제목 */}
+      <h2 className="text-xl font-bold text-slate-900 mb-4 leading-snug">
+        {companyData.item.title}
+      </h2>
+
+      {/* 긴글 요약 */}
+      <div className="bg-slate-50 rounded-xl p-5 mb-6 border border-slate-100">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText className="h-4 w-4 text-slate-500" />
+          <span className="font-medium text-slate-700">
+            {companyData.type === 'blog' ? '글 요약' : '공고 요약'}
+          </span>
+        </div>
+        <div className="prose prose-sm prose-slate max-w-none">
+          {companyData.item.contentSummary.split('\n\n').map((paragraph, idx) => (
+            <p key={idx} className="text-slate-600 leading-relaxed my-2">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      {/* AI 분석 버튼 또는 AI 분석 내용 */}
+      {!showAiAnalysis ? (
+        <button
+          onClick={() => setShowAiAnalysis(true)}
+          className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-gradient-to-r from-coral-500 to-coral-600 text-white rounded-xl font-medium hover:from-coral-600 hover:to-coral-700 transition-all mb-4"
+        >
+          <Bot className="h-4 w-4" />
+          커리어리 AI 분석 보기
+        </button>
+      ) : (
+        <div className="bg-gradient-to-br from-slate-50 to-coral-50/30 rounded-xl p-5 mb-6 border border-slate-100">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-8 w-8 rounded-full bg-coral-500 flex items-center justify-center">
+              <Bot className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-medium text-slate-700">커리어리 AI의 분석</span>
+          </div>
+          <div className="prose prose-sm prose-slate max-w-none">
+            {companyData.item.aiAnalysis.split('\n\n').map((paragraph, idx) => {
+              // 볼드 처리된 제목 감지
+              if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                return (
+                  <h4 key={idx} className="text-base font-semibold text-slate-800 mt-4 mb-2">
+                    {paragraph.replace(/\*\*/g, '')}
+                  </h4>
+                );
+              }
+              // 리스트 항목 감지
+              if (paragraph.includes('\n-') || paragraph.startsWith('-')) {
+                const lines = paragraph.split('\n');
+                return (
+                  <div key={idx}>
+                    {lines.map((line, lineIdx) => {
+                      if (line.startsWith('-')) {
+                        return (
+                          <p key={lineIdx} className="text-slate-600 leading-relaxed pl-4 my-1">
+                            • {line.substring(1).trim()}
+                          </p>
+                        );
+                      }
+                      if (line.startsWith('**') && line.endsWith('**')) {
+                        return (
+                          <h4 key={lineIdx} className="text-base font-semibold text-slate-800 mt-4 mb-2">
+                            {line.replace(/\*\*/g, '')}
+                          </h4>
+                        );
+                      }
+                      return line ? (
+                        <p key={lineIdx} className="text-slate-600 leading-relaxed my-2">
+                          {line}
+                        </p>
+                      ) : null;
+                    })}
+                  </div>
+                );
+              }
+              // 번호 리스트 감지
+              if (/^\d+\./.test(paragraph)) {
+                return (
+                  <p key={idx} className="text-slate-600 leading-relaxed my-2 pl-4">
+                    {paragraph}
+                  </p>
+                );
+              }
+              // 일반 문단
+              return (
+                <p key={idx} className="text-slate-600 leading-relaxed my-3">
+                  {paragraph.replace(/\*\*/g, '')}
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 원문 보기 버튼 */}
+      <a
+        href={companyData.item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors"
+      >
+        <ExternalLink className="h-4 w-4" />
+        {companyData.type === 'blog' ? '원문 보러가기' : '채용 공고 보러가기'}
+      </a>
+    </div>
+  );
+}
+
 function CommunityPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -776,12 +911,8 @@ function CommunityPageContent() {
   // 탭 변경 핸들러
   const handleTabChange = (tab: 'explore' | 'recommend' | 'qna' | 'following') => {
     setContentFilter(tab);
-    // URL 업데이트 - explore는 기본값이므로 파라미터 없이
-    if (tab === 'explore') {
-      router.push('/community');
-    } else {
-      router.push(`/community?tab=${tab}`);
-    }
+    // URL 업데이트 - 모든 탭을 명시적으로 URL에 표시 (자동 리다이렉트 방지)
+    router.push(`/community?tab=${tab}`);
   };
 
   // 로그인 사용자: URL 파라미터 없이 접근 시 팔로잉 3명 이상이면 '팔로잉' 탭, 아니면 '둘러보기' 탭
@@ -837,10 +968,15 @@ function CommunityPageContent() {
     error: followingPostsError,
   } = useFollowingPosts(1, { enabled: !!user });
 
-  // 팔로잉 탭 빈 상태 확인
+  // 팔로잉 탭에서 추천 사용자 카드를 보여줄지 확인
+  // 1) 팔로잉 포스트가 없거나 2) 팔로잉이 3명 미만이면 추천 사용자 카드 표시
   const isFollowingEmpty = contentFilter === 'following' &&
     !isLoadingFollowingPosts &&
     (!followingPostsData?.results || followingPostsData.results.length === 0);
+
+  const shouldShowRecommendedUsers = contentFilter === 'following' &&
+    !isLoadingFollowingPosts &&
+    !isFollowingTabEnabled;  // 3명 미만 팔로잉 시 항상 추천 카드 표시
 
   // 추천 사용자 2명씩 페이지네이션 상태
   const [currentPairIndex, setCurrentPairIndex] = React.useState(0);
@@ -848,24 +984,27 @@ function CommunityPageContent() {
   // 현재 표시할 2명
   const currentPair = recommendedFollowersCandidates?.slice(currentPairIndex, currentPairIndex + 2);
 
+  // 추천 사용자 카드 표시 여부 (3명 미만 팔로잉 또는 팔로잉 포스트 없음)
+  const showRecommendedCards = shouldShowRecommendedUsers || isFollowingEmpty;
+
   // 각 사용자의 프로필 상세 조회
   const { data: profile1 } = useProfileByUserId(
     currentPair?.[0]?.user_id ?? 0,
-    { enabled: !!currentPair?.[0] && isFollowingEmpty }
+    { enabled: !!currentPair?.[0] && showRecommendedCards }
   );
   const { data: profile2 } = useProfileByUserId(
     currentPair?.[1]?.user_id ?? 0,
-    { enabled: !!currentPair?.[1] && isFollowingEmpty }
+    { enabled: !!currentPair?.[1] && showRecommendedCards }
   );
 
   // 각 사용자의 최근 포스트 3개 조회
   const { data: posts1 } = usePosts(
     { user_id: currentPair?.[0]?.user_id, page_size: 3 },
-    { enabled: !!currentPair?.[0] && isFollowingEmpty }
+    { enabled: !!currentPair?.[0] && showRecommendedCards }
   );
   const { data: posts2 } = usePosts(
     { user_id: currentPair?.[1]?.user_id, page_size: 3 },
-    { enabled: !!currentPair?.[1] && isFollowingEmpty }
+    { enabled: !!currentPair?.[1] && showRecommendedCards }
   );
 
   // 프로필 캐시 (전환 시 매번 조회하지 않도록)
@@ -1424,6 +1563,24 @@ function CommunityPageContent() {
           : hasNextPosts || hasNextQuestions;
 
   // Transform recommended followers data for RecommendedFollowersPanel and FeedCard
+  // 피드 카드용: 팔로우 안 한 사람만 필터링
+  const recommendedFollowersForFeed = React.useMemo(() => {
+    if (!recommendedFollowersCandidates || recommendedFollowersCandidates.length === 0) return [];
+
+    return recommendedFollowersCandidates
+      .filter((follower) => !follower.is_following) // 팔로우 안 한 사람만
+      .map((follower) => ({
+        id: follower.user_id.toString(),
+        profileId: follower.id,
+        name: follower.name,
+        image_url: follower.image_url || undefined,
+        headline: follower.headline || undefined,
+        isFollowing: false,
+        follower_count: follower.follower_count,
+      }));
+  }, [recommendedFollowersCandidates]);
+
+  // 사이드바 패널용: 기존 형식 유지
   const recommendedFollowers = React.useMemo(() => {
     if (!recommendedFollowersCandidates || recommendedFollowersCandidates.length === 0) return [];
 
@@ -1447,8 +1604,8 @@ function CommunityPageContent() {
           <div className="pt-2 md:pt-16 pb-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
-                {/* 로그인 사용자: 팔로잉 탭 (3명 이상 팔로잉 시에만 활성화) */}
-                {user && isFollowingTabEnabled && (
+                {/* 로그인 사용자: 팔로잉 탭 (항상 클릭 가능, 팔로잉 부족 시 추천 화면 표시) */}
+                {user && (
                   <Chip
                     variant={contentFilter === 'following' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('following')}
@@ -1456,19 +1613,6 @@ function CommunityPageContent() {
                   >
                     팔로잉
                   </Chip>
-                )}
-                {user && !isFollowingTabEnabled && (
-                  <div className="relative group shrink-0">
-                    <Chip
-                      variant="default"
-                      className="opacity-50 cursor-not-allowed"
-                    >
-                      팔로잉
-                    </Chip>
-                    <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-slate-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                      3명 이상 팔로우하면 활성화돼요
-                    </div>
-                  </div>
                 )}
                 <Chip
                   variant={contentFilter === 'explore' ? 'selected' : 'default'}
@@ -1518,16 +1662,16 @@ function CommunityPageContent() {
             </div>
           )}
 
-          {/* Empty State - 팔로잉 탭: 추천 사용자 카드 2명씩 */}
-          {isFollowingEmpty && recommendedFollowersCandidates && recommendedFollowersCandidates.length > 0 && (
+          {/* 팔로잉 탭: 3명 미만 팔로잉 시 추천 사용자 카드 표시 */}
+          {showRecommendedCards && recommendedFollowersCandidates && recommendedFollowersCandidates.length > 0 && (
             <div className="py-8">
               <div className="text-center mb-6">
                 <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-slate-900 mb-1">
-                  이런 분들을 팔로우해보세요
+                  3명 이상 팔로우하면 맞춤 피드가 활성화돼요!
                 </h3>
                 <p className="text-sm text-slate-500">
-                  관심 있는 사람들을 팔로우하고 그들의 소식을 받아보세요
+                  현재 {myFollowingCount}명 팔로우 중 · {3 - myFollowingCount}명 더 필요
                 </p>
               </div>
 
@@ -1563,8 +1707,8 @@ function CommunityPageContent() {
             </div>
           )}
 
-          {/* Feed Layout */}
-          {filteredContent.length > 0 && (
+          {/* Feed Layout - 팔로잉 탭에서 3명 미만일 때는 피드 숨김 */}
+          {filteredContent.length > 0 && !(contentFilter === 'following' && !isFollowingTabEnabled) && (
             <>
               {/* 모바일: 첫 1개 피드 */}
               <div className="lg:hidden space-y-4">
@@ -1702,20 +1846,24 @@ function CommunityPageContent() {
                       <TopPostsFeedCard
                         key="mobile-top-posts-card"
                         maxItems={5}
-                        onPostClick={(postId) => handleOpenPost(postId)}
+                        onPostClick={(postId) => handleOpenPost(postId.toString())}
                       />
                     );
                   }
 
-                  // 9번째 아이템 후에 추천 팔로워 카드 삽입 (로그인 사용자만)
-                  if (realIndex === 9 && user && recommendedFollowers.length > 0) {
+                  // 9번째 아이템 후에 추천 팔로워 카드 삽입 (로그인 사용자만, 1명씩)
+                  if (realIndex === 9 && user && recommendedFollowersForFeed.length > 0) {
+                    const follower = recommendedFollowersForFeed[0];
+                    const userId = parseInt(follower.id);
                     elements.push(
                       <RecommendedFollowersFeedCard
                         key="mobile-recommended-followers-card"
-                        followers={recommendedFollowers}
-                        maxItems={5}
+                        follower={follower}
+                        profile={profilesCache[userId]}
+                        recentPosts={userPostsCache[userId] || []}
                         onFollow={handleFollowUser}
                         onUnfollow={handleUnfollowUser}
+                        onPostClick={(postId) => handleOpenPost(postId.toString())}
                       />
                     );
                   }
@@ -1904,21 +2052,25 @@ function CommunityPageContent() {
                         <div key="top-posts-card" className="mb-6">
                           <TopPostsFeedCard
                             maxItems={5}
-                            onPostClick={(postId) => handleOpenPost(postId)}
+                            onPostClick={(postId) => handleOpenPost(postId.toString())}
                           />
                         </div>
                       );
                     }
 
-                    // 9번째 아이템 후에 추천 팔로워 카드 삽입 (로그인 사용자만)
-                    if (index === 9 && user && recommendedFollowers.length > 0) {
+                    // 9번째 아이템 후에 추천 팔로워 카드 삽입 (로그인 사용자만, 1명씩)
+                    if (index === 9 && user && recommendedFollowersForFeed.length > 0) {
+                      const follower = recommendedFollowersForFeed[0];
+                      const userId = parseInt(follower.id);
                       elements.push(
                         <div key="recommended-followers-card" className="mb-6">
                           <RecommendedFollowersFeedCard
-                            followers={recommendedFollowers}
-                            maxItems={5}
+                            follower={follower}
+                            profile={profilesCache[userId]}
+                            recentPosts={userPostsCache[userId] || []}
                             onFollow={handleFollowUser}
                             onUnfollow={handleUnfollowUser}
+                            onPostClick={(postId) => handleOpenPost(postId.toString())}
                           />
                         </div>
                       );
@@ -2092,8 +2244,8 @@ function CommunityPageContent() {
             </>
           )}
 
-          {/* Load More */}
-          {filteredContent.length > 0 && (
+          {/* Load More - 팔로잉 탭에서 3명 미만일 때는 숨김 */}
+          {filteredContent.length > 0 && !(contentFilter === 'following' && !isFollowingTabEnabled) && (
             <LoadMore
               hasMore={!!hasMoreData}
               loading={isLoading}
@@ -2156,115 +2308,7 @@ function CommunityPageContent() {
                 />
               )}
               {selectedContent.type === 'company' && selectedContent.companyData && (
-                <div className="p-6">
-                  {/* 기업 + AI 헤더 */}
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="relative">
-                      <div
-                        className="h-12 w-12 rounded-xl flex items-center justify-center"
-                        style={{ backgroundColor: selectedContent.companyData.company.brandColor }}
-                      >
-                        <span className="text-xl font-bold text-white">
-                          {selectedContent.companyData.company.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-coral-500 flex items-center justify-center ring-2 ring-white">
-                        <Bot className="h-3.5 w-3.5 text-white" />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-900">{selectedContent.companyData.company.name}</span>
-                        <span className="text-slate-300">×</span>
-                        <span className="text-coral-500 font-medium">커리어리 AI</span>
-                      </div>
-                      <span className="text-sm text-slate-400">
-                        {selectedContent.companyData.type === 'blog' ? '기술 블로그 분석' : '채용 공고 분석'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* 콘텐츠 제목 */}
-                  <h2 className="text-xl font-bold text-slate-900 mb-4 leading-snug">
-                    {selectedContent.companyData.item.title}
-                  </h2>
-
-                  {/* AI 분석 내용 */}
-                  <div className="bg-gradient-to-br from-slate-50 to-coral-50/30 rounded-xl p-5 mb-6 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="h-8 w-8 rounded-full bg-coral-500 flex items-center justify-center">
-                        <Bot className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="font-medium text-slate-700">커리어리 AI의 분석</span>
-                    </div>
-                    <div className="prose prose-sm prose-slate max-w-none">
-                      {selectedContent.companyData.item.aiAnalysis.split('\n\n').map((paragraph, idx) => {
-                        // 볼드 처리된 제목 감지
-                        if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                          return (
-                            <h4 key={idx} className="text-base font-semibold text-slate-800 mt-4 mb-2">
-                              {paragraph.replace(/\*\*/g, '')}
-                            </h4>
-                          );
-                        }
-                        // 리스트 항목 감지
-                        if (paragraph.includes('\n-') || paragraph.startsWith('-')) {
-                          const lines = paragraph.split('\n');
-                          return (
-                            <div key={idx}>
-                              {lines.map((line, lineIdx) => {
-                                if (line.startsWith('-')) {
-                                  return (
-                                    <p key={lineIdx} className="text-slate-600 leading-relaxed pl-4 my-1">
-                                      • {line.substring(1).trim()}
-                                    </p>
-                                  );
-                                }
-                                if (line.startsWith('**') && line.endsWith('**')) {
-                                  return (
-                                    <h4 key={lineIdx} className="text-base font-semibold text-slate-800 mt-4 mb-2">
-                                      {line.replace(/\*\*/g, '')}
-                                    </h4>
-                                  );
-                                }
-                                return line ? (
-                                  <p key={lineIdx} className="text-slate-600 leading-relaxed my-2">
-                                    {line}
-                                  </p>
-                                ) : null;
-                              })}
-                            </div>
-                          );
-                        }
-                        // 번호 리스트 감지
-                        if (/^\d+\./.test(paragraph)) {
-                          return (
-                            <p key={idx} className="text-slate-600 leading-relaxed my-2 pl-4">
-                              {paragraph}
-                            </p>
-                          );
-                        }
-                        // 일반 문단
-                        return (
-                          <p key={idx} className="text-slate-600 leading-relaxed my-3">
-                            {paragraph.replace(/\*\*/g, '')}
-                          </p>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 원문 보기 버튼 */}
-                  <a
-                    href={selectedContent.companyData.item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {selectedContent.companyData.type === 'blog' ? '원문 보러가기' : '채용 공고 보러가기'}
-                  </a>
-                </div>
+                <CompanyDetailContent companyData={selectedContent.companyData} />
               )}
             </div>
           </div>

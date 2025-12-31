@@ -33,10 +33,10 @@ export const TopPostsFeedCard = React.forwardRef<HTMLDivElement, TopPostsFeedCar
 
     return (
       <Card ref={ref} className={cn('p-6 cursor-default', className)} {...props}>
-        {/* Header - 심플하게 */}
-        <div className="flex items-center gap-2 mb-5">
-          <TrendingUp className="h-4 w-4 text-slate-400" />
-          <span className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+        {/* Header - 태그 스타일 */}
+        <div className="mb-5">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-medium">
+            <TrendingUp className="h-3 w-3" />
             Trending
           </span>
         </div>
@@ -63,10 +63,10 @@ export const TopPostsFeedCard = React.forwardRef<HTMLDivElement, TopPostsFeedCar
 
                 {/* Content */}
                 <div className="flex-1 min-w-0 pt-1">
-                  <h4 className="text-sm font-medium text-slate-900 line-clamp-2 leading-snug group-hover:text-slate-600 transition-colors">
+                  <h4 className="text-[15px] sm:text-base font-medium text-slate-900 line-clamp-2 leading-snug group-hover:text-slate-600 transition-colors">
                     {title}
                   </h4>
-                  <p className="text-xs text-slate-400 mt-1.5">
+                  <p className="text-sm text-slate-400 mt-1.5">
                     {post.author?.name || '알 수 없음'}
                   </p>
                 </div>

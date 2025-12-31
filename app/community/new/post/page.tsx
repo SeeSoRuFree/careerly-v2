@@ -19,8 +19,12 @@ import {
   ListOrdered,
   Code,
   Plus,
-  Loader2
+  Loader2,
+  Megaphone,
+  Info,
+  ExternalLink
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useCurrentUser, useCreatePost, useUploadPostImage } from '@/lib/api';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -45,6 +49,7 @@ export default function NewPostPage() {
   const [title, setTitle] = React.useState('');
   const [showTitle, setShowTitle] = React.useState(false);
   const [isSaved, setIsSaved] = React.useState(false);
+  const [isPromotion, setIsPromotion] = React.useState(false);
   const createPostMutation = useCreatePost();
   const uploadImageMutation = useUploadPostImage();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -466,6 +471,63 @@ export default function NewPostPage() {
                 onChange={handleImageUpload}
                 className="hidden"
               />
+
+              {/* 홍보글 체크박스 섹션 */}
+              <div className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+                {/* 체크박스 */}
+                <div className="flex items-start gap-3">
+                  <Checkbox
+                    id="promotion"
+                    checked={isPromotion}
+                    onCheckedChange={(checked) => setIsPromotion(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <label
+                    htmlFor="promotion"
+                    className="flex items-center gap-2 text-sm font-medium text-slate-700 cursor-pointer select-none"
+                  >
+                    <Megaphone className="h-4 w-4 text-slate-500" />
+                    홍보글이에요
+                  </label>
+                </div>
+
+                {/* 안내 메시지 - 체크 안 했을 때 */}
+                {!isPromotion && (
+                  <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Info className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-sm text-amber-800 leading-relaxed">
+                      홍보 목적의 글을 작성하시는 경우 반드시 체크해주세요.
+                      <br />
+                      <span className="text-amber-700">
+                        체크하지 않고 홍보글로 판단될 경우, 피드에서 자동으로 미노출될 수 있습니다.
+                      </span>
+                    </p>
+                  </div>
+                )}
+
+                {/* 안내 메시지 - 체크했을 때 (유료 상품 안내) */}
+                {isPromotion && (
+                  <div className="flex items-start gap-2.5 p-3 bg-coral-50 border border-coral-200 rounded-lg">
+                    <Megaphone className="h-4 w-4 text-coral-600 mt-0.5 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm text-coral-800 leading-relaxed mb-2">
+                        홍보글은 일반 피드 노출이 제한됩니다.
+                        <br />
+                        더 많은 사용자에게 도달하고 싶으시다면 유료 홍보 상품을 이용해보세요.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-coral-600 border-coral-300 hover:bg-coral-100 hover:text-coral-700"
+                        onClick={() => window.open('https://publyco.notion.site/1523c8c5199580a39cb9d854a7dbd767', '_blank')}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                        유료 홍보 상품 알아보기
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
