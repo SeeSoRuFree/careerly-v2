@@ -10,7 +10,7 @@ import { TopAlertBanner, TopAlertProvider, useTopAlert } from '@/components/ui/t
 import { PullToRefresh } from '@/components/ui/pull-to-refresh';
 import { LoginModal, SignupModal } from '@/components/auth';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { MessageSquare, Sparkles, Users, Settings, LogIn, Menu } from 'lucide-react';
+import { MessageSquare, Sparkles, Users, Settings, LogIn, Menu, MessageSquareHeart } from 'lucide-react';
 import { useCurrentUser, useLogout } from '@/lib/api';
 import { useStore } from '@/hooks/useStore';
 import { cn } from '@/lib/utils';
@@ -40,6 +40,8 @@ function AppLayoutContent({ children }: AppLayoutProps) {
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState(false);
   // 로그아웃 확인 다이얼로그 상태
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+  // 피드백 모달 상태
+  const [showFeedbackModal, setShowFeedbackModal] = React.useState(false);
 
   // Get modal state from Zustand store
   const { isLoginModalOpen, openLoginModal, closeLoginModal } = useStore();
@@ -129,8 +131,11 @@ function AppLayoutContent({ children }: AppLayoutProps) {
       { label: 'Discover', path: '/discover', icon: Sparkles },
       { label: 'Community', path: '/community', icon: Users },
     ],
-    // 비로그인 상태에서는 Settings 메뉴 숨김
-    utilities: currentUser ? [{ label: 'Settings', path: '/settings', icon: Settings }] : [],
+    // 피드백은 항상 표시, Settings는 로그인 시에만
+    utilities: [
+      { label: '피드백 보내기', onItemClick: () => setShowFeedbackModal(true), icon: MessageSquareHeart },
+      ...(currentUser ? [{ label: 'Settings', path: '/settings', icon: Settings }] : []),
+    ],
     account: currentUser
       ? {
           name: currentUser.name,
@@ -281,6 +286,21 @@ function AppLayoutContent({ children }: AppLayoutProps) {
         cancelText="취소"
         variant="danger"
         isLoading={logout.isPending}
+      />
+
+      {/* 피드백 모달 */}
+      <ConfirmDialog
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        onConfirm={() => {
+          window.open('https://feedback.careerly.co.kr/', '_blank');
+          setShowFeedbackModal(false);
+        }}
+        title="피드백 보내기"
+        description="커리어리를 더 좋게 만들기 위해 여러분의 소중한 의견을 기다리고 있어요. 불편한 점, 개선 아이디어, 칭찬 무엇이든 좋아요!"
+        confirmText="피드백 남기기"
+        cancelText="닫기"
+        variant="default"
       />
     </div>
   );

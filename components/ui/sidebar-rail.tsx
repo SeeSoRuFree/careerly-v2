@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, LucideIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LucideIcon, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -51,6 +51,8 @@ export interface SidebarSections {
 export interface NavItemConfig {
   label: string;
   path?: string;
+  externalUrl?: string;  // 외부 링크 (새 창에서 열림)
+  onItemClick?: () => void;  // 클릭 핸들러 (모달 등)
   icon?: LucideIcon;
   badge?: string | number;
   disabled?: boolean;
@@ -195,7 +197,7 @@ const navItemButtonVariants = cva(
   {
     variants: {
       active: {
-        true: 'bg-slate-700 text-white',
+        true: 'text-slate-900',
         false: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
       },
     },
@@ -218,6 +220,8 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
       className,
       label,
       path,
+      externalUrl,
+      onItemClick,
       icon: Icon,
       badge,
       subItems,
@@ -265,6 +269,10 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
     const buttonContent = (
       <>
         {Icon && <Icon className="h-6 w-6 shrink-0" />}
+        {/* Active indicator - coral dot */}
+        {active && (
+          <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-coral-500" />
+        )}
         {badge && (
           <span className="absolute bottom-0 right-0.5 text-[10px] font-medium text-slate-400">
             {badge}
@@ -300,6 +308,25 @@ const NavItemButton = React.forwardRef<HTMLButtonElement, NavItemButtonProps>(
           >
             {buttonContent}
           </button>
+        ) : onItemClick ? (
+          <button
+            className={cn(navItemButtonVariants({ active, className }))}
+            title={label}
+            onClick={onItemClick}
+            disabled={disabled}
+          >
+            {buttonContent}
+          </button>
+        ) : externalUrl ? (
+          <a
+            href={externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(navItemButtonVariants({ active, className }))}
+            title={label}
+          >
+            {buttonContent}
+          </a>
         ) : path ? (
           <Link
             href={path}
@@ -467,7 +494,7 @@ const ctaButtonVariants = cva(
       variant: {
         solid: 'bg-slate-700 text-white hover:bg-slate-800',
         outline: 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
-        coral: 'bg-coral-500 text-white hover:bg-coral-600',
+        coral: 'bg-slate-900 text-white hover:bg-slate-800',
       },
     },
     defaultVariants: {
