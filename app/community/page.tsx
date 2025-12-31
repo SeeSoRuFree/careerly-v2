@@ -15,6 +15,7 @@ import { TopPostsPanel } from '@/components/ui/top-posts-panel';
 import { TopPostsFeedCard } from '@/components/ui/top-posts-feed-card';
 import { RecommendedFollowersFeedCard } from '@/components/ui/recommended-followers-feed-card';
 import { CompanyUpdateFeedCard, MOCK_COMPANY_CONTENTS } from '@/components/ui/company-update-feed-card';
+import { RecommendedUserPairContainer, type RecentPost, type ProfileInfo } from '@/components/ui/recommended-user-card';
 import { LoadMore } from '@/components/ui/load-more';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, MessageCircle, Users, X, ExternalLink, Loader2, PenSquare, HelpCircle, Heart, Link as LinkIcon, ArrowRight, Bot, Clock, Eye, MoreVertical, Pencil, Trash2, EyeOff } from 'lucide-react';
@@ -28,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils/date';
-import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer } from '@/lib/api';
+import { useInfinitePosts, useInfiniteRecommendedPosts, useInfiniteQuestions, useFollowingPosts, usePosts, useLikePost, useUnlikePost, useSavePost, useUnsavePost, useLikeQuestion, useUnlikeQuestion, useRecommendedFollowers, useCurrentUser, useFollowUser, useUnfollowUser, usePost, useComments, useCreateComment, useViewPost, useLikeComment, useUnlikeComment, useQuestion, useQuestionAnswers, useDeletePost, useDeleteQuestion, useUpdateComment, useDeleteComment, useUpdateAnswer, useDeleteAnswer, useCreateQuestionAnswer, useProfileByUserId, useMyProfileDetail } from '@/lib/api';
 import { toast } from 'sonner';
 import { QnaDetail } from '@/components/ui/qna-detail';
 import { PostDetail } from '@/components/ui/post-detail';
@@ -765,6 +766,13 @@ function CommunityPageContent() {
   const { data: user } = useCurrentUser();
   const { openLoginModal } = useStore();
 
+  // 현재 사용자의 프로필 상세 (팔로잉 수 확인용)
+  const { data: myProfile } = useMyProfileDetail(user?.id);
+
+  // 팔로잉 수 (3명 이상이어야 팔로잉 탭 활성화)
+  const myFollowingCount = myProfile?.following_count ?? 0;
+  const isFollowingTabEnabled = myFollowingCount >= 3;
+
   // 탭 변경 핸들러
   const handleTabChange = (tab: 'explore' | 'recommend' | 'qna' | 'following') => {
     setContentFilter(tab);
@@ -776,12 +784,16 @@ function CommunityPageContent() {
     }
   };
 
-  // 로그인 사용자: URL 파라미터 없이 접근 시 '팔로잉' 탭을 기본값으로
+  // 로그인 사용자: URL 파라미터 없이 접근 시 팔로잉 3명 이상이면 '팔로잉' 탭, 아니면 '둘러보기' 탭
   React.useEffect(() => {
     if (user && !tabParam) {
-      setContentFilter('following');
+      if (isFollowingTabEnabled) {
+        setContentFilter('following');
+      } else {
+        setContentFilter('explore');
+      }
     }
-  }, [user, tabParam]);
+  }, [user, tabParam, isFollowingTabEnabled]);
 
   // API Hooks
   const {
@@ -824,6 +836,119 @@ function CommunityPageContent() {
     isLoading: isLoadingFollowingPosts,
     error: followingPostsError,
   } = useFollowingPosts(1, { enabled: !!user });
+
+  // 팔로잉 탭 빈 상태 확인
+  const isFollowingEmpty = contentFilter === 'following' &&
+    !isLoadingFollowingPosts &&
+    (!followingPostsData?.results || followingPostsData.results.length === 0);
+
+  // 추천 사용자 2명씩 페이지네이션 상태
+  const [currentPairIndex, setCurrentPairIndex] = React.useState(0);
+
+  // 현재 표시할 2명
+  const currentPair = recommendedFollowersCandidates?.slice(currentPairIndex, currentPairIndex + 2);
+
+  // 각 사용자의 프로필 상세 조회
+  const { data: profile1 } = useProfileByUserId(
+    currentPair?.[0]?.user_id ?? 0,
+    { enabled: !!currentPair?.[0] && isFollowingEmpty }
+  );
+  const { data: profile2 } = useProfileByUserId(
+    currentPair?.[1]?.user_id ?? 0,
+    { enabled: !!currentPair?.[1] && isFollowingEmpty }
+  );
+
+  // 각 사용자의 최근 포스트 3개 조회
+  const { data: posts1 } = usePosts(
+    { user_id: currentPair?.[0]?.user_id, page_size: 3 },
+    { enabled: !!currentPair?.[0] && isFollowingEmpty }
+  );
+  const { data: posts2 } = usePosts(
+    { user_id: currentPair?.[1]?.user_id, page_size: 3 },
+    { enabled: !!currentPair?.[1] && isFollowingEmpty }
+  );
+
+  // 프로필 캐시 (전환 시 매번 조회하지 않도록)
+  const [profilesCache, setProfilesCache] = React.useState<Record<number, ProfileInfo | null>>({});
+
+  // 추천 사용자들의 포스트 캐시 (최대 3개씩)
+  const [userPostsCache, setUserPostsCache] = React.useState<Record<number, RecentPost[]>>({});
+
+  // 현재 페어의 user_id들 (안정적인 의존성으로 사용)
+  const user1Id = currentPair?.[0]?.user_id;
+  const user2Id = currentPair?.[1]?.user_id;
+
+  // 프로필 캐시 업데이트
+  React.useEffect(() => {
+    if (user1Id && profile1) {
+      setProfilesCache(prev => ({
+        ...prev,
+        [user1Id]: {
+          description: profile1.description,
+          careers: profile1.careers?.map(c => ({
+            company: c.company,
+            title: c.title,
+            is_current: c.is_current,
+          })) || [],
+        },
+      }));
+    }
+  }, [user1Id, profile1]);
+
+  React.useEffect(() => {
+    if (user2Id && profile2) {
+      setProfilesCache(prev => ({
+        ...prev,
+        [user2Id]: {
+          description: profile2.description,
+          careers: profile2.careers?.map(c => ({
+            company: c.company,
+            title: c.title,
+            is_current: c.is_current,
+          })) || [],
+        },
+      }));
+    }
+  }, [user2Id, profile2]);
+
+  // 포스트 캐시 업데이트 (최대 3개)
+  React.useEffect(() => {
+    if (user1Id && posts1?.results) {
+      setUserPostsCache(prev => ({
+        ...prev,
+        [user1Id]: posts1.results.slice(0, 3).map(post => ({
+          id: post.id,
+          title: post.title || '',
+          content: post.description || '',
+          like_count: post.like_count || 0,
+          comment_count: post.comment_count || 0,
+          created_at: post.createdat,
+        })),
+      }));
+    }
+  }, [user1Id, posts1]);
+
+  React.useEffect(() => {
+    if (user2Id && posts2?.results) {
+      setUserPostsCache(prev => ({
+        ...prev,
+        [user2Id]: posts2.results.slice(0, 3).map(post => ({
+          id: post.id,
+          title: post.title || '',
+          content: post.description || '',
+          like_count: post.like_count || 0,
+          comment_count: post.comment_count || 0,
+          created_at: post.createdat,
+        })),
+      }));
+    }
+  }, [user2Id, posts2]);
+
+  // 이전/다음 핸들러 (2명씩)
+  const handlePrevPair = () => setCurrentPairIndex(prev => Math.max(0, prev - 2));
+  const handleNextPair = () => setCurrentPairIndex(prev =>
+    Math.min((recommendedFollowersCandidates?.length || 2) - 2, prev + 2)
+  );
 
   // Mutations
   const likePost = useLikePost();
@@ -1322,8 +1447,8 @@ function CommunityPageContent() {
           <div className="pt-2 md:pt-16 pb-4">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2 overflow-x-auto flex-nowrap scrollbar-hide min-w-0">
-                {/* 로그인 사용자: 팔로잉 탭 먼저 표시 */}
-                {user && (
+                {/* 로그인 사용자: 팔로잉 탭 (3명 이상 팔로잉 시에만 활성화) */}
+                {user && isFollowingTabEnabled && (
                   <Chip
                     variant={contentFilter === 'following' ? 'selected' : 'default'}
                     onClick={() => handleTabChange('following')}
@@ -1331,6 +1456,19 @@ function CommunityPageContent() {
                   >
                     팔로잉
                   </Chip>
+                )}
+                {user && !isFollowingTabEnabled && (
+                  <div className="relative group shrink-0">
+                    <Chip
+                      variant="default"
+                      className="opacity-50 cursor-not-allowed"
+                    >
+                      팔로잉
+                    </Chip>
+                    <div className="absolute left-0 top-full mt-1 px-2 py-1 bg-slate-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      3명 이상 팔로우하면 활성화돼요
+                    </div>
+                  </div>
                 )}
                 <Chip
                   variant={contentFilter === 'explore' ? 'selected' : 'default'}
@@ -1380,8 +1518,46 @@ function CommunityPageContent() {
             </div>
           )}
 
-          {/* Empty State */}
-          {!isLoading && !hasError && filteredContent.length === 0 && (
+          {/* Empty State - 팔로잉 탭: 추천 사용자 카드 2명씩 */}
+          {isFollowingEmpty && recommendedFollowersCandidates && recommendedFollowersCandidates.length > 0 && (
+            <div className="py-8">
+              <div className="text-center mb-6">
+                <Users className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                  이런 분들을 팔로우해보세요
+                </h3>
+                <p className="text-sm text-slate-500">
+                  관심 있는 사람들을 팔로우하고 그들의 소식을 받아보세요
+                </p>
+              </div>
+
+              <RecommendedUserPairContainer
+                users={recommendedFollowersCandidates.map(f => ({
+                  id: f.id,
+                  user_id: f.user_id,
+                  name: f.name,
+                  image_url: f.image_url,
+                  headline: f.headline,
+                  is_following: f.is_following,
+                  follower_count: f.follower_count,
+                }))}
+                profiles={profilesCache}
+                userPosts={userPostsCache}
+                currentPairIndex={currentPairIndex}
+                onPrev={handlePrevPair}
+                onNext={handleNextPair}
+                onFollow={handleFollowUser}
+                onUnfollow={handleUnfollowUser}
+                onPostClick={(postId) => {
+                  setSelectedContent({ type: 'post', id: postId.toString() });
+                  setDrawerOpen(true);
+                }}
+              />
+            </div>
+          )}
+
+          {/* Empty State - 다른 탭: 기본 메시지 */}
+          {!isLoading && !hasError && filteredContent.length === 0 && contentFilter !== 'following' && (
             <div className="text-center py-12">
               <p className="text-slate-600">No content available.</p>
             </div>

@@ -15,7 +15,7 @@ import type { Post, PostListItem, PaginatedPostResponse, PaginatedLikersResponse
 export const postsKeys = {
   all: ['posts'] as const,
   lists: () => [...postsKeys.all, 'list'] as const,
-  list: (page?: number) => [...postsKeys.lists(), { page }] as const,
+  list: (params?: GetPostsParams) => [...postsKeys.lists(), params] as const,
   following: (page?: number) => [...postsKeys.all, 'following', { page }] as const,
   popular: (limit?: number) => [...postsKeys.all, 'popular', { limit }] as const,
   top: (period: TopPostsPeriod, limit?: number) => [...postsKeys.all, 'top', { period, limit }] as const,
@@ -36,7 +36,7 @@ export function usePosts(
   options?: Omit<UseQueryOptions<PaginatedPostResponse, Error>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery<PaginatedPostResponse, Error>({
-    queryKey: postsKeys.list(params?.page),
+    queryKey: postsKeys.list(params),
     queryFn: () => getPosts(params),
     staleTime: 2 * 60 * 1000, // 2분
     gcTime: 10 * 60 * 1000, // 10분
